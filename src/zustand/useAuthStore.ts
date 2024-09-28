@@ -16,7 +16,6 @@ interface AuthState {
   isInvited: boolean;
   lastSignIn: Timestamp | null;
   premium: boolean;
-  credits: number;
 }
 
 interface AuthActions {
@@ -40,7 +39,6 @@ const defaultAuthState: AuthState = {
   isInvited: false,
   lastSignIn: null,
   premium: false,
-  credits: 1000,
 };
 
 export const useAuthStore = create<AuthStore>((set, get) => ({

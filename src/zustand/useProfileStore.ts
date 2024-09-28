@@ -24,7 +24,7 @@ const defaultProfile: ProfileType = {
   displayName: "",
   photoUrl: "",
   emailVerified: false,
-  credits: 0,
+  credits: 1000,
   fireworks_api_key: "",
   openai_api_key: "",
   stability_api_key: "",
