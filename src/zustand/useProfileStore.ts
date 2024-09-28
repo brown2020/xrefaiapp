@@ -18,13 +18,14 @@ export interface ProfileType {
   useCredits: boolean;
 }
 
+// Default profile template for filling missing values locally (not to overwrite Firestore)
 const defaultProfile: ProfileType = {
   email: "",
   contactEmail: "",
   displayName: "",
   photoUrl: "",
   emailVerified: false,
-  credits: 1000,
+  credits: 1000, // Only used if not set in Firestore
   fireworks_api_key: "",
   openai_api_key: "",
   stability_api_key: "",
@@ -41,23 +42,6 @@ interface ProfileState {
   addCredits: (amount: number) => Promise<void>;
 }
 
-const mergeProfileWithDefaults = (
-  profile: Partial<ProfileType>,
-  authState: {
-    authEmail?: string;
-    authDisplayName?: string;
-    authPhotoUrl?: string;
-  }
-): ProfileType => ({
-  ...defaultProfile,
-  ...profile,
-  credits: profile.credits && profile.credits >= 100 ? profile.credits : 1000,
-  email: authState.authEmail || profile.email || "",
-  contactEmail: profile.contactEmail || authState.authEmail || "",
-  displayName: profile.displayName || authState.authDisplayName || "",
-  photoUrl: profile.photoUrl || authState.authPhotoUrl || "",
-});
-
 const useProfileStore = create<ProfileState>((set, get) => ({
   profile: defaultProfile,
 
@@ -70,28 +54,39 @@ const useProfileStore = create<ProfileState>((set, get) => ({
       const userRef = doc(db, `users/${uid}/profile/userData`);
       const docSnap = await getDoc(userRef);
 
-      const newProfile = docSnap.exists()
-        ? mergeProfileWithDefaults(docSnap.data() as ProfileType, {
-            authEmail,
-            authDisplayName,
-            authPhotoUrl,
-          })
-        : createNewProfile(
-            authEmail,
-            authDisplayName,
-            authPhotoUrl,
-            authEmailVerified
-          );
+      if (docSnap.exists()) {
+        const firestoreProfile = docSnap.data() as Partial<ProfileType>;
 
-      console.log(
-        docSnap.exists()
-          ? "Profile found:"
-          : "No profile found. Creating new profile document.",
-        newProfile
-      );
+        // Only apply defaults for fields missing in Firestore and not overwrite existing values
+        const mergedProfile: ProfileType = {
+          ...defaultProfile, // Default values are used only as fallback
+          ...firestoreProfile, // Firestore values take precedence
+          email: firestoreProfile.email || authEmail || "", // Use Firestore or auth state
+          contactEmail: firestoreProfile.contactEmail || authEmail || "",
+          displayName: firestoreProfile.displayName || authDisplayName || "",
+          photoUrl: firestoreProfile.photoUrl || authPhotoUrl || "",
+          emailVerified:
+            firestoreProfile.emailVerified !== undefined
+              ? firestoreProfile.emailVerified
+              : authEmailVerified || false, // Ensure a boolean value
+          credits: firestoreProfile.credits ?? 1000, // Default only if not set in Firestore
+        };
 
-      await setDoc(userRef, newProfile);
-      set({ profile: newProfile });
+        // Set the merged profile in local state without overwriting Firestore
+        set({ profile: mergedProfile });
+      } else {
+        // If no profile exists, create a new profile in Firestore with default values
+        const newProfile = createNewProfile(
+          authEmail,
+          authDisplayName,
+          authPhotoUrl,
+          authEmailVerified
+        );
+        console.log("No profile found. Creating new profile document.");
+
+        await setDoc(userRef, newProfile); // Save the new profile to Firestore
+        set({ profile: newProfile });
+      }
     } catch (error) {
       handleProfileError("fetching or creating profile", error);
     }
@@ -105,8 +100,11 @@ const useProfileStore = create<ProfileState>((set, get) => ({
       const userRef = doc(db, `users/${uid}/profile/userData`);
       const updatedProfile = { ...get().profile, ...newProfile };
 
+      // Update local state
       set({ profile: updatedProfile });
-      await updateDoc(userRef, updatedProfile);
+
+      // Update Firestore only for changed fields
+      await updateDoc(userRef, newProfile);
       console.log("Profile updated successfully");
     } catch (error) {
       handleProfileError("updating profile", error);
@@ -147,7 +145,7 @@ const useProfileStore = create<ProfileState>((set, get) => ({
   },
 }));
 
-// Helper function to create a new profile
+// Helper function to create a new profile with defaults
 function createNewProfile(
   authEmail?: string,
   authDisplayName?: string,
@@ -160,7 +158,7 @@ function createNewProfile(
     displayName: authDisplayName || "",
     photoUrl: authPhotoUrl || "",
     emailVerified: authEmailVerified || false,
-    credits: 1000,
+    credits: 1000, // Default credits for new users
     fireworks_api_key: "",
     openai_api_key: "",
     stability_api_key: "",
@@ -170,13 +168,13 @@ function createNewProfile(
   };
 }
 
-// Helper function to update credits
+// Helper function to update credits in Firestore
 async function updateCredits(uid: string, credits: number): Promise<void> {
   const userRef = doc(db, `users/${uid}/profile/userData`);
   await updateDoc(userRef, { credits });
 }
 
-// Helper function to handle errors
+// Helper function to handle profile errors
 function handleProfileError(action: string, error: unknown): void {
   const errorMessage =
     error instanceof Error ? error.message : "An unknown error occurred";
