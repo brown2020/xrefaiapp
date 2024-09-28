@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown, ChevronUp, Copy } from "lucide-react";
 import {
   collection,
   getDocs,
@@ -15,7 +16,7 @@ import { useAuthStore } from "@/zustand/useAuthStore";
 import { db } from "@/firebase/firebaseClient";
 import toast from "react-hot-toast";
 import { UserHistoryType } from "@/types/UserHistoryType";
-import { copyToClipboard } from "@/utils/copyToClipboard";
+import { copyToClipboard } from "@/utils/copyToClipboard"; // Assuming you have this utility
 import Image from "next/image"; // Import the Image component from Next.js
 
 export default function History() {
@@ -23,6 +24,30 @@ export default function History() {
   const [summaries, setSummaries] = useState<UserHistoryType[]>([]);
   const [search, setSearch] = useState<string>("");
   const [lastKey, setLastKey] = useState<Timestamp | undefined>(undefined);
+
+  // Track collapsed/expanded state for each prompt and response
+  const [expandedPrompts, setExpandedPrompts] = useState<{
+    [key: number]: boolean;
+  }>({});
+  const [expandedResponses, setExpandedResponses] = useState<{
+    [key: number]: boolean;
+  }>({});
+
+  // Toggle expansion for prompts
+  const togglePromptExpand = (index: number) => {
+    setExpandedPrompts((prev) => ({
+      ...prev,
+      [index]: !prev[index], // Toggle the specific index
+    }));
+  };
+
+  // Toggle expansion for responses
+  const toggleResponseExpand = (index: number) => {
+    setExpandedResponses((prev) => ({
+      ...prev,
+      [index]: !prev[index], // Toggle the specific index
+    }));
+  };
 
   const orderedSummaries = summaries
     .slice()
@@ -126,26 +151,61 @@ export default function History() {
                   {new Date(summary.timestamp.seconds * 1000).toLocaleString()}
                 </div>
 
-                <div className="whitespace-pre-wrap">{summary.prompt}</div>
+                {/* Collapsible prompt */}
+                <div
+                  className={`whitespace-pre-wrap cursor-pointer mt-2 transition-all duration-300 ease-in-out ${
+                    expandedPrompts[index]
+                      ? "max-h-full"
+                      : "max-h-16 overflow-hidden"
+                  }`}
+                  onClick={() => togglePromptExpand(index)}
+                >
+                  {summary.prompt}
+                  {expandedPrompts[index] ? (
+                    <ChevronUp className="inline-block ml-2" />
+                  ) : (
+                    <ChevronDown className="inline-block ml-2" />
+                  )}
+                </div>
+
+                {/* Collapsible response with bg-orange-200 */}
                 {summary.words === "image" ? (
-                  <div>
+                  <div className="mt-2">
                     <a href={summary.response} target="_blank" rel="noreferrer">
-                      {/* Use Image component from Next.js */}
                       <Image
                         src={summary.response}
                         alt="Generated Image"
-                        width={512} // Specify width based on your layout
-                        height={512} // Specify height based on your layout
+                        width={512}
+                        height={512}
                         className="displayImage"
                       />
                     </a>
                   </div>
                 ) : (
-                  <div
-                    className="cursor-pointer response"
-                    onClick={() => copyToClipboard(summary.response)}
-                  >
-                    {summary.response}
+                  <div className="relative mt-2">
+                    <div
+                      className={`whitespace-pre-wrap cursor-pointer bg-orange-200 p-2 rounded-md transition-all duration-300 ease-in-out ${
+                        expandedResponses[index]
+                          ? "max-h-full"
+                          : "max-h-16 overflow-hidden"
+                      }`}
+                      onClick={() => toggleResponseExpand(index)}
+                    >
+                      {summary.response}
+                      {expandedResponses[index] ? (
+                        <ChevronUp className="inline-block ml-2" />
+                      ) : (
+                        <ChevronDown className="inline-block ml-2" />
+                      )}
+                    </div>
+                    {/* Copy to clipboard button */}
+                    <button
+                      onClick={() => copyToClipboard(summary.response)}
+                      className="absolute top-0 right-0"
+                      title="Copy to Clipboard"
+                    >
+                      <Copy className="text-gray-500 hover:text-gray-800" />
+                    </button>
                   </div>
                 )}
               </div>
