@@ -1,0 +1,49 @@
+{
+  "name": "xrefai",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^0.0.63",
+    "@stripe/react-stripe-js": "^2.8.0",
+    "@stripe/stripe-js": "^4.5.0",
+    "ai": "^3.4.7",
+    "cookies-next": "^4.2.1",
+    "dotenv": "^16.4.5",
+    "firebase": "^10.13.2",
+    "firebase-admin": "^12.5.0",
+    "formdata-node": "^6.0.3",
+    "lodash": "^4.17.21",
+    "lucide-react": "^0.446.0",
+    "next": "14.2.13",
+    "node-fetch": "^3.3.2",
+    "react": "^18",
+    "react-cookie-consent": "^9.0.0",
+    "react-dom": "^18",
+    "react-firebase-hooks": "^5.1.1",
+    "react-hot-toast": "^2.4.1",
+    "react-select": "^5.8.1",
+    "react-simple-typewriter": "^5.0.1",
+    "react-spinners": "^0.14.1",
+    "react-textarea-autosize": "^8.5.3",
+    "stripe": "^16.12.0",
+    "uuid": "^10.0.0",
+    "zustand": "^5.0.0-rc.2"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.17.9",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.13",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
+  }
+}
