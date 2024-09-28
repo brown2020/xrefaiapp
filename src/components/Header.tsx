@@ -56,7 +56,7 @@ export default function Header() {
 
   return (
     <div className="sticky top-0 z-30 h-14 bg-white text-gray-700 shadow-lg sm:px-5">
-      <div className="flex items-center justify-between h-14 max-w-5xl mx-auto text-sm uppercase">
+      <div className="flex items-center justify-between h-14 text-sm uppercase">
         {/* Logo */}
         <div
           onClick={() => handleNavigation("/")}

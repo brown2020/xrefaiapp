@@ -13,6 +13,8 @@
     "@stripe/react-stripe-js": "^2.8.0",
     "@stripe/stripe-js": "^4.5.0",
     "ai": "^3.4.7",
+    "axios": "^1.7.7",
+    "cheerio": "^1.0.0",
     "cookies-next": "^4.2.1",
     "dotenv": "^16.4.5",
     "firebase": "^10.13.2",

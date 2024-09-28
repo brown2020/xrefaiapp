@@ -6,6 +6,9 @@ import { db } from "@/firebase/firebaseClient";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { generateResponse } from "@/actions/generateResponse";
 import { readStreamableValue } from "ai/rsc";
+import axios from "axios"; // Import axios for web scraping
+import { load } from "cheerio"; // Import cheerio for scraping
+import { toast } from "react-hot-toast"; // Import react-hot-toast for notifications
 
 export default function SummarizeTopic() {
   const uid = useAuthStore((state) => state.uid);
@@ -14,11 +17,12 @@ export default function SummarizeTopic() {
   const [summary, setSummary] = useState<string>("");
   const [flagged, setFlagged] = useState<string>("");
   const [active, setActive] = useState<boolean>(true);
+  const [thinking, setThinking] = useState<boolean>(false);
 
   const [topic, setTopic] = useState<string>("");
   const [site1, setSite1] = useState<string>("");
-  const [words, setWords] = useState<string>("");
-  const [thinking, setThinking] = useState<boolean>(false);
+  const [words, setWords] = useState<string>("30");
+  const [progress, setProgress] = useState<number>(0); // State for progress
 
   async function saveHistory(
     prompt: string,
@@ -41,30 +45,77 @@ export default function SummarizeTopic() {
     }
   }
 
+  const scrapeWebsite = async (url: string) => {
+    try {
+      console.log("Starting website scrape for:", url); // Log the URL being scraped
+      setProgress(20); // Start progress for scraping
+
+      // Make sure the URL is being passed correctly
+      const encodedUrl = encodeURIComponent(url);
+      console.log("Encoded URL:", encodedUrl);
+
+      const response = await axios.get(`/api/proxy?url=${encodedUrl}`);
+
+      // Log the response from the proxy to ensure the request is going through
+      console.log("Received response from proxy:", response);
+
+      setProgress(50); // Progress after successful scraping
+
+      const html = response.data;
+      console.log("HTML content received:", html); // Log the HTML content to ensure it's retrieved correctly
+
+      const $ = load(html);
+      const scrapedContent = $("body").text().replace(/\s+/g, " ").trim();
+
+      console.log("Scraped content:", scrapedContent); // Log the final scraped content
+      return scrapedContent;
+    } catch (err) {
+      console.error("Error scraping website:", err);
+      toast.error("Failed to scrape website");
+      return "";
+    }
+  };
+
   const getResponse = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setActive(false);
     setSummary("");
     setFlagged("");
     setThinking(true);
+    setProgress(0); // Reset progress
 
     let wordnum = Number(words || "30");
     if (wordnum < 3) wordnum = 3;
     if (wordnum > 800) wordnum = 800;
 
     let newPrompt = "Summarize this topic";
-    if (site1) newPrompt += ` based on the website ${site1}`;
-    newPrompt += ` in approximately ${wordnum} words: ${topic}`;
+    let scrapedContent = "";
+
+    if (site1) {
+      scrapedContent = await scrapeWebsite(site1);
+      if (scrapedContent) {
+        newPrompt += ` based on the content from the website ${site1}`;
+        newPrompt += ` in approximately ${wordnum} words: ${scrapedContent}`;
+      } else {
+        newPrompt += ` in approximately ${wordnum} words: ${topic}`;
+      }
+    } else {
+      newPrompt += ` in approximately ${wordnum} words: ${topic}`;
+    }
 
     console.log("newPrompt", newPrompt);
     const systemPrompt = "Summarize this topic";
     let finishedSummary = "";
+
     try {
       const result = await generateResponse(systemPrompt, newPrompt);
+      let chunkCount = 0; // Initialize chunk counter
       for await (const content of readStreamableValue(result)) {
         if (content) {
           finishedSummary = content.trim();
-          setSummary(finishedSummary); // Directly update state with the latest content chunk
+          setSummary(finishedSummary);
+          chunkCount++;
+          setProgress(70 + (chunkCount / wordnum) * 30); // Update progress bar during summarizing
         }
       }
 
@@ -72,12 +123,16 @@ export default function SummarizeTopic() {
       setPrompt(newPrompt);
 
       await saveHistory(newPrompt, finishedSummary, topic, words, []);
+      toast.success("Summary generated successfully");
     } catch (error: unknown) {
       setThinking(false);
       setFlagged(
         "No suggestions found. Servers might be overloaded right now."
       );
       console.error("Error generating response:", error);
+      toast.error("Failed to generate summary");
+    } finally {
+      setProgress(100); // Complete progress
     }
   };
 
@@ -136,6 +191,8 @@ export default function SummarizeTopic() {
         <button className="w-36 bottom" type="submit" disabled={!active}>
           {thinking ? <PulseLoader color="#fff" size={8} /> : "Let's Write!"}
         </button>
+
+        {thinking && <div>Progress: {progress}%</div>}
 
         {!thinking && !Boolean(prompt) && (
           <h3>What would you like to write about today?</h3>
