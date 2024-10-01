@@ -17,6 +17,16 @@ export default function Tools() {
     "Generate Image",
     "Designer Tool",
   ];
+
+  // Mapping tool names to components
+  const toolComponents: Record<string, JSX.Element> = {
+    "Summarize Writing": <SummarizeTopic />,
+    "Freestyle Writing": <FreestylePrompt />,
+    "Simplify Writing": <SimplifyPrompt />,
+    "Generate Image": <ImagePrompt />,
+    "Designer Tool": <DesignerPrompt />,
+  };
+
   window.scrollTo({ top: 0, behavior: "smooth" });
 
   return (
@@ -38,11 +48,8 @@ export default function Tools() {
       </div>
 
       <div>
-        {selectedTool === "Summarize Writing" && <SummarizeTopic />}
-        {selectedTool === "Freestyle Writing" && <FreestylePrompt />}
-        {selectedTool === "Simplify Writing" && <SimplifyPrompt />}
-        {selectedTool === "Generate Image" && <ImagePrompt />}
-        {selectedTool === "Designer Tool" && <DesignerPrompt />}
+        {/* Render the selected tool's component */}
+        {toolComponents[selectedTool]}
       </div>
     </div>
   );
