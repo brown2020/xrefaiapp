@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "ai.xref.app",
+      "sha256_cert_fingerprints": [
+        "C6:F2:D8:EF:43:E9:31:4D:C6:07:26:A7:56:07:04:04:6A:67:7B:7B:E7:E9:95:C0:2E:99:DC:AF:D4:B6:89:64"
+      ]
+    }
+  }
+]
