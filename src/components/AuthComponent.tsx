@@ -164,7 +164,7 @@ export default function AuthComponent() {
                 <div className="text-2xl text-center">Signing you in</div>
                 <div className="flex flex-col gap-3 border rounded-md px-3 py-2">
                   <div>
-                    {`Check your email at ${email} for a message from Generate.me`}
+                    {`Check your email at ${email} for a message from Xref.ai`}
                   </div>
                   <div>{`If you don't see the message, check your spam folder. Mark it "not spam" or move it to your inbox.`}</div>
                   <div>
