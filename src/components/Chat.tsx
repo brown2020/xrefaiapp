@@ -12,15 +12,13 @@ import {
   getDocs,
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import TextareaAutosize from "react-textarea-autosize";
-import xrefchat from "@/app/assets/logo512.png";
-import xrefchat_t from "@/app/assets/logo512.png";
 import { db } from "@/firebase/firebaseClient";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { ChatType } from "@/types/ChatType";
 import { readStreamableValue } from "ai/rsc";
 import { generateResponseWithMemory } from "@/actions/generateResponseWithMemory";
+import Image from "next/image";
 
 const MAX_WORDS_IN_CONTEXT = 5000; // Adjust based on OpenAI model limits
 
@@ -199,84 +197,99 @@ export default function Chat() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center p-0 space-y-5 sm:p-5">
-      <div className="flex flex-col items-center justify-center space-y-2">
-        <div className="rounded-xl bg-orange-500 h-52 w-52">
-          <Image
-            className="object-contain p-3 rounded-xl w-52 h-52 invert"
-            src={xrefchat_t}
-            alt="logo"
-            width={208}
-            height={208}
-          />
+    <div className="relative flex flex-col items-center container mx-auto justify-center p-0 space-y-5 sm:p-5">
+      <div className="flex flex-col w-full h-full space-y-4 chat-bord-main">
+        <div className="flex flex-col-reverse">
+          {loadingResponse && (
+            <div className="p-2 bg-[#293A74]  text-[#A1ADF4] whitespace-pre-wrap rounded-md">
+              {streamedResponse || "Generating response..."}
+            </div>
+          )}
+
+          {/* Display chat list */}
+          {chatlist.map((chat, index) => (
+            <div key={index} className="flex flex-col w-full mb-3 space-y-3">
+              <div className="flex justify-end w-full flex-row-reverse p-4  ml-auto gap-4 rounded-xl text-left bg-[#293A74]">
+                <div className="text-[#A1ADF4] whitespace-pre-wrap w-full text-section-ai">
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="flex gap-3 items-center">
+                      <h3 className="m-0 text-white font-semibold">XEEF.AI</h3>
+                      <p className="px-[10px] py-0 text-[12px] rounded-[10px] bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] text-white">Bot</p>
+                    </div>
+                    <p className="p-1 w-8 h-8 border border-[#4863BE] rounded-[10px] text-center flex justify-center items-center cursor-pointer">
+                      <i className="fa-regular fa-copy text-white text-base"></i>
+                    </p>
+                  </div>
+                  <p className="md:break-normal break-words">{chat.response}</p>
+
+                </div>
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#0A0F20]">
+                  <Image
+                    src="/logo(X).png"
+                    alt="bot"
+                    className="flex-shrink-0 object-contain w-10 h-10 rounded-full px-[5px]"
+                    width={40}
+                    height={40}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-start w-full  mr-auto rounded-xl gap-4 items-center p-4 text-left bg-[#192449]">
+                <div className="flex items-center justify-center flex-shrink-0 w-10 h-10 text-xs font-bold text-white rounded-full bg-blue-500">
+                  {/* You */}
+                  <Image src="/Ellipse 4.png" alt="" height={100} width={100}/>
+                </div>
+                <div className="text-[#A1ADF4] whitespace-pre-wrap rounded-md">
+                  <p className="text-white ">You</p>
+                  <p className="break-word">{chat.prompt}</p>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
+        <div className="sticky bottom-0 rounded-md">
+          <div className="relative bg-[#0A0F20] pt-4">
+            {/* Input field */}
+            <TextareaAutosize
+              className="text_area w-full px-3 py-4 rounded-lg bg-[#131C3C] text-white outline-none textarea placeholder-[#585E70]"
+              placeholder="Ask me anything!"
+              minRows={2}
+              value={newPrompt}
+              onChange={(e) => setNewPrompt(e.target.value)}
+            />
 
-        <div>XrefChat AI</div>
+
+            {/* Button */}
+            <button
+              onClick={handleSendPrompt}
+              className={`absolute right-4 bottom-6	px-5 py-3 text-white bg-[#333C5B] rounded-md transition-opacity duration-200 ${loadingResponse || !newPrompt.trim() ? "opacity-50 cursor-not-allowed" : "hover:bg-[#4A5272] hover:shadow-lg"
+                }`}
+              disabled={loadingResponse || !newPrompt.trim()}
+              aria-label="Send prompt"
+            >
+              {loadingResponse ? "Generating..." : <i className="fa-regular fa-paper-plane"></i>}
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div className="flex flex-col w-full h-full space-y-4">
-        {/* New Prompt Input */}
-        <TextareaAutosize
-          className="px-3 py-2 whitespace-pre-wrap border rounded-md outline-none resize-none h-fit form-input"
-          placeholder="Ask me anything!"
-          minRows={2}
-          value={newPrompt}
-          onChange={(e) => setNewPrompt(e.target.value)}
-        />
-        <button
-          onClick={handleSendPrompt}
-          className="px-5 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-700 disabled:opacity-50"
-          disabled={loadingResponse || !newPrompt.trim()}
-        >
-          {loadingResponse ? "Generating..." : "Send"}
-        </button>
 
-        {/* Streaming Response (if currently generating) */}
-        {loadingResponse && (
-          <div className="p-2 text-black whitespace-pre-wrap rounded-md bg-gray-300">
-            {streamedResponse || "Generating response..."}
-          </div>
-        )}
-
-        {/* Display chat list */}
-        {chatlist.map((chat, index) => (
-          <div key={index} className="flex flex-col w-full mb-3 space-y-3">
-            <div className="flex justify-end w-full pl-20 ml-auto space-x-2 text-left">
-              <div className="p-2 text-black whitespace-pre-wrap rounded-md bg-gray-300">
-                {chat.response}
-              </div>
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-orange-500">
-                <Image
-                  src={xrefchat}
-                  alt="bot"
-                  className="flex-shrink-0 object-contain w-10 h-10 rounded-full invert"
-                  width={40}
-                  height={40}
-                />
-              </div>
-            </div>
-            <div className="flex justify-start w-full pr-20 mr-auto space-x-2 text-left">
-              <div className="flex items-center justify-center flex-shrink-0 w-10 h-10 text-xs font-bold text-white rounded-full bg-blue-500">
-                You
-              </div>
-              <div className="p-2 text-black whitespace-pre-wrap rounded-md bg-blue-300">
-                {chat.prompt}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* scroll bottom */}
+      <button className="cursor-pointer fixed z-10 rounded-full bg-[#02C173] text-white right-12 bottom-28 bg-token-main-surface-primary w-8 h-8 flex items-center justify-center ">
+        <i className="fa-solid fa-angle-down"></i>
+      </button>
 
       {/* Load more button if needed */}
-      {lastKey && (
-        <button
-          onClick={loadMoreChats}
-          disabled={loadingMore}
-          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md"
-        >
-          {loadingMore ? "Loading..." : "Load More"}
-        </button>
-      )}
-    </div>
+      {
+        lastKey && (
+          <button
+            onClick={loadMoreChats}
+            disabled={loadingMore}
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md"
+          >
+            {loadingMore ? "Loading..." : "Load More"}
+          </button>
+        )
+      }
+    </div >
   );
 }

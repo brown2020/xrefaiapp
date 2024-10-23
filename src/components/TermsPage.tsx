@@ -12,7 +12,7 @@ export default function Terms({
   updatedAt,
 }: Props) {
   return (
-    <div className="text-wrapper">
+    <div className=" text-wrapper text-white">
       <h3>Terms of Service</h3>
 
       <p>

@@ -14,7 +14,7 @@ export default function Privacy({
   updatedAt,
 }: Props) {
   return (
-    <div className="text-wrapper">
+    <div className=" text-wrapper text-white">
       <h3>Privacy Policy</h3>
       <p>
         Protecting your private information is our priority. This Statement of

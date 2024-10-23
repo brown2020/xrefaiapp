@@ -17,7 +17,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full">
-      <body className="h-full">
+      <head>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+        {/* <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet" /> */}
+
+      </head>
+      <body className="h-full bg-[#0A0F20]">
         <ClientProvider>
           <div className="flex flex-col h-full">
             <Header />
