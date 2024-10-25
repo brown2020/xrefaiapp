@@ -343,6 +343,14 @@
   border-bottom-right-radius: 0;
 }
 
+
+.download_icon:hover svg path,
+.copy_icon:hover svg path {
+  fill: #000000;
+}
+
+
+
 @media screen and (max-width: 640px) {
   .chat-bord-main {
     padding: 1rem;
@@ -415,5 +423,26 @@
   .right-contant-section,
   .left-tab-section {
     width: 100%;
+  }
+
+  /* my account */
+  .right-contant-section,
+  .left-tab-section {
+    width: 100%;
+  }
+
+  .by-credits {
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .usage-credits-block,
+  .credits-block {
+    width: 100%;
+    text-align: center;
+  }
+
+  .either-buy-credits {
+    text-align: center;
   }
 }

@@ -11,7 +11,7 @@ import {
   Timestamp,
   getDocs,
 } from "firebase/firestore";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import TextareaAutosize from "react-textarea-autosize";
 import { db } from "@/firebase/firebaseClient";
 import { useAuthStore } from "@/zustand/useAuthStore";
@@ -19,6 +19,8 @@ import { ChatType } from "@/types/ChatType";
 import { readStreamableValue } from "ai/rsc";
 import { generateResponseWithMemory } from "@/actions/generateResponseWithMemory";
 import Image from "next/image";
+import RootLayout from "@/app/layout";
+import ScrollToBottom from 'react-scroll-to-bottom';
 
 const MAX_WORDS_IN_CONTEXT = 5000; // Adjust based on OpenAI model limits
 
@@ -29,10 +31,35 @@ export default function Chat() {
   const [loadingResponse, setLoadingResponse] = useState(false);
   const [newPrompt, setNewPrompt] = useState<string>(""); // Input field state
   const [streamedResponse, setStreamedResponse] = useState<string>(""); // Streaming response state
-  const [responseSaved, setResponseSaved] = useState<boolean>(false); // Track if response is saved
+  const [responseSaved, setResponseSaved] = useState<boolean>(false);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const maxLoad = 30;
+  const [isButtonVisible, setIsButtonVisible] = useState(true);
+  const chatContainerRef = useRef<HTMLDivElement | null>(null);
 
   const uid = useAuthStore((state) => state.uid);
+
+  // Effect to track scroll position
+  useEffect(() => {
+    const handleScroll = () => {
+      if (chatContainerRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+        // Check if the user is near the bottom (e.g., within 50 pixels)
+        if (scrollHeight - scrollTop - clientHeight > 50) {
+          setIsButtonVisible(true);
+        } else {
+          setIsButtonVisible(false);
+        }
+      }
+    };
+
+    const chatContainer = chatContainerRef.current;
+    chatContainer?.addEventListener("scroll", handleScroll);
+
+    return () => {
+      chatContainer?.removeEventListener("scroll", handleScroll);
+    };
+  }, [chatlist]);
 
   // Initial load of chat messages from Firebase
   useEffect(() => {
@@ -63,8 +90,9 @@ export default function Chat() {
               }
             }
           });
-
+                    
           setChatlist(chats);
+          scrollToBottom();
           setLastKey(lastKey);
 
           if (responseSaved) {
@@ -196,100 +224,121 @@ export default function Chat() {
     }
   };
 
+  const scrollToBottom = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
-    <div className="relative flex flex-col items-center container mx-auto justify-center p-0 space-y-5 sm:p-5">
-      <div className="flex flex-col w-full h-full space-y-4 chat-bord-main">
-        <div className="flex flex-col-reverse">
-          {loadingResponse && (
-            <div className="p-2 bg-[#293A74]  text-[#A1ADF4] whitespace-pre-wrap rounded-md">
-              {streamedResponse || "Generating response..."}
-            </div>
-          )}
+    <RootLayout showFooter={false}>
 
-          {/* Display chat list */}
-          {chatlist.map((chat, index) => (
-            <div key={index} className="flex flex-col w-full mb-3 space-y-3">
-              <div className="flex justify-end w-full flex-row-reverse p-4  ml-auto gap-4 rounded-xl text-left bg-[#293A74]">
-                <div className="text-[#A1ADF4] whitespace-pre-wrap w-full text-section-ai">
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="flex gap-3 items-center">
-                      <h3 className="m-0 text-white font-semibold">XEEF.AI</h3>
-                      <p className="px-[10px] py-0 text-[12px] rounded-[10px] bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] text-white">Bot</p>
-                    </div>
-                    <p className="p-1 w-8 h-8 border border-[#4863BE] rounded-[10px] text-center flex justify-center items-center cursor-pointer">
-                      <i className="fa-regular fa-copy text-white text-base"></i>
-                    </p>
-                  </div>
-                  <p className="md:break-normal break-words">{chat.response}</p>
+      <div className="relative flex flex-col items-center container mx-auto justify-center p-0 space-y-5 sm:p-5">
 
-                </div>
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#0A0F20]">
-                  <Image
-                    src="/logo(X).png"
-                    alt="bot"
-                    className="flex-shrink-0 object-contain w-10 h-10 rounded-full px-[5px]"
-                    width={40}
-                    height={40}
-                  />
-                </div>
-              </div>
-              <div className="flex justify-start w-full  mr-auto rounded-xl gap-4 items-center p-4 text-left bg-[#192449]">
-                <div className="flex items-center justify-center flex-shrink-0 w-10 h-10 text-xs font-bold text-white rounded-full bg-blue-500">
-                  {/* You */}
-                  <Image src="/Ellipse 4.png" alt="" height={100} width={100}/>
-                </div>
-                <div className="text-[#A1ADF4] whitespace-pre-wrap rounded-md">
-                  <p className="text-white ">You</p>
-                  <p className="break-word">{chat.prompt}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="sticky bottom-0 rounded-md">
-          <div className="relative bg-[#0A0F20] pt-4">
-            {/* Input field */}
-            <TextareaAutosize
-              className="text_area w-full px-3 py-4 rounded-lg bg-[#131C3C] text-white outline-none textarea placeholder-[#585E70]"
-              placeholder="Ask me anything!"
-              minRows={2}
-              value={newPrompt}
-              onChange={(e) => setNewPrompt(e.target.value)}
-            />
-
-
-            {/* Button */}
+        {/* Load more button if needed */}
+        {
+          lastKey && (
             <button
-              onClick={handleSendPrompt}
-              className={`absolute right-4 bottom-6	px-5 py-3 text-white bg-[#333C5B] rounded-md transition-opacity duration-200 ${loadingResponse || !newPrompt.trim() ? "opacity-50 cursor-not-allowed" : "hover:bg-[#4A5272] hover:shadow-lg"
-                }`}
-              disabled={loadingResponse || !newPrompt.trim()}
-              aria-label="Send prompt"
+              onClick={loadMoreChats}
+              disabled={loadingMore}
+              className="w-44 text-white px-3 py-2 custom-write bottom bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] hover:opacity-50 !rounded-3xl font-bold"
             >
-              {loadingResponse ? "Generating..." : <i className="fa-regular fa-paper-plane"></i>}
+              {loadingMore ? "Loading..." : "Load More"}
             </button>
+          )
+        }
+        <div className="flex flex-col w-full h-full space-y-4 chat-bord-main">
+          <ScrollToBottom className="scroll-to-bottom" initialScrollBehavior="smooth">
+            <div className="flex flex-col">
+              {loadingResponse && (
+                <div className="p-2 bg-[#293A74]  text-[#A1ADF4] whitespace-pre-wrap rounded-md">
+                  {streamedResponse || "Generating response..."}
+                </div>
+              )}
+              {/* Display chat list */}
+              {chatlist.slice().reverse().map((chat, index) => (
+                <div key={index} className="flex flex-col my-3 space-y-3">
+                  <div className="flex justify-end max-w-5xl ml-auto rounded-xl gap-4 items-center p-4 text-right bg-[#192449]">
+                    <div className="text-[#A1ADF4] whitespace-pre-wrap rounded-md">
+                      <p className="text-white">You</p>
+                      <p className="break-word">{chat.prompt}</p>
+                    </div>
+                    <div className="flex items-center justify-center flex-shrink-0 w-10 h-10 text-xs font-bold text-white rounded-full bg-blue-500">
+                      {/* You */}
+                      <Image src="/Ellipse 4.png" alt="" height={100} width={100} />
+                    </div>
+                  </div>
+                  <div className="flex justify-start max-w-5xl p-4 gap-4 rounded-xl text-left bg-[#293A74]">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#0A0F20]">
+                      <Image
+                        src="/logo(X).png"
+                        alt="bot"
+                        className="flex-shrink-0 object-contain w-10 h-10 rounded-full px-[5px]"
+                        width={40}
+                        height={40}
+                      />
+                    </div>
+                    <div className="text-[#A1ADF4] whitespace-pre-wrap w-full text-section-ai">
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="flex gap-3 items-center">
+                          <h3 className="m-0 text-white font-semibold">XEEF.AI</h3>
+                          <p className="px-[10px] py-0 text-[12px] rounded-[10px] bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] text-white ">Bot</p>
+                        </div>
+                        <p className="copy_icon p-2 w-9 h-9 border border-[#4863BE] rounded-[10px] text-center flex justify-center items-center cursor-pointer"
+                        >
+                          <svg width="27" height="27" viewBox="0 0 27 27" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M22.0938 8.8125H22.875C24.6009 8.8125 26 10.2116 26 11.9375V22.875C26 24.6009 24.6009 26 22.875 26H11.9375C10.2116 26 8.8125 24.6009 8.8125 22.875V22.0938M4.125 18.1875H15.0625C16.7884 18.1875 18.1875 16.7884 18.1875 15.0625V4.125C18.1875 2.39911 16.7884 1 15.0625 1H4.125C2.39911 1 1 2.39911 1 4.125V15.0625C1 16.7884 2.39911 18.1875 4.125 18.1875Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </p>
+                      </div>
+                      <p className="md:break-normal break-words">{chat.response}</p>
+
+                    </div>
+                  </div>
+                  
+                </div>
+              ))}
+
+            </div>
+            <div ref={scrollRef} />
+          </ScrollToBottom>
+          <div className="sticky bottom-0 rounded-md">
+            <div className="relative bg-[#0A0F20] pt-4">
+              {/* Input field */}
+              <TextareaAutosize
+                className="text_area w-full px-3 py-4 rounded-lg bg-[#131C3C] text-white outline-none textarea placeholder-[#585E70]"
+                placeholder="Ask me anything!"
+                minRows={2}
+                value={newPrompt}
+                onChange={(e) => setNewPrompt(e.target.value)}
+              />
+
+              {/* Button */}
+              <button
+                onClick={handleSendPrompt}
+                className={`absolute right-4 bottom-6	px-5 py-3 text-white bg-[#333C5B] rounded-md transition-opacity duration-200 ${loadingResponse || !newPrompt.trim() ? "opacity-50 cursor-not-allowed" : "hover:bg-[#4A5272] hover:shadow-lg"
+                  }`}
+                disabled={loadingResponse || !newPrompt.trim()}
+                aria-label="Send prompt"
+              >
+                {loadingResponse ? "Generating..." : <i className="fa-regular fa-paper-plane"></i>}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-
-      {/* scroll bottom */}
-      <button className="cursor-pointer fixed z-10 rounded-full bg-[#02C173] text-white right-12 bottom-28 bg-token-main-surface-primary w-8 h-8 flex items-center justify-center ">
-        <i className="fa-solid fa-angle-down"></i>
-      </button>
-
-      {/* Load more button if needed */}
-      {
-        lastKey && (
+        {isButtonVisible && (
           <button
-            onClick={loadMoreChats}
-            disabled={loadingMore}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md"
+            onClick={scrollToBottom}
+            className="cursor-pointer fixed z-10 rounded-full bg-clip-padding right-1/2 bottom-32 translate-x-1/2 lg:right-1/2 lg:bottom-32 xl:right-16 xl:bottom-12 text-white bg-[#02C173] w-10 h-10 flex items-center justify-center "
           >
-            {loadingMore ? "Loading..." : "Load More"}
+            <i className="fa-solid fa-arrow-down"></i>
           </button>
-        )
-      }
-    </div >
+        )}
+
+      </div >
+
+    </RootLayout>
+
   );
 }

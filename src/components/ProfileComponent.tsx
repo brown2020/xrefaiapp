@@ -60,29 +60,34 @@ export default function ProfileComponent() {
   const areApiKeysAvailable = fireworksApiKey && openaiApiKey;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 ">
       {showCreditsSection && ( // Conditionally render the credits section
-        <div className="flex flex-col sm:flex-row px-5 py-3 gap-3 border border-gray-500 rounded-md">
-          <div className="flex gap-2 w-full items-center">
-            <div className="flex-1">
-              Usage Credits: {Math.round(profile.credits)}
+        <div className="bg-[#192449]   rounded-2xl mb-1 py-4">
+          <div className="flex flex-col sm:flex-row px-5 py-3 gap-3">
+            <div className="flex items-center by-credits gap-2 pt-2 pb-2 w-full">
+              <div className="w-[25%] usage-credits-block">
+                <span className="text-white">Usage Credits:</span><span className="text-[#B6F09C] font-bold">{Math.round(profile.credits)}</span>
+              </div>
+              <div className="w-[48%] credits-block">
+                <Link
+                  className="font-bold bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] rounded-3xl text-white w-[12rem] block  mx-auto px-3 py-2 hover:opacity-50 flex-1 text-center"
+                  href={"/payment-attempt"}
+                >
+                  Buy 10,000 Credits
+                </Link>
+              </div>
             </div>
-            <Link
-              className="bg-blue-500 text-white px-3 py-2 rounded-md hover:opacity-50 flex-1 text-center"
-              href={"/payment-attempt"}
-            >
-              Buy 10,000 Credits
-            </Link>
           </div>
-          <div className="text-sm text-gray-600 mt-2">
+          <div className="text-sm text-[#A1ADF4] either-buy-credits px-5 pb-4">
             You can either buy credits or add your own API keys for Fireworks
             and OpenAI.
           </div>
         </div>
+
       )}
 
-      <div className="flex flex-col px-5 py-3 gap-3 border border-gray-500 rounded-md">
-        <label htmlFor="fireworks-api-key" className="text-sm font-medium">
+      <div className="flex flex-col p-5 gap-3 bg-[#192449] rounded-2xl">
+        <label htmlFor="fireworks-api-key" className="text-base font-medium text-[#A1ADF4]">
           Fireworks API Key:
         </label>
         <input
@@ -90,10 +95,10 @@ export default function ProfileComponent() {
           id="fireworks-api-key"
           value={fireworksApiKey}
           onChange={(e) => setFireworksApiKey(e.target.value)}
-          className="border border-gray-300 rounded-md px-3 py-2 h-10"
+          className="border border-[#263566] bg-[#131C3C] text-white rounded-md px-3 py-3  placeholder:text-[#585E70]"
           placeholder="Enter your Fireworks API Key"
         />
-        <label htmlFor="openai-api-key" className="text-sm font-medium">
+        <label htmlFor="openai-api-key" className="text-base font-medium text-[#A1ADF4]">
           OpenAI API Key:
         </label>
         <input
@@ -101,10 +106,10 @@ export default function ProfileComponent() {
           id="openai-api-key"
           value={openaiApiKey}
           onChange={(e) => setOpenaiApiKey(e.target.value)}
-          className="border border-gray-300 rounded-md px-3 py-2 h-10"
+          className="border border-[#263566] bg-[#131C3C] text-white rounded-md px-3 py-3  placeholder:text-[#585E70]"
           placeholder="Enter your OpenAI API Key"
         />
-        <label htmlFor="openai-api-key" className="text-sm font-medium">
+        <label htmlFor="openai-api-key" className="text-base font-medium  text-[#A1ADF4]">
           Stability API Key:
         </label>
         <input
@@ -112,7 +117,7 @@ export default function ProfileComponent() {
           id="stability-api-key"
           value={stabilityAPIKey}
           onChange={(e) => setStabilityAPIKey(e.target.value)}
-          className="border border-gray-300 rounded-md px-3 py-2 h-10"
+          className="border border-[#263566] bg-[#131C3C] text-white rounded-md px-3 py-3  placeholder:text-[#585E70]"
           placeholder="Enter your Stability API Key"
         />
         <button
@@ -122,26 +127,31 @@ export default function ProfileComponent() {
             openaiApiKey === profile.openai_api_key &&
             stabilityAPIKey === profile.stability_api_key
           }
-          className="bg-blue-500 text-white px-3 py-2 rounded-md hover:opacity-50 disabled:opacity-50"
+          className="mt-2 font-bold bg-gradient-to-r from-[#9C26D7] w-44 mx-auto to-[#1EB1DB] rounded-3xl text-white px-3 py-2 hover:opacity-50 disabled:opacity-50"
         >
           Update API Keys
         </button>
       </div>
 
-      <div className="flex items-center px-5 py-3 gap-3 border border-gray-500 rounded-md">
-        <label htmlFor="toggle-use-credits" className="text-sm font-medium">
-          Use:
-        </label>
-        <select
-          id="toggle-use-credits"
-          value={useCredits ? "credits" : "apikeys"}
-          onChange={handleCreditsChange}
-          className="border border-gray-300 rounded-md px-3 py-2 h-10"
-          disabled={!areApiKeysAvailable}
-        >
-          <option value="credits">Credits</option>
-          {areApiKeysAvailable && <option value="apikeys">API Keys</option>}
-        </select>
+      <div className="flex flex-col mt-1 p-5 gap-2 bg-[#192449] rounded-2xl">
+        <div>
+          <label htmlFor="toggle-use-credits" className="text-base font-medium  text-[#A1ADF4]">
+            Use:
+          </label>
+        </div>
+        <div className="credit-option relative">
+          <select
+            id="toggle-use-credits"
+            value={useCredits ? "credits" : "apikeys"}
+            onChange={handleCreditsChange}
+            className="border border-[#263566] text-white bg-[#131C3C] rounded-md px-3 py-3 appearance-none  w-full"
+            disabled={!areApiKeysAvailable}
+          >
+            <option value="credits">Credits</option>
+            {areApiKeysAvailable && <option value="apikeys">API Keys</option>}
+          </select>
+          <span className="line-bar relative before:content-[''] before:absolute before:top-2.5 before:right-8 before:bg-[#9dadf4] before:h-[2px] before:px-[0.7rem] before:rotate-[89deg]"><i className="fas fa-angle-down absolute right-4 translate-y-[17px]  text-[#A1ADF4]"></i></span>
+        </div>
       </div>
     </div>
   );

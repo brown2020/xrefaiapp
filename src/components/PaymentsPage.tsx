@@ -16,10 +16,9 @@ export default function PaymentsPage() {
   }, [uid, fetchPayments]);
 
   return (
-    <div className="flex flex-col h-full w-full max-w-4xl mx-auto gap-4">
-      <div className="text-3xl font-bold">Payments</div>
-
-      {paymentsLoading && <div>Loading payments...</div>}
+    <div className="flex flex-col container mt-4 mx-auto gap-4">
+      <div className="text-3xl font-bold text-center"><span className="bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] bg-clip-text text-transparent">Payments</span></div>
+      {paymentsLoading && <div className="text-[#A1ADF4] text-center">Loading payments...</div>}
       {paymentsError && <div>Error: {paymentsError}</div>}
       {!paymentsLoading && !paymentsError && (
         <div className="flex flex-col gap-2">

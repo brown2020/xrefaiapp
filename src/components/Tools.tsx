@@ -4,8 +4,9 @@ import { useState } from "react";
 import SummarizeTopic from "./SummarizeTopic";
 import FreestylePrompt from "./FreestylePrompt";
 import SimplifyPrompt from "./SimplifyPrompt";
-import ImagePrompt from "./ImagePrompt";
 import DesignerPrompt from "./DesignerPrompt";
+import RootLayout from "@/app/layout";
+import ImagePrompt from "./ImagePrompt";
 
 export default function Tools() {
   const [selectedTool, setSelectedTool] = useState<string>("Summarize Writing");
@@ -101,30 +102,32 @@ export default function Tools() {
   window.scrollTo({ top: 0, behavior: "smooth" });
 
   return (
-    <div className="container mx-auto">
-      <div className="flex  flex-row gap-7  p-4 tools-setion">
-        <div className="flex flex-col flex-wrap items-center w-[20%] p-[1.5rem] text-sm sm:text-base bg-[#060912] first:pt-6 gap-3 rounded-[20px] left-tab-section">
-          {toolList.map((tool) => (
-            <div
-              key={tool.title}
-              onClick={() => setSelectedTool(tool.title)}
-              className={`px-2 w-[100%] sm:py-2  flex flex-col tab-list-section  cursor-pointer text-white ${tool.title === selectedTool
-                ? "bg-[#192449]  rounded-[20px] text-white"
-                : "bg-orangeLight text-black"
-                }`}
-            >
-              <div className="tab-name-title flex justify-center items-center gap-2">
-                {tool.svg}
-                <div className="lg:w-[80%] tool-text-block">{tool.title}</div>
+    <RootLayout showFooter={false}>
+      <div className="container mx-auto">
+        <div className="flex  flex-row gap-7  p-4 tools-setion">
+          <div className="flex flex-col flex-wrap items-center w-[20%] p-[1.5rem] text-sm sm:text-base bg-[#060912] first:pt-6 gap-3 rounded-[20px] left-tab-section">
+            {toolList.map((tool) => (
+              <div
+                key={tool.title}
+                onClick={() => setSelectedTool(tool.title)}
+                className={`px-2 w-[100%] sm:py-2  flex flex-col tab-list-section  cursor-pointer text-white ${tool.title === selectedTool
+                  ? "bg-[#192449]  rounded-[20px] text-white"
+                  : "bg-orangeLight text-black"
+                  }`}
+              >
+                <div className="tab-name-title flex justify-center items-center gap-2">
+                  {tool.svg}
+                  <div className="lg:w-[80%] tool-text-block">{tool.title}</div>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        <div className="w-[80%] mt-[0] right-contant-section">
-          {toolComponents[selectedTool]}
+          <div className="w-[80%] mt-[0] right-contant-section">
+            {toolComponents[selectedTool]}
+          </div>
         </div>
       </div>
-    </div>
+    </RootLayout>
   );
 }

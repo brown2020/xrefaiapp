@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { createPaymentIntent } from "@/actions/paymentActions";
 import convertToSubcurrency from "@/utils/convertToSubcurrency";
 import { ClipLoader } from "react-spinners";
+import RootLayout from "@/app/layout";
 
 type Props = { amount: number };
 
@@ -94,11 +95,12 @@ export default function PaymentCheckoutPage({ amount }: Props) {
   }
 
   return (
-    <main className="flex flex-col w-full items-center max-w-6xl mx-auto py-10">
+    <RootLayout showFooter={true}>
+    <main className="flex flex-col  items-center container  mx-auto py-10">
       <div className="mb-10">
-        <h1 className="text-4xl">Buy 10,000 Credits</h1>
-        <h2 className="text-2xl">
-          Purchase amount: <span className="font-bold">${amount}</span>
+        <h1 className="text-2xl text-white">Buy <span className="text-[#02C173] font-bold text-4xl">10,000</span> Credits</h1>
+        <h2 className="text-2xl text-white">
+          Purchase amount: <span className="font-bold text-[#02C173] text-4xl">${amount}</span>
         </h2>
       </div>
       <form onSubmit={handleSubmit} className="bg-white p-2 rounded-md w-full">
@@ -114,5 +116,6 @@ export default function PaymentCheckoutPage({ amount }: Props) {
         </button>
       </form>
     </main>
+    </RootLayout>
   );
 }
