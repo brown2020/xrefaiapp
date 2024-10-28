@@ -349,7 +349,36 @@
   fill: #000000;
 }
 
+.scroll-to-bottom>div {
+  overflow-y: unset !important;
+}
 
+.text-section-ai {
+  max-width: 100%;
+  /* Ensure it doesn't overflow the parent */
+  overflow-wrap: break-word;
+  /* Break words if they're too long */
+  word-wrap: break-word;
+  /* Older browsers support */
+  overflow-x: auto;
+  /* Hide overflowed text */
+}
+
+
+/* width */
+.text-section-ai::-webkit-scrollbar {
+  width: 5px;
+}
+
+/* Track */
+.text-section-ai::-webkit-scrollbar-track {
+  background: #192449;
+}
+
+/* Handle */
+.text-section-ai::-webkit-scrollbar-thumb {
+  background: #0A0F20;
+}
 
 @media screen and (max-width: 640px) {
   .chat-bord-main {

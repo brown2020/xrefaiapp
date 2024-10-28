@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronUp, Copy } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import {
   collection,
   getDocs,
@@ -20,6 +20,7 @@ import { copyToClipboard } from "@/utils/copyToClipboard"; // Assuming you have 
 import Image from "next/image";
 import RootLayout from "@/app/layout"; // Import the Image component from Next.js
 import { copyImageToClipboard, downloadImage } from "@/utils/helpers";
+import MarkdownRenderer from "./MarkdownRenderer";
 
 export default function History() {
   const uid = useAuthStore((state) => state.uid);
@@ -163,8 +164,10 @@ export default function History() {
                           src="/Ellipse 4.png"
                           alt="" />
                       </div>
-                      <div className="flex flex-col w-[95%] ">
-                        <div className="flex justify-between items-center gap-3">
+                      <div className="flex flex-col w-[95%]"
+                        onClick={() => togglePromptExpand(index)}
+                      >
+                        <div className="flex justify-between items-center gap-3 cursor-pointer">
                           <div className="flex items-center gap-3">
                             <h3 className="text-white font-bold mb-[0.2rem]">You</h3>
                             <p className="text-white text-xs">{new Date(summary.timestamp.seconds * 1000).toLocaleString()}</p>
@@ -178,11 +181,11 @@ export default function History() {
                           </div>
                         </div>
                         <div
-                          className={`flex items-center break-word whitespace-pre-wrap cursor-pointer transition-all duration-300 ease-in-out text-[#A1ADF4] ${expandedPrompts[index]
+                          className={`flex items-center break-word whitespace-pre-wrap transition-all duration-300 ease-in-out text-[#A1ADF4] ${expandedPrompts[index]
                             ? "max-h-full"
                             : "max-h-20 overflow-hidden"
                             }`}
-                          onClick={() => togglePromptExpand(index)}
+
                         >
                           {summary.prompt}
                         </div>
@@ -220,7 +223,7 @@ export default function History() {
                           <div className="copy_icon p-2 w-9 h-9 border border-[#4863BE] rounded-[10px] text-center flex justify-center items-center cursor-pointer hover:bg-[#B6F09C] "
                             onClick={() => copyImageToClipboard(summary.response)}
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" version="1.1" x="0" y="0" viewBox="0 0 48 48"  className=""><g><path d="M33.46 28.672V7.735c0-2.481-2.019-4.5-4.5-4.5H8.023a4.505 4.505 0 0 0-4.5 4.5v20.937c0 2.481 2.019 4.5 4.5 4.5H28.96c2.481 0 4.5-2.019 4.5-4.5zm-26.937 0V7.735c0-.827.673-1.5 1.5-1.5H28.96c.827 0 1.5.673 1.5 1.5v20.937c0 .827-.673 1.5-1.5 1.5H8.023c-.827 0-1.5-.673-1.5-1.5zm33.454-13.844h-3.646a1.5 1.5 0 1 0 0 3h3.646c.827 0 1.5.673 1.5 1.5v20.937c0 .827-.673 1.5-1.5 1.5H19.041c-.827 0-1.5-.673-1.5-1.5v-4.147a1.5 1.5 0 1 0-3 0v4.147c0 2.481 2.019 4.5 4.5 4.5h20.936c2.481 0 4.5-2.019 4.5-4.5V19.328c0-2.481-2.019-4.5-4.5-4.5z" fill="#000000" opacity="1" data-original="#000000" className="fill-white"></path></g></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" version="1.1" x="0" y="0" viewBox="0 0 48 48" className=""><g><path d="M33.46 28.672V7.735c0-2.481-2.019-4.5-4.5-4.5H8.023a4.505 4.505 0 0 0-4.5 4.5v20.937c0 2.481 2.019 4.5 4.5 4.5H28.96c2.481 0 4.5-2.019 4.5-4.5zm-26.937 0V7.735c0-.827.673-1.5 1.5-1.5H28.96c.827 0 1.5.673 1.5 1.5v20.937c0 .827-.673 1.5-1.5 1.5H8.023c-.827 0-1.5-.673-1.5-1.5zm33.454-13.844h-3.646a1.5 1.5 0 1 0 0 3h3.646c.827 0 1.5.673 1.5 1.5v20.937c0 .827-.673 1.5-1.5 1.5H19.041c-.827 0-1.5-.673-1.5-1.5v-4.147a1.5 1.5 0 1 0-3 0v4.147c0 2.481 2.019 4.5 4.5 4.5h20.936c2.481 0 4.5-2.019 4.5-4.5V19.328c0-2.481-2.019-4.5-4.5-4.5z" fill="#000000" opacity="1" data-original="#000000" className="fill-white"></path></g></svg>
                           </div>
                           <div className="share_icon hidden p-2 w-9 h-9 border border-[#4863BE] rounded-[10px] text-center justify-center items-center cursor-pointer">
                             <svg width="25" height="25" viewBox="0 0 25 25" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -237,7 +240,6 @@ export default function History() {
                           </div>
                           <div className="download_icon p-2 w-9 h-9 border border-[#4863BE] rounded-[10px] text-center flex justify-center items-center cursor-pointer hover:bg-[#B6F09C]" onClick={() => downloadImage(summary.response)}>
                             <svg xmlns="http://www.w3.org/2000/svg" version="1.1" x="0" y="0" viewBox="0 0 515.283 515.283" className=""><g><path d="M400.775 515.283H114.507c-30.584 0-59.339-11.911-80.968-33.54C11.911 460.117 0 431.361 0 400.775v-28.628c0-15.811 12.816-28.628 28.627-28.628s28.627 12.817 28.627 28.628v28.628c0 15.293 5.956 29.67 16.768 40.483 10.815 10.814 25.192 16.771 40.485 16.771h286.268c15.292 0 29.669-5.957 40.483-16.771 10.814-10.815 16.771-25.192 16.771-40.483v-28.628c0-15.811 12.816-28.628 28.626-28.628s28.628 12.817 28.628 28.628v28.628c0 30.584-11.911 59.338-33.54 80.968-21.629 21.629-50.384 33.54-80.968 33.54zM257.641 400.774a28.538 28.538 0 0 1-19.998-8.142l-.002-.002-.057-.056-.016-.016c-.016-.014-.03-.029-.045-.044l-.029-.029a.892.892 0 0 0-.032-.031l-.062-.062-114.508-114.509c-11.179-11.179-11.179-29.305 0-40.485 11.179-11.179 29.306-11.18 40.485 0l65.638 65.638V28.627C229.014 12.816 241.83 0 257.641 0s28.628 12.816 28.628 28.627v274.408l65.637-65.637c11.178-11.179 29.307-11.179 40.485 0 11.179 11.179 11.179 29.306 0 40.485L277.883 392.39l-.062.062-.032.031-.029.029c-.014.016-.03.03-.044.044l-.017.016a1.479 1.479 0 0 1-.056.056l-.002.002c-.315.307-.634.605-.96.895a28.441 28.441 0 0 1-7.89 4.995l-.028.012c-.011.004-.02.01-.031.013a28.5 28.5 0 0 1-11.091 2.229z" fill="#fff" opacity="1" data-original="#000000" className="fill-[#fff] "></path></g></svg>
-
                           </div>
                         </div>
                       </div>
@@ -254,8 +256,12 @@ export default function History() {
                             />
                           </div>
                         </div>
-                        <div className="relative w-full">
-                          <div className="flex justify-between items-center mb-2">
+                        <div className="relative w-full cursor-pointer"
+                          onClick={() => toggleResponseExpand(index)}
+                        >
+                          <div className="flex justify-between items-center mb-2"
+
+                          >
                             <div className="flex justify-between items-center w-full">
                               <div className="flex gap-3 items-center">
                                 <h3 className="m-0 text-white font-semibold">XEEF.AI</h3>
@@ -270,12 +276,21 @@ export default function History() {
                               </div>
                             </div>
                             {/* Copy to clipboard button */}
-                            <button
-                              onClick={() => copyToClipboard(summary.response)}
+                            {/* <button
                               className="p-[6px] ml-3 w-8 h-8 border border-[#4863BE] rounded-[10px] text-center flex justify-center items-center cursor-pointer"
                               title="Copy to Clipboard"
                             >
                               <Copy className="text-white" />
+                            </button> */}
+                            <button className="copy_icon p-2 ml-3 w-9 h-9 border border-[#4863BE] rounded-[10px] text-center flex justify-center items-center cursor-pointer hover:bg-[#B6F09C] "
+                              onClick={() => copyToClipboard(summary.response)}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" version="1.1" x="0" y="0" viewBox="0 0 48 48" className="">
+                                <g>
+                                  <path d="M33.46 28.672V7.735c0-2.481-2.019-4.5-4.5-4.5H8.023a4.505 4.505 0 0 0-4.5 4.5v20.937c0 2.481 2.019 4.5 4.5 4.5H28.96c2.481 0 4.5-2.019 4.5-4.5zm-26.937 0V7.735c0-.827.673-1.5 1.5-1.5H28.96c.827 0 1.5.673 1.5 1.5v20.937c0 .827-.673 1.5-1.5 1.5H8.023c-.827 0-1.5-.673-1.5-1.5zm33.454-13.844h-3.646a1.5 1.5 0 1 0 0 3h3.646c.827 0 1.5.673 1.5 1.5v20.937c0 .827-.673 1.5-1.5 1.5H19.041c-.827 0-1.5-.673-1.5-1.5v-4.147a1.5 1.5 0 1 0-3 0v4.147c0 2.481 2.019 4.5 4.5 4.5h20.936c2.481 0 4.5-2.019 4.5-4.5V19.328c0-2.481-2.019-4.5-4.5-4.5z" fill="#000000" opacity="1" data-original="#000000" className="fill-white">
+                                  </path>
+                                </g>
+                              </svg>
                             </button>
                           </div>
                           <div
@@ -283,9 +298,9 @@ export default function History() {
                               ? "max-h-full"
                               : "max-h-20 overflow-hidden"
                               }`}
-                            onClick={() => toggleResponseExpand(index)}
+
                           >
-                            <div>{summary.response}</div>
+                            <div><MarkdownRenderer content={summary.response} /></div>
                           </div>
 
                         </div>

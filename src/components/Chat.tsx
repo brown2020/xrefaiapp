@@ -21,6 +21,7 @@ import { generateResponseWithMemory } from "@/actions/generateResponseWithMemory
 import Image from "next/image";
 import RootLayout from "@/app/layout";
 import ScrollToBottom from 'react-scroll-to-bottom';
+import MarkdownRenderer from "@/components/MarkdownRenderer";
 
 const MAX_WORDS_IN_CONTEXT = 5000; // Adjust based on OpenAI model limits
 
@@ -90,7 +91,7 @@ export default function Chat() {
               }
             }
           });
-                    
+
           setChatlist(chats);
           scrollToBottom();
           setLastKey(lastKey);
@@ -197,7 +198,8 @@ export default function Chat() {
       for await (const content of readStreamableValue(result)) {
         if (content) {
           finishedSummary = content.trim();
-          setStreamedResponse(finishedSummary); // Directly update state with the latest content chunk
+          setStreamedResponse(finishedSummary);
+          scrollToBottom(); // Directly update state with the latest content chunk
         }
       }
 
@@ -250,11 +252,7 @@ export default function Chat() {
         <div className="flex flex-col w-full h-full space-y-4 chat-bord-main">
           <ScrollToBottom className="scroll-to-bottom" initialScrollBehavior="smooth">
             <div className="flex flex-col">
-              {loadingResponse && (
-                <div className="p-2 bg-[#293A74]  text-[#A1ADF4] whitespace-pre-wrap rounded-md">
-                  {streamedResponse || "Generating response..."}
-                </div>
-              )}
+
               {/* Display chat list */}
               {chatlist.slice().reverse().map((chat, index) => (
                 <div key={index} className="flex flex-col my-3 space-y-3">
@@ -268,37 +266,59 @@ export default function Chat() {
                       <Image src="/Ellipse 4.png" alt="" height={100} width={100} />
                     </div>
                   </div>
-                  <div className="flex justify-start max-w-5xl p-4 gap-4 rounded-xl text-left bg-[#293A74]">
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#0A0F20]">
-                      <Image
-                        src="/logo(X).png"
-                        alt="bot"
-                        className="flex-shrink-0 object-contain w-10 h-10 rounded-full px-[5px]"
-                        width={40}
-                        height={40}
-                      />
-                    </div>
-                    <div className="text-[#A1ADF4] whitespace-pre-wrap w-full text-section-ai">
-                      <div className="flex justify-between items-center mb-2">
+                  <div className="flex flex-col max-w-5xl p-4 gap-4 rounded-xl text-left bg-[#293A74]">
+                    <div className="flex w-full gap-4">
+                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#0A0F20]">
+                        <Image
+                          src="/logo(X).png"
+                          alt="bot"
+                          className="flex-shrink-0 object-contain w-10 h-10 rounded-full px-[5px]"
+                          width={40}
+                          height={40}
+                        />
+                      </div>
+                      <div className="w-full flex justify-between items-center mb-2">
                         <div className="flex gap-3 items-center">
-                          <h3 className="m-0 text-white font-semibold">XEEF.AI</h3>
+                          <h3 className="m-0 text-white font-semibold">XREF.AI</h3>
                           <p className="px-[10px] py-0 text-[12px] rounded-[10px] bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] text-white ">Bot</p>
                         </div>
-                        <p className="copy_icon p-2 w-9 h-9 border border-[#4863BE] rounded-[10px] text-center flex justify-center items-center cursor-pointer"
+                        <button className="copy_icon p-2 ml-3 w-9 h-9 border border-[#4863BE] rounded-[10px] text-center flex justify-center items-center cursor-pointer hover:bg-[#B6F09C] "
                         >
-                          <svg width="27" height="27" viewBox="0 0 27 27" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M22.0938 8.8125H22.875C24.6009 8.8125 26 10.2116 26 11.9375V22.875C26 24.6009 24.6009 26 22.875 26H11.9375C10.2116 26 8.8125 24.6009 8.8125 22.875V22.0938M4.125 18.1875H15.0625C16.7884 18.1875 18.1875 16.7884 18.1875 15.0625V4.125C18.1875 2.39911 16.7884 1 15.0625 1H4.125C2.39911 1 1 2.39911 1 4.125V15.0625C1 16.7884 2.39911 18.1875 4.125 18.1875Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          <svg xmlns="http://www.w3.org/2000/svg" version="1.1" x="0" y="0" viewBox="0 0 48 48" className="">
+                            <g>
+                              <path d="M33.46 28.672V7.735c0-2.481-2.019-4.5-4.5-4.5H8.023a4.505 4.505 0 0 0-4.5 4.5v20.937c0 2.481 2.019 4.5 4.5 4.5H28.96c2.481 0 4.5-2.019 4.5-4.5zm-26.937 0V7.735c0-.827.673-1.5 1.5-1.5H28.96c.827 0 1.5.673 1.5 1.5v20.937c0 .827-.673 1.5-1.5 1.5H8.023c-.827 0-1.5-.673-1.5-1.5zm33.454-13.844h-3.646a1.5 1.5 0 1 0 0 3h3.646c.827 0 1.5.673 1.5 1.5v20.937c0 .827-.673 1.5-1.5 1.5H19.041c-.827 0-1.5-.673-1.5-1.5v-4.147a1.5 1.5 0 1 0-3 0v4.147c0 2.481 2.019 4.5 4.5 4.5h20.936c2.481 0 4.5-2.019 4.5-4.5V19.328c0-2.481-2.019-4.5-4.5-4.5z" fill="#000000" opacity="1" data-original="#000000" className="fill-white">
+                              </path>
+                            </g>
                           </svg>
-                        </p>
+                        </button>
                       </div>
-                      <p className="md:break-normal break-words">{chat.response}</p>
-
+                    </div>
+                    <div className="text-[#A1ADF4] whitespace-pre-wrap w-full text-section-ai pb-4">
+                      <MarkdownRenderer content={chat.response} />
                     </div>
                   </div>
-                  
                 </div>
               ))}
-
+              {loadingResponse && (
+                <div className="p-2 bg-[#293A74]  text-[#A1ADF4] whitespace-pre-wrap rounded-md">
+                  <div className="flex mb-2 gap-4">
+                    <div className="flex gap-3 items-center">
+                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#0A0F20]">
+                        <Image
+                          src="/logo(X).png"
+                          alt="bot"
+                          className="flex-shrink-0 object-contain w-10 h-10 rounded-full px-[5px]"
+                          width={40}
+                          height={40}
+                        />
+                      </div>
+                      <h3 className="m-0 text-white font-semibold">XREF.AI</h3>
+                      <p className="px-[10px] py-0 text-[12px] rounded-[10px] bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] text-white ">Bot</p>
+                    </div>
+                  </div>
+                  <MarkdownRenderer content={streamedResponse || "Generating response..."} />
+                </div>
+              )}
             </div>
             <div ref={scrollRef} />
           </ScrollToBottom>
