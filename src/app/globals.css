@@ -3,16 +3,28 @@
 @tailwind utilities;
 
 @layer base {
+
   html,
   body {
     min-height: 500px;
     height: calc(var(--vh, 1vh) * 100);
     width: 100vw;
     overflow-x: hidden;
-    overflow-y: scroll;
+    /* overflow-y: scroll; */
     background-color: #ffffff;
     color: #000000;
+    font-family: 'Plus Jakarta Sans';
   }
+}
+
+/* latin */
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/plusjakartasans/v8/LDIoaomQNQcsA88c7O9yZ4KMCoOg4Ko20yw.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @layer components {
@@ -25,6 +37,7 @@
     height: calc(100vh - 4rem);
     overscroll-behavior-y: contain;
   }
+
   .h-container-small {
     height: calc(100vh - 8rem);
     overscroll-behavior-y: contain;
@@ -94,6 +107,7 @@
   .btn {
     @apply flex items-center justify-center px-3 py-2 hover:opacity-50 rounded-md gap-1 disabled:opacity-50;
   }
+
   .btn-primary {
     @apply cursor-pointer flex w-full outline-none text-center justify-center items-center gap-2 mt-2 px-6 py-2 bg-[#2563EB] text-white font-semibold hover:bg-[#2563EB]/30 rounded-full disabled:bg-[#2563EB]/30 disabled:hover:bg-[#2563EB]/30 disabled:cursor-not-allowed;
   }
@@ -117,23 +131,27 @@
   .btn-primary2 {
     @apply cursor-pointer flex outline-none items-center gap-2 mt-2 px-6 py-2 bg-black/20 text-black font-semibold hover:bg-black/30 rounded-full disabled:bg-white/10 disabled:hover:bg-white/10 disabled:cursor-not-allowed;
   }
+
   .btn-secondary {
     @apply cursor-pointer flex outline-none items-center gap-2 mt-2 px-6 py-2 bg-white/10 text-black/50 font-semibold hover:bg-white/30 ml-auto rounded-full;
   }
 
   .input-primary {
-    @apply w-full text-black px-4 py-2 outline-none border border-[#111113]/20  bg-white rounded-lg;
+    @apply w-full text-black px-4 py-2 outline-none border border-[#111113]/20 bg-white rounded-lg;
   }
 
   .text-wrapper {
     @apply flex flex-col space-y-3 max-w-4xl mx-auto;
   }
+
   .text-wrapper h3 {
     @apply text-2xl;
   }
+
   .text-wrapper h4 {
     @apply text-lg;
   }
+
   .text-wrapper ul {
     @apply list-disc mx-4 space-y-3;
   }
@@ -141,26 +159,32 @@
   .form-wrapper {
     @apply flex flex-col space-y-3 w-full;
   }
+
   .form-wrapper form {
     @apply flex flex-col space-y-3;
   }
+
   .form-wrapper label {
     @apply flex flex-col space-y-1;
   }
+
   .form-wrapper input,
   .form-wrapper textarea {
     @apply px-3 py-2 outline-none border rounded-md;
   }
-  .form-wrapper button {
+
+  /* .form-wrapper button {
     @apply mr-auto py-2 px-3 bg-orange-500 text-black rounded-md cursor-pointer disabled:opacity-50 hover:opacity-50;
-  }
+  } */
+
   .response {
     @apply p-3 bg-orange-500 bg-opacity-20 my-3 rounded-md whitespace-pre-wrap;
   }
 
   .form-input {
-    @apply px-2 py-2 border  border-[#111113]/20  w-full outline-none text-sm rounded-[4px];
+    @apply px-2 py-2 border border-[#111113]/20 w-full outline-none text-sm rounded-[4px];
   }
+
   .form-input-required {
     @apply px-2 py-2 border border-red-500 w-full outline-none text-sm rounded-[4px];
   }
@@ -168,26 +192,32 @@
   .checkbox-container {
     display: flex;
     align-items: center;
-    margin-bottom: 8px; /* Adjust as needed */
+    margin-bottom: 8px;
+    /* Adjust as needed */
   }
 
   .custom-checkbox {
     appearance: none;
     -webkit-appearance: none;
-    background-color: #fff; /* Default background */
-    border-color: rgba(66, 80, 102, 0.4); /* Border color */
+    background-color: #fff;
+    /* Default background */
+    border-color: rgba(66, 80, 102, 0.4);
+    /* Border color */
     border-width: 1px;
     box-shadow: 0px 0px 2px 4px rgba(66, 80, 102, 0.1);
-    padding: 10px; /* Size of the checkbox */
+    padding: 10px;
+    /* Size of the checkbox */
     display: inline-block;
     position: relative;
     cursor: pointer;
     vertical-align: middle;
-    margin-right: 8px; /* Space between checkbox and label */
+    margin-right: 8px;
+    /* Space between checkbox and label */
   }
 
   .custom-checkbox:checked {
-    background-color: #fbbf24; /* Bright yellow background */
+    background-color: #fbbf24;
+    /* Bright yellow background */
   }
 
   .custom-checkbox:checked:after {
@@ -196,7 +226,8 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 16px; /* Adjust size of checkmark */
+    font-size: 16px;
+    /* Adjust size of checkmark */
     color: #000000;
   }
 }
@@ -213,4 +244,234 @@
   left: 0;
   width: 100%;
   height: 100%;
+}
+
+/* navbar menu */
+/* Navbar hover effects with AI glow and color change */
+.navbar-link {
+  position: relative;
+  transition: all 0.4s ease-in-out;
+}
+
+.navbar-link::before {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 3px;
+  bottom: -4px;
+  left: 0;
+  background: #83A873;
+  transition: all 0.4s ease-in-out;
+}
+
+.navbar-link:hover .nav-icon {
+  color: #83A873;
+  text-shadow: none;
+  transition: all 0.4s ease-in-out;
+}
+
+.navbar-link:hover::before {
+  width: 100%;
+}
+
+.navbar-link:hover {
+  color: #83A873;
+}
+
+/* Active state styles */
+.navbar-link.active {
+  color: #83A873;
+  /* Text color when active */
+}
+
+.navbar-link.active::before {
+  width: 100%;
+  /* Full width of the bottom border when active */
+}
+
+.chnage_title span {
+  background: linear-gradient(90deg, #9C26D7 0%, #1EB1DB 100%);
+  background-clip: text;
+  color: transparent;
+}
+
+.premium {
+  background: linear-gradient(90deg, #6E428F 0%, #7785D9 100%);
+}
+
+.hero-img {
+  width: 100%;
+}
+
+.img-section {
+  width: 100%;
+}
+
+.overlayer-bgi {
+  height: 95%;
+  width: 80%;
+  margin: 0 auto;
+  left: 0;
+  right: 0;
+  z-index: 0;
+}
+
+/* add by chat_bord */
+.sand-block {
+  right: 6px;
+  bottom: 1.5rem;
+  transform: translate(-4px, 14px);
+  padding: 5px 15px;
+}
+
+.break-word {
+  word-break: break-word;
+}
+
+.text_area {
+  border: 2px solid #6A30B4;
+}
+
+.left-tab-section {
+  min-height: calc(100vh - 12rem);
+}
+
+.Striped-bar {
+  background-image: linear-gradient(45deg, rgba(255, 255, 255, .15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%, transparent 75%, transparent);
+  background-size: 35px 35px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+
+.download_icon:hover svg path,
+.copy_icon:hover svg path {
+  fill: #ffffff;
+}
+
+.scroll-to-bottom>div {
+  overflow-y: unset !important;
+}
+
+.text-section-ai {
+  max-width: 100%;
+  /* Ensure it doesn't overflow the parent */
+  overflow-wrap: break-word;
+  /* Break words if they're too long */
+  word-wrap: break-word;
+  /* Older browsers support */
+  overflow-x: auto;
+  /* Hide overflowed text */
+}
+
+
+/* width */
+.text-section-ai::-webkit-scrollbar {
+  width: 5px;
+}
+
+/* Track */
+.text-section-ai::-webkit-scrollbar-track {
+  background: #F0F6FF;
+}
+
+/* Handle */
+.text-section-ai::-webkit-scrollbar-thumb {
+  background: #0B3C68;
+}
+
+@media screen and (max-width: 640px) {
+  .chat-bord-main {
+    padding: 1rem;
+  }
+
+  /* .text-section-ai {
+    width: 80%;
+  } */
+
+  /* .tool-text-block {
+    width: 60%;
+  } */
+}
+
+@media screen and (max-width: 1024px) {
+  .container {
+    max-width: 1024px;
+  }
+}
+
+@media screen and (min-width: 769px) {
+  .left-tab-section {
+    width: 40%;
+  }
+
+  .right-contant-section {
+    width: 60%;
+  }
+}
+
+@media screen and (min-width: 1001px) {
+  .left-tab-section {
+    width: 30%;
+  }
+
+  .right-contant-section {
+    width: 70%;
+  }
+}
+
+@media screen and (min-width: 1280px) {
+  .left-tab-section {
+    width: 20%;
+  }
+
+  .right-contant-section {
+    width: 80%;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .tools-setion {
+    flex-direction: column;
+  }
+
+  .left-tab-section {
+    min-height: revert;
+    padding: 1.7rem;
+    gap: 1.5rem;
+  }
+
+  .tab-list-section {
+    width: 100%;
+    text-align: center;
+    padding: 1rem;
+    border-radius: 15px;
+    border-bottom: 2px solid #263566;
+  }
+
+  .right-contant-section,
+  .left-tab-section {
+    width: 100%;
+  }
+
+  /* my account */
+  .right-contant-section,
+  .left-tab-section {
+    width: 100%;
+  }
+
+  .by-credits {
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .usage-credits-block,
+  .credits-block {
+    width: 100%;
+    text-align: center;
+  }
+
+  .either-buy-credits {
+    text-align: center;
+  }
 }

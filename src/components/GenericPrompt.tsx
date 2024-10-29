@@ -112,10 +112,11 @@ export default function GenericPrompt({
   return (
     <div className="form-wrapper">
       <form onSubmit={(e) => getResponse(e)}>
-        <label htmlFor="topic-field">
+        <label htmlFor="topic-field" className="text-[#041D34] font-semibold">
           {inputLabel}
           {isTextArea ? (
             <textarea
+              className="bg-[#F5F5F5] text-[#0B3C68] mt-1 border border#ECECEC] font-normal placeholder:text-[#BBBEC9]"
               id="topic-field"
               rows={4}
               placeholder={inputPlaceholder}
@@ -132,9 +133,10 @@ export default function GenericPrompt({
           )}
         </label>
 
-        <label htmlFor="words-field">
+        <label htmlFor="words-field" className="text-[#041D34] font-semibold">
           Approximate number of words (Between 3 and 800)
           <input
+            className="bg-[#F5F5F5] text-[#0B3C68] mt-1 border border#ECECEC] font-normal placeholder:text-[#BBBEC9]"
             defaultValue={"30"}
             type="number"
             id="words-field"
@@ -142,22 +144,22 @@ export default function GenericPrompt({
             onChange={(e) => setWords(e.target.value || "30")}
           />
         </label>
-
-        <button className="w-36 bottom" type="submit" disabled={!active}>
-          {thinking ? <PulseLoader color="#fff" size={8} /> : "Let's Write!"}
-        </button>
-
+        <div className="text-center !mt-[2rem]">
+          <button className="w-44 text-white px-3 py-2 custom-write bottom bg-[#192449] !opacity-100 hover:bg-[#83A873] !rounded-3xl font-bold transition-transform duration-300 ease-in-out" type="submit" disabled={!active}>
+            <span className="text-white">{thinking ? <PulseLoader color="#fff" size={8} /> : "Let's Write!"}</span>
+          </button>
+        </div>
         {Boolean(flagged) && <h3 id="flagged">{flagged}</h3>}
 
         {!Boolean(flagged) && Boolean(summary) && (
           <div id="response">
             <h3
-              className="cursor-pointer response"
+              className="cursor-pointer response bg-[#E7EAEF] text-[#0B3C68]"
               onClick={() => copyToClipboard(summary)}
             >
               {summary}
             </h3>
-            <p className="disclaimer">
+            <p className="disclaimer text-[#041D34]">
               <span>*</span>
               {`I'm a new AI and I'm still learning, so these results might have inaccuracies.`}
             </p>

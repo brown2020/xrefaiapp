@@ -4,33 +4,72 @@ import { useRouter } from "next/navigation";
 
 export default function Footer() {
   const router = useRouter();
-  const menuItems = [
+
+  const menuItemsRight = [
     { label: "XREF.AI", link: "/" },
-    { label: "Tools", link: "/tools" },
-    { label: "History", link: "/history" },
-    { label: "Account", link: "/account" },
-    { label: "Privacy", link: "/privacy" },
+  ];
+
+  const menuItemsLeft = [
+    { label: "About", link: "/about" },
     { label: "Terms", link: "/terms" },
+    { label: "Privacy", link: "/privacy" },
+    { label: "Support", link: "/support" },
   ];
 
   const handleNavigation = (link: string) => {
     router.push(link);
   };
 
-  const menuDisplay = menuItems.map((item, index) => (
+  const menuDisplayRight = menuItemsRight.map((item, index) => (
     <div
       key={index}
       onClick={() => handleNavigation(item.link)}
-      className="cursor-pointer text-gray-500 hover:text-black"
+      className="cursor-pointer text-[#041D34] hover:text-[#83A873] navbar-link"
+    >
+      {item.label}
+    </div>
+  ));
+
+  const menuDisplayLeft = menuItemsLeft.map((item, index) => (
+    <div
+      key={index}
+      onClick={() => handleNavigation(item.link)}
+      className="cursor-pointer text-[#041D34] hover:text-[#83A873] navbar-link"
     >
       {item.label}
     </div>
   ));
 
   return (
-    <div className="h-14 mt-5 flex flex-wrap items-center justify-center max-w-5xl px-5 pb-5 mx-auto space-x-2 z-10 text-gray-500">
-      <div>&copy; {new Date().getFullYear()}</div>
-      {menuDisplay}
+    <div className="bg-[#F5F5F5]">
+      <div className="container flex flex-col sm:flex-row items-center justify-between px-5 py-5 mx-auto z-10 text-gray-500 gap-4 sm:gap-0">
+        {/* Left Menu */}
+        <div className="flex gap-4 sm:gap-6 order-2 sm:order-1 lg:w-[33%]">
+          {menuDisplayLeft}
+        </div>
+
+        {/* Social Media Icons */}
+        <div className="flex lg:justify-center gap-3 order-1 lg:order-2 lg:w-[33%]">
+          <div className="flex items-center justify-center w-8 h-8 bg-[#141D3D] text-white cursor-pointer hover:bg-[#83A873] hover:text-[#ffffff] rounded-full">
+            <i className="fa-brands fa-facebook-f"></i>
+          </div>
+          <div className="flex items-center justify-center w-8 h-8 bg-[#141D3D] text-white cursor-pointer hover:bg-[#83A873] hover:text-[#ffffff] rounded-full">
+            <i className="fa-brands fa-twitter"></i>
+          </div>
+          <div className="flex items-center justify-center w-8 h-8 bg-[#141D3D] text-white cursor-pointer hover:bg-[#83A873] hover:text-[#ffffff] rounded-full">
+            <i className="fa-brands fa-pinterest-p"></i>
+          </div>
+          <div className="flex items-center justify-center w-8 h-8 bg-[#141D3D] text-white cursor-pointer hover:bg-[#83A873] hover:text-[#ffffff] rounded-full">
+            <i className="fa-brands fa-youtube"></i>
+          </div>
+        </div>
+
+        {/* Right Menu and Copyright */}
+        <div className="flex lg:justify-end gap-2 order-3 lg:order-3 lg:w-[33%] text-[#041D34]">
+          <div>&copy; {new Date().getFullYear()}</div>
+          {menuDisplayRight}
+        </div>
+      </div>
     </div>
   );
 }

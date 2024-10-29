@@ -1,7 +1,9 @@
 import { create } from "zustand";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { deleteDoc, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { useAuthStore } from "./useAuthStore";
 import { db } from "@/firebase/firebaseClient";
+import { deleteUser, getAuth } from "firebase/auth";
+import toast from "react-hot-toast";
 
 export interface ProfileType {
   email: string;
@@ -16,6 +18,9 @@ export interface ProfileType {
   selectedAvatar: string;
   selectedTalkingPhoto: string;
   useCredits: boolean;
+  firstName?: string;
+  lastName?: string;
+  headerUrl?: string;
 }
 
 // Default profile template for filling missing values locally (not to overwrite Firestore)
@@ -40,19 +45,24 @@ interface ProfileState {
   updateProfile: (newProfile: Partial<ProfileType>) => Promise<void>;
   minusCredits: (amount: number) => Promise<boolean>;
   addCredits: (amount: number) => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 const useProfileStore = create<ProfileState>((set, get) => ({
   profile: defaultProfile,
 
   fetchProfile: async () => {
-    const { uid, authEmail, authDisplayName, authPhotoUrl, authEmailVerified } =
+    const { uid, authEmail, authDisplayName, authEmailVerified } =
       useAuthStore.getState();
     if (!uid) return;
 
     try {
       const userRef = doc(db, `users/${uid}/profile/userData`);
       const docSnap = await getDoc(userRef);
+      const authPhotoUrl = useAuthStore.getState().authPhotoUrl;
+      //const selectedName = useAuthStore.getState().;
+      const authFirstName = authDisplayName?.split(" ")[0] || "";
+      const authLastName = authDisplayName?.split(" ")[1] || "";
 
       if (docSnap.exists()) {
         const firestoreProfile = docSnap.data() as Partial<ProfileType>;
@@ -70,6 +80,9 @@ const useProfileStore = create<ProfileState>((set, get) => ({
               ? firestoreProfile.emailVerified
               : authEmailVerified || false, // Ensure a boolean value
           credits: firestoreProfile.credits ?? 1000, // Default only if not set in Firestore
+          firstName: firestoreProfile.firstName || authFirstName || "",
+          lastName: firestoreProfile.lastName || authLastName || "",
+          headerUrl: firestoreProfile.headerUrl || "",
         };
 
         // Set the merged profile in local state without overwriting Firestore
@@ -80,7 +93,10 @@ const useProfileStore = create<ProfileState>((set, get) => ({
           authEmail,
           authDisplayName,
           authPhotoUrl,
-          authEmailVerified
+          authEmailVerified,
+          authFirstName,
+          authLastName,
+          authPhotoUrl,
         );
         console.log("No profile found. Creating new profile document.");
 
@@ -105,9 +121,29 @@ const useProfileStore = create<ProfileState>((set, get) => ({
 
       // Update Firestore only for changed fields
       await updateDoc(userRef, newProfile);
-      console.log("Profile updated successfully");
+      toast.success("Profile updated successfully");
     } catch (error) {
       handleProfileError("updating profile", error);
+    }
+  },
+  deleteAccount: async () => {
+    const auth = getAuth(); // Get Firebase auth instance
+    const currentUser = auth.currentUser;
+
+    const uid = useAuthStore.getState().uid;
+    if (!uid || !currentUser) return;
+
+    try {
+      const userRef = doc(db, `users/${uid}/profile/userData`);
+      // Delete the user profile data from Firestore
+      await deleteDoc(userRef);
+
+      //Delete the user from Firebase Authentication
+      await deleteUser(currentUser);
+
+      console.log("Account deleted successfully");
+    } catch (error) {
+      handleProfileError("deleting account", error);
     }
   },
 
@@ -150,13 +186,19 @@ function createNewProfile(
   authEmail?: string,
   authDisplayName?: string,
   authPhotoUrl?: string,
-  authEmailVerified?: boolean
+  authEmailVerified?: boolean,
+  firstName?: string,
+  lastName?: string,
+  headerUrl?: string,
 ): ProfileType {
   return {
     email: authEmail || "",
     contactEmail: "",
     displayName: authDisplayName || "",
     photoUrl: authPhotoUrl || "",
+    firstName: firstName || "",
+    lastName: lastName || "",
+    headerUrl: headerUrl || "",
     emailVerified: authEmailVerified || false,
     credits: 1000, // Default credits for new users
     fireworks_api_key: "",

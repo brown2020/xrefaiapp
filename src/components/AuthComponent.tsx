@@ -132,8 +132,8 @@ export default function AuthComponent() {
         </button>
       )}
       {!uid && (
-        <button onClick={showModal} className="btn-blue max-w-md mx-auto">
-          Sign In to Enable Your Account
+        <button onClick={showModal} className="bg-[#02C173] hover:bg-[#009d5b] hover:opacity-100 btn-blue mt-0 w-auto">
+          Sign In to Enable Your Account <i className="fa-solid fa-arrow-right"></i>
         </button>
       )}
 
@@ -199,6 +199,7 @@ export default function AuthComponent() {
                       label="Continue with Google"
                       logo={googleLogo}
                       onClick={signInWithGoogle}
+                      
                     />
                     <div className="flex items-center justify-center w-full h-12">
                       <hr className="flex-grow h-px bg-gray-400 border-0" />
@@ -292,8 +293,10 @@ function AuthButton({
       <div className="w-6 h-6 relative">
         <Image
           src={logo}
+          height={100} 
+          width={100}
           alt={`${label} logo`}
-          layout="fill"
+          
           objectFit="contain"
         />
       </div>
