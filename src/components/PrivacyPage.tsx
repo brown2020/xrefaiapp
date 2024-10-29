@@ -15,10 +15,10 @@ export default function Privacy({
 }: Props) {
   return (
     <div className="container mx-auto flex items-center justify-center p-4">
-      <div className="rounded-lg shadow-lg text-white">
-        <h1 className="text-3xl font-extrabold text-left mb-8">Privacy Policy</h1>
+       <div className="rounded-lg text-[#041D34]">
+       <h1 className="text-3xl font-extrabold text-left mb-8">Privacy Policy</h1>
         <section className="mb-8">
-          <p className="text-gray-300 leading-relaxed">
+          <p className="text-[#0B3C68] leading-relaxed">
             Protecting your private information is our priority. This Statement of
             Privacy applies to {companyName} pages and apps developed by
             {companyName} and governs data collection and usage. For the purposes of
@@ -30,17 +30,17 @@ export default function Privacy({
           </p>
         </section>
 
-        <h4 className="!text-2xl font-semibold text-white mt-8 mb-4">Collection of your Personal Information</h4>
-        <p className="mb-2 text-gray-300">
+        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Collection of your Personal Information</h4>
+        <p className="mb-2 text-[#0B3C68]">
           In order to better provide you with products and services offered,
           {companyName} may collect personally identifiable information, such as
           your:
         </p>
-        <ul className="list-disc list-inside text-gray-300 mb-6">
+        <ul className="list-disc list-inside text-[#0B3C68] mb-6">
           <li>First and Last Name</li>
           <li>E-mail Address</li>
         </ul>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           We do not collect any personal information about you unless you
           voluntarily provide it to us. However, you may be required to provide
           certain personal information to us when you elect to use certain
@@ -54,22 +54,22 @@ export default function Privacy({
           requested from us. We also may gather additional personal or
           non-personal information in the future.
         </p>
-        <h4 className="!text-2xl font-semibold text-white mt-8 mb-4">Use of your Personal Information</h4>
-        <p className="mb-6 text-gray-300">
+        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Use of your Personal Information</h4>
+        <p className="mb-6 text-[#0B3C68]">
           {companyName} collects and uses your personal information to operate and
           deliver the services you have requested.
         </p>
-        <p className="mb-6 text-gray-300">
+        <p className="mb-6 text-[#0B3C68]">
           {companyName} may also use your personally identifiable information to
           inform you of other products or services available from
           {companyName} and its affiliates.
         </p>
-        <h4 className="!text-2xl font-semibold text-white mt-8 mb-4">Sharing Information with Third Parties</h4>
-        <p className="mb-6 text-gray-300">
+        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Sharing Information with Third Parties</h4>
+        <p className="mb-6 text-[#0B3C68]">
           {companyName} does not sell, rent or lease its customer lists to third
           parties.
         </p>
-        <p className="mb-6 text-gray-300">
+        <p className="mb-6 text-[#0B3C68]">
           {companyName} may share data with trusted partners to help perform
           statistical analysis, send you email or postal mail, provide customer
           support, or arrange for deliveries. All such third parties are
@@ -77,7 +77,7 @@ export default function Privacy({
           services to {companyName}, and they are required to maintain the
           confidentiality of your information.
         </p>
-        <p className="mb-6 text-gray-300">
+        <p className="mb-6 text-[#0B3C68]">
           {companyName} may disclose your personal information, without notice, if
           required to do so by law or in the good faith belief that such action is
           necessary to: (a) conform to the edicts of the law or comply with legal
@@ -86,23 +86,23 @@ export default function Privacy({
           circumstances to protect the personal safety of users of {companyName},
           or the public.
         </p>
-        <h4 className="!text-2xl font-semibold text-white mt-8 mb-4">Right to Deletion</h4>
-        <p className="mb-6 text-gray-300">
+        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Right to Deletion</h4>
+        <p className="mb-6 text-[#0B3C68]">
           Subject to certain exceptions set out below, on receipt of a verifiable
           request from you, we will:
         </p>
-        <ul className="list-disc list-inside text-gray-300 mb-6">
+        <ul className="list-disc list-inside text-[#0B3C68] mb-6">
           <li>Delete your personal information from our records; and</li>
           <li>
             Direct any service providers to delete your personal information from
             their records.
           </li>
         </ul>
-        <p className="mb-6 text-gray-300">
+        <p className="mb-6 text-[#0B3C68]">
           Please note that we may not be able to comply with requests to delete
           your personal information if it is necessary to:
         </p>
-        <ul className="list-disc list-inside text-gray-300 mb-6">
+        <ul className="list-disc list-inside text-[#0B3C68] mb-6">
           <li>
             Complete the transaction for which the personal information was
             collected, fulfill the terms of a written warranty or product recall
@@ -148,15 +148,15 @@ export default function Privacy({
           </li>
         </ul>
 
-        <h4 className="!text-2xl font-semibold text-white mt-8 mb-4">Children Under Thirteen</h4>
-        <p className="mb-6 text-gray-300">
+        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Children Under Thirteen</h4>
+        <p className="mb-6 text-[#0B3C68]">
           {companyName} does not knowingly collect personally identifiable
           information from children under the age of thirteen. If you are under
           the age of thirteen, you must ask your parent or guardian for permission
           to use this application.
         </p>
-        <h4 className="!text-2xl font-semibold text-white mt-8 mb-4">E-mail Communications</h4>
-        <p className="mb-6 text-gray-300">
+        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">E-mail Communications</h4>
+        <p className="mb-6 text-[#0B3C68]">
           From time to time, {companyName} may contact you via email for the
           purpose of providing announcements, promotional offers, alerts,
           confirmations, surveys, and/or other general communication. If you would
@@ -164,13 +164,13 @@ export default function Privacy({
           from {companyName}, you may opt out of such communications by clicking
           the unsubscribe link in the email message.
         </p>
-        <h4 className="!text-2xl font-semibold text-white mt-8 mb-4">External Data Storage</h4>
-        <p className="mb-6 text-gray-300">
+        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">External Data Storage</h4>
+        <p className="mb-6 text-[#0B3C68]">
           Sites We may store your data on servers provided by third party hosting
           vendors with whom we have contracted.
         </p>
-        <h4 className="!text-2xl font-semibold text-white mt-8 mb-4">Changes to this Statement</h4>
-        <p className="mb-6 text-gray-300">
+        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Changes to this Statement</h4>
+        <p className="mb-6 text-[#0B3C68]">
           {companyName} reserves the right to change this Privacy Policy from time
           to time. We will notify you about significant changes in the way we
           treat personal information by sending a notice to the primary email
@@ -180,20 +180,20 @@ export default function Privacy({
           modifications will constitute your: (a) acknowledgment of the modified
           Privacy Policy; and (b) agreement to abide and be bound by that Policy.
         </p>
-        <h4 className="!text-2xl font-semibold text-white mt-8 mb-4">Contact Information</h4>
-        <p className="mb-6 text-gray-300">
+        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Contact Information</h4>
+        <p className="mb-6 text-[#0B3C68]">
           {companyName} welcomes your questions or comments regarding this
           Statement of Privacy. If you believe that {companyName} has not adhered
           to this Statement, please contact {companyName} at:
         </p>
-        <p className="mb-6 text-gray-300">
+        <p className="mb-6 text-[#0B3C68]">
           {companyName}
           <br />
           {companyAddress}
           <br />
           {companyLocation}
         </p>
-        <p className="mb-6 text-gray-300">
+        <p className="mb-6 text-[#0B3C68]">
           Email Address:
           <br />
           {companyEmail}

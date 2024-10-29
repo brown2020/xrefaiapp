@@ -16,7 +16,7 @@ export default function Home() {
     <RootLayout showFooter={true}>
       <div className="flex flex-col items-center justify-center mx-auto">
         <div className="flex flex-col text-center my-6">
-          <h3 className="mb-4 text-2xl sm:text-3xl md:text-3xl lg:text-2xl text-white font-normal px-4">
+          <h3 className="mb-4 text-2xl sm:text-3xl md:text-3xl lg:text-2xl text-[#041D34] font-normal px-4">
             What would you like to create today?
           </h3>
           <div className="container wrapper relative px-4">
@@ -53,7 +53,7 @@ export default function Home() {
                 <div className="">
                   <Image src="/hero_2.png" className="w-full h-auto object-cover" alt="" height={1000} width={1000} />
                 </div>
-                <p className="content-text text-start text-white">
+                <p className="content-text text-start text-[#041D34]">
                   It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout.
                 </p>
                 <div className="text-start">

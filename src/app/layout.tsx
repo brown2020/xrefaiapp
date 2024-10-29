@@ -25,7 +25,7 @@ export default function RootLayout({
         {/* <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet" /> */}
 
       </head>
-      <body className="h-full bg-[#0A0F20]">
+      <body className="h-full bg-[#ffffff]">
         <ClientProvider>
           <div className="flex flex-col h-full">
             <Header />

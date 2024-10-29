@@ -124,7 +124,7 @@ export default function Header() {
     <div
       key={index}
       onClick={() => handleNavigation(item.link)}
-      className={`cursor-pointer px-3 py-2 navbar-link font-semibold flex items-center gap-2 text-base ${pathname === item.link ? "active" : "text-white"
+      className={`cursor-pointer px-3 py-2 navbar-link font-semibold flex items-center gap-2 text-base ${pathname === item.link ? "active" : "text-[#041D34]"
         }`}
     >
       {/* {
@@ -139,24 +139,21 @@ export default function Header() {
   ));
 
   const sideBar = (
-    <div className="fixed top-0 left-0 z-40 w-full h-screen max-w-[250px] bg-[#0A0F20] shadow-inner transition ease-in-out">
+    <div className="fixed top-0 right-0 z-40 w-full h-screen max-w-[250px] bg-[#ffffff]  transition ease-in-out">
       {/* Logo */}
-      <div
-
-        className="flex items-center justify-between p-4"
-      >
+      <div className="flex items-center justify-between p-4">
         <span onClick={() => handleNavigation("/")} className="px-3 py-2 text-white bg-orange-500 rounded-md cursor-pointer text-lg font-bold">
           XREF.AI
         </span>
-        <span><i className="fa-solid fa-xmark text-white cursor-pointer"></i></span>
+        <span><i className="fa-solid fa-xmark text-[#041D34] cursor-pointer"></i></span>
       </div>
       {menuItems.map((item, index) => (
         <div
           key={index}
           onClick={() => handleNavigation(item.link)}
-          className={`whitespace-nowrap flex h-14 gap-2 w-full items-center justify-start p-4 navbar-link cursor-pointer md:py-2 ${pathname === item.link
-            ? "bg-orange-500 text-white"
-            : "text-white "
+          className={`whitespace-nowrap flex h-14 gap-2 w-full items-center justify-start p-4 navbar-link font-semibold cursor-pointer md:py-2 ${pathname === item.link
+            ? "text-[#041D34]"
+            : "text-[#041D34]"
             }`}
         >
           {/* {
@@ -173,7 +170,7 @@ export default function Header() {
   );
 
   return (
-    <div className="container mx-auto bg-[#0A0F20] sticky top-0 z-30 text-gray-700 shadow-lg px-4 py-4">
+    <div className="container mx-auto bg-[#ffffff] sticky top-0 z-30 text-gray-700  px-4 py-4">
       <div className="flex items-center justify-between text-sm">
         {/* Logo */}
         <div
@@ -190,7 +187,7 @@ export default function Header() {
           className="ml-auto flex items-center justify-center h-full sm:hidden transition ease-in-out"
           onClick={() => setShowMenu(!showMenu)}
         >
-          <Menu className="w-6 h-6 cursor-pointer text-white rounded-full" />
+          <Menu className="w-6 h-6 cursor-pointer text-[#041D34] rounded-full" />
         </div>
 
         {/* Desktop Menu */}

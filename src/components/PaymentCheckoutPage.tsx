@@ -98,12 +98,12 @@ export default function PaymentCheckoutPage({ amount }: Props) {
     <RootLayout showFooter={true}>
     <main className="flex flex-col  items-center container  mx-auto py-10">
       <div className="mb-10">
-        <h1 className="text-2xl text-white">Buy <span className="text-[#02C173] font-bold text-4xl">10,000</span> Credits</h1>
-        <h2 className="text-2xl text-white">
+        <h1 className="text-2xl text-[#041D34]">Buy <span className="text-[#02C173] font-bold text-4xl">10,000</span> Credits</h1>
+        <h2 className="text-2xl text-[#041D34]">
           Purchase amount: <span className="font-bold text-[#02C173] text-4xl">${amount}</span>
         </h2>
       </div>
-      <form onSubmit={handleSubmit} className="bg-white p-2 rounded-md w-full">
+      <form onSubmit={handleSubmit} className="bg-[#E7EAEF] p-2 rounded-md w-full">
         {clientSecret && <PaymentElement />}
 
         {errorMessage && <p className="text-red-500">{errorMessage}</p>}

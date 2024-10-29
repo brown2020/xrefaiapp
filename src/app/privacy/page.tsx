@@ -1,7 +1,9 @@
 import PrivacyPage from "@/components/PrivacyPage";
+import RootLayout from "../layout";
 
 export default function page() {
   return (
+    <RootLayout showFooter={true}>
     <PrivacyPage
       companyName="Xref.ai"
       companyEmail="info@ignitechannel.com"
@@ -9,5 +11,6 @@ export default function page() {
       companyLocation={"Malibu, CA"}
       updatedAt={"September 1, 2024"}
     />
+    </RootLayout>
   );
 }

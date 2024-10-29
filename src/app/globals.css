@@ -173,9 +173,9 @@
     @apply px-3 py-2 outline-none border rounded-md;
   }
 
-  .form-wrapper button {
+  /* .form-wrapper button {
     @apply mr-auto py-2 px-3 bg-orange-500 text-black rounded-md cursor-pointer disabled:opacity-50 hover:opacity-50;
-  }
+  } */
 
   .response {
     @apply p-3 bg-orange-500 bg-opacity-20 my-3 rounded-md whitespace-pre-wrap;
@@ -260,12 +260,12 @@
   height: 3px;
   bottom: -4px;
   left: 0;
-  background: #B6F09C;
+  background: #83A873;
   transition: all 0.4s ease-in-out;
 }
 
 .navbar-link:hover .nav-icon {
-  color: #B6F09C;
+  color: #83A873;
   text-shadow: none;
   transition: all 0.4s ease-in-out;
 }
@@ -275,12 +275,12 @@
 }
 
 .navbar-link:hover {
-  color: #B6F09C;
+  color: #83A873;
 }
 
 /* Active state styles */
 .navbar-link.active {
-  color: #B6F09C;
+  color: #83A873;
   /* Text color when active */
 }
 
@@ -346,7 +346,7 @@
 
 .download_icon:hover svg path,
 .copy_icon:hover svg path {
-  fill: #000000;
+  fill: #ffffff;
 }
 
 .scroll-to-bottom>div {
@@ -372,12 +372,12 @@
 
 /* Track */
 .text-section-ai::-webkit-scrollbar-track {
-  background: #192449;
+  background: #F0F6FF;
 }
 
 /* Handle */
 .text-section-ai::-webkit-scrollbar-thumb {
-  background: #0A0F20;
+  background: #0B3C68;
 }
 
 @media screen and (max-width: 640px) {
@@ -385,9 +385,9 @@
     padding: 1rem;
   }
 
-  .text-section-ai {
+  /* .text-section-ai {
     width: 80%;
-  }
+  } */
 
   /* .tool-text-block {
     width: 60%;

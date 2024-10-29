@@ -21,12 +21,14 @@ import Image from "next/image";
 import RootLayout from "@/app/layout"; // Import the Image component from Next.js
 import { copyImageToClipboard, downloadImage } from "@/utils/helpers";
 import MarkdownRenderer from "./MarkdownRenderer";
+import useProfileStore from "@/zustand/useProfileStore";
 
 export default function History() {
   const uid = useAuthStore((state) => state.uid);
   const [summaries, setSummaries] = useState<UserHistoryType[]>([]);
   const [search, setSearch] = useState<string>("");
   const [lastKey, setLastKey] = useState<Timestamp | undefined>(undefined);
+  const profile = useProfileStore((s) => s.profile);
 
   // Track collapsed/expanded state for each prompt and response
   const [expandedPrompts, setExpandedPrompts] = useState<{
@@ -136,14 +138,14 @@ export default function History() {
     <RootLayout showFooter={false}>
       <div className="flex flex-col space-y-5">
         <div className="container mx-auto px-4 py-4">
-          <div className="w-full mb-5 border-[#263566] border-2 py-2 rounded-md  bg-[#131C3C] flex">
+          <div className="w-full mb-5 border-[#ECECEC] border-2 py-2 rounded-md  bg-[#F5F5F5] flex">
             <input
-              className="px-3 py-1 border-0 outline-none w-full text-white bg-[#131C3C] border-[#263566] placeholder:text-[#585E70]"
+              className="px-3 py-1 border-0 outline-none w-full text-[#0B3C68] bg-[#F5F5F5] border-[#263566] placeholder:text-[#BBBEC9]"
               type="text"
               placeholder="Filter results..."
               onChange={(e) => setSearch(e.target.value)}
             />
-            <button className="px-4 line-box relative before:absolute before:content-[''] before:w-[2px] before:bg-[#A1ADF4] before:h-[20px] before:top-1/2 before:left-0 before:transform before:-translate-x-1/2 before:-translate-y-1/2"><i className="fa-solid fa-magnifying-glass text-[#A1ADF4]"></i></button>
+            <button className="px-4 line-box relative before:absolute before:content-[''] before:w-[2px] before:bg-[#7F8CA1] before:h-[20px] before:top-1/2 before:left-0 before:transform before:-translate-x-1/2 before:-translate-y-1/2"><i className="fa-solid fa-magnifying-glass text-[#7F8CA1]"></i></button>
           </div>
           <div className="flex flex-col space-y-5">
             {orderedSummaries &&
@@ -154,34 +156,30 @@ export default function History() {
                     .includes(search ? search.toUpperCase() : "")
                 )
                 .map((summary, index) => (
-                  <div key={index} className="p-5 rounded-3xl shadow-md bg-[#192449]">
+                  <div key={index} className="p-5 rounded-3xl bg-[#ffffff] border border-[#7F8CA1]">
                     <div className="flex items-start gap-3 mb-3">
                       <div className="flex items-center justify-center flex-shrink-0 w-11 h-11 text-xs font-bold text-white rounded-full bg-blue-500">
-                        {/* You */}
-                        <Image
-                          width={100}
-                          height={100}
-                          src="/Ellipse 4.png"
-                          alt="" />
+                        <Image src={profile.photoUrl} alt="" width={512}
+                          height={512} className="object-cover rounded-full" />
                       </div>
                       <div className="flex flex-col w-[95%]"
                         onClick={() => togglePromptExpand(index)}
                       >
                         <div className="flex justify-between items-center gap-3 cursor-pointer">
                           <div className="flex items-center gap-3">
-                            <h3 className="text-white font-bold mb-[0.2rem]">You</h3>
-                            <p className="text-white text-xs">{new Date(summary.timestamp.seconds * 1000).toLocaleString()}</p>
+                            <h3 className="text-[#041D34] font-bold mb-[0.2rem]">You</h3>
+                            <p className="text-[#041D34] text-xs">{new Date(summary.timestamp.seconds * 1000).toLocaleString()}</p>
                           </div>
                           <div className="">
                             {expandedPrompts[index] ? (
-                              <div className="text-[#A1ADF4] cursor-pointer"><ChevronUp className="inline-block ml-2 " /></div>
+                              <div className="text-[#7F8CA1] cursor-pointer"><ChevronUp className="inline-block ml-2 " /></div>
                             ) : (
-                              <div className="text-[#A1ADF4] cursor-pointer"><ChevronDown className="inline-block ml-2 " /></div>
+                              <div className="text-[#7F8CA1] cursor-pointer"><ChevronDown className="inline-block ml-2 " /></div>
                             )}
                           </div>
                         </div>
                         <div
-                          className={`flex items-center break-word whitespace-pre-wrap transition-all duration-300 ease-in-out text-[#A1ADF4] ${expandedPrompts[index]
+                          className={`flex items-center break-word whitespace-pre-wrap transition-all duration-300 ease-in-out text-[#0B3C68] ${expandedPrompts[index]
                             ? "max-h-full"
                             : "max-h-20 overflow-hidden"
                             }`}
@@ -209,7 +207,7 @@ export default function History() {
 
                     {/* Collapsible response with bg-orange-200 */}
                     {summary.words === "image" ? (
-                      <div className="mt-2 p-4 rounded-3xl bg-[#293A74] sm:w-[50%] w-full">
+                      <div className="mt-2 p-4 rounded-3xl bg-[#E7EAEF] sm:w-[50%] w-full">
                         <a href={summary.response} target="_blank" rel="noreferrer">
                           <Image
                             src={summary.response}
@@ -220,10 +218,10 @@ export default function History() {
                           />
                         </a>
                         <div className="flex gap-4 mt-4">
-                          <div className="copy_icon p-2 w-9 h-9 border border-[#4863BE] rounded-[10px] text-center flex justify-center items-center cursor-pointer hover:bg-[#B6F09C] "
+                          <div className="copy_icon p-2 w-9 h-9 border border-[#A3AEC0] rounded-[10px] text-center flex justify-center items-center cursor-pointer hover:bg-[#83A873]"
                             onClick={() => copyImageToClipboard(summary.response)}
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" version="1.1" x="0" y="0" viewBox="0 0 48 48" className=""><g><path d="M33.46 28.672V7.735c0-2.481-2.019-4.5-4.5-4.5H8.023a4.505 4.505 0 0 0-4.5 4.5v20.937c0 2.481 2.019 4.5 4.5 4.5H28.96c2.481 0 4.5-2.019 4.5-4.5zm-26.937 0V7.735c0-.827.673-1.5 1.5-1.5H28.96c.827 0 1.5.673 1.5 1.5v20.937c0 .827-.673 1.5-1.5 1.5H8.023c-.827 0-1.5-.673-1.5-1.5zm33.454-13.844h-3.646a1.5 1.5 0 1 0 0 3h3.646c.827 0 1.5.673 1.5 1.5v20.937c0 .827-.673 1.5-1.5 1.5H19.041c-.827 0-1.5-.673-1.5-1.5v-4.147a1.5 1.5 0 1 0-3 0v4.147c0 2.481 2.019 4.5 4.5 4.5h20.936c2.481 0 4.5-2.019 4.5-4.5V19.328c0-2.481-2.019-4.5-4.5-4.5z" fill="#000000" opacity="1" data-original="#000000" className="fill-white"></path></g></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" version="1.1" x="0" y="0" viewBox="0 0 48 48" className=""><g><path d="M33.46 28.672V7.735c0-2.481-2.019-4.5-4.5-4.5H8.023a4.505 4.505 0 0 0-4.5 4.5v20.937c0 2.481 2.019 4.5 4.5 4.5H28.96c2.481 0 4.5-2.019 4.5-4.5zm-26.937 0V7.735c0-.827.673-1.5 1.5-1.5H28.96c.827 0 1.5.673 1.5 1.5v20.937c0 .827-.673 1.5-1.5 1.5H8.023c-.827 0-1.5-.673-1.5-1.5zm33.454-13.844h-3.646a1.5 1.5 0 1 0 0 3h3.646c.827 0 1.5.673 1.5 1.5v20.937c0 .827-.673 1.5-1.5 1.5H19.041c-.827 0-1.5-.673-1.5-1.5v-4.147a1.5 1.5 0 1 0-3 0v4.147c0 2.481 2.019 4.5 4.5 4.5h20.936c2.481 0 4.5-2.019 4.5-4.5V19.328c0-2.481-2.019-4.5-4.5-4.5z" fill="#7F8CA1" opacity="1" data-original="#000000" className=""></path></g></svg>
                           </div>
                           <div className="share_icon hidden p-2 w-9 h-9 border border-[#4863BE] rounded-[10px] text-center justify-center items-center cursor-pointer">
                             <svg width="25" height="25" viewBox="0 0 25 25" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -238,21 +236,21 @@ export default function History() {
                               </defs>
                             </svg>
                           </div>
-                          <div className="download_icon p-2 w-9 h-9 border border-[#4863BE] rounded-[10px] text-center flex justify-center items-center cursor-pointer hover:bg-[#B6F09C]" onClick={() => downloadImage(summary.response)}>
-                            <svg xmlns="http://www.w3.org/2000/svg" version="1.1" x="0" y="0" viewBox="0 0 515.283 515.283" className=""><g><path d="M400.775 515.283H114.507c-30.584 0-59.339-11.911-80.968-33.54C11.911 460.117 0 431.361 0 400.775v-28.628c0-15.811 12.816-28.628 28.627-28.628s28.627 12.817 28.627 28.628v28.628c0 15.293 5.956 29.67 16.768 40.483 10.815 10.814 25.192 16.771 40.485 16.771h286.268c15.292 0 29.669-5.957 40.483-16.771 10.814-10.815 16.771-25.192 16.771-40.483v-28.628c0-15.811 12.816-28.628 28.626-28.628s28.628 12.817 28.628 28.628v28.628c0 30.584-11.911 59.338-33.54 80.968-21.629 21.629-50.384 33.54-80.968 33.54zM257.641 400.774a28.538 28.538 0 0 1-19.998-8.142l-.002-.002-.057-.056-.016-.016c-.016-.014-.03-.029-.045-.044l-.029-.029a.892.892 0 0 0-.032-.031l-.062-.062-114.508-114.509c-11.179-11.179-11.179-29.305 0-40.485 11.179-11.179 29.306-11.18 40.485 0l65.638 65.638V28.627C229.014 12.816 241.83 0 257.641 0s28.628 12.816 28.628 28.627v274.408l65.637-65.637c11.178-11.179 29.307-11.179 40.485 0 11.179 11.179 11.179 29.306 0 40.485L277.883 392.39l-.062.062-.032.031-.029.029c-.014.016-.03.03-.044.044l-.017.016a1.479 1.479 0 0 1-.056.056l-.002.002c-.315.307-.634.605-.96.895a28.441 28.441 0 0 1-7.89 4.995l-.028.012c-.011.004-.02.01-.031.013a28.5 28.5 0 0 1-11.091 2.229z" fill="#fff" opacity="1" data-original="#000000" className="fill-[#fff] "></path></g></svg>
+                          <div className="download_icon p-2 w-9 h-9 border border-[#A3AEC0] rounded-[10px] text-center flex justify-center items-center cursor-pointer hover:bg-[#83A873]" onClick={() => downloadImage(summary.response)}>
+                            <svg xmlns="http://www.w3.org/2000/svg" version="1.1" x="0" y="0" viewBox="0 0 515.283 515.283" className=""><g><path d="M400.775 515.283H114.507c-30.584 0-59.339-11.911-80.968-33.54C11.911 460.117 0 431.361 0 400.775v-28.628c0-15.811 12.816-28.628 28.627-28.628s28.627 12.817 28.627 28.628v28.628c0 15.293 5.956 29.67 16.768 40.483 10.815 10.814 25.192 16.771 40.485 16.771h286.268c15.292 0 29.669-5.957 40.483-16.771 10.814-10.815 16.771-25.192 16.771-40.483v-28.628c0-15.811 12.816-28.628 28.626-28.628s28.628 12.817 28.628 28.628v28.628c0 30.584-11.911 59.338-33.54 80.968-21.629 21.629-50.384 33.54-80.968 33.54zM257.641 400.774a28.538 28.538 0 0 1-19.998-8.142l-.002-.002-.057-.056-.016-.016c-.016-.014-.03-.029-.045-.044l-.029-.029a.892.892 0 0 0-.032-.031l-.062-.062-114.508-114.509c-11.179-11.179-11.179-29.305 0-40.485 11.179-11.179 29.306-11.18 40.485 0l65.638 65.638V28.627C229.014 12.816 241.83 0 257.641 0s28.628 12.816 28.628 28.627v274.408l65.637-65.637c11.178-11.179 29.307-11.179 40.485 0 11.179 11.179 11.179 29.306 0 40.485L277.883 392.39l-.062.062-.032.031-.029.029c-.014.016-.03.03-.044.044l-.017.016a1.479 1.479 0 0 1-.056.056l-.002.002c-.315.307-.634.605-.96.895a28.441 28.441 0 0 1-7.89 4.995l-.028.012c-.011.004-.02.01-.031.013a28.5 28.5 0 0 1-11.091 2.229z" fill="#7F8CA1" opacity="1" data-original="#000000" className=""></path></g></svg>
                           </div>
                         </div>
                       </div>
                     ) : (
-                      <div className="flex justify-start items-start w-full p-4 ml-auto gap-2 rounded-3xl text-left bg-[#293A74]">
+                      <div className="flex justify-start items-start w-full p-4 ml-auto gap-2 rounded-3xl text-left bg-[#E7EAEF]">
                         <div className="p-2">
-                          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#0A0F20]">
+                          <div className="flex-shrink-0 w-11 h-11 rounded-full bg-[#0A0F20]">
                             <Image
                               src="/logo(X).png"
                               alt="bot"
-                              className="flex-shrink-0 object-contain w-10 h-10 rounded-full px-[5px]"
-                              width={40}
-                              height={40}
+                              className="flex-shrink-0 object-contain w-11 h-11 rounded-full px-[5px]"
+                              width={512}
+                              height={512}
                             />
                           </div>
                         </div>
@@ -264,14 +262,14 @@ export default function History() {
                           >
                             <div className="flex justify-between items-center w-full">
                               <div className="flex gap-3 items-center">
-                                <h3 className="m-0 text-white font-semibold">XEEF.AI</h3>
+                                <h3 className="m-0 text-[#041D34] font-bold">XEEF.AI</h3>
                                 <p className="px-[10px] py-0 text-[12px] rounded-[10px] bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] text-white">Bot</p>
                               </div>
                               <div>
                                 {expandedResponses[index] ? (
-                                  <div className="text-[#A1ADF4] relative before:absolute before:content-[''] before:w-[2px] before:bg-[#A1ADF4] before:h-[16px] before:top-1/2 before:left-0 before:transform before:-translate-x-1/2 before:-translate-y-1/2"><ChevronUp className="inline-block ml-2 cursor-pointer" /></div>
+                                  <div className="text-[#7F8CA1] relative before:absolute before:content-[''] before:w-[2px] before:bg-[#7F8CA1] before:h-[16px] before:top-1/2 before:left-0 before:transform before:-translate-x-1/2 before:-translate-y-1/2"><ChevronUp className="inline-block ml-2 cursor-pointer" /></div>
                                 ) : (
-                                  <div className="text-[#A1ADF4] relative before:absolute before:content-[''] before:w-[2px] before:bg-[#A1ADF4] before:h-[16px] before:top-1/2 before:left-0 before:transform before:-translate-x-1/2 before:-translate-y-1/2"><ChevronDown className="inline-block ml-2 cursor-pointer" /></div>
+                                  <div className="text-[#7F8CA1] relative before:absolute before:content-[''] before:w-[2px] before:bg-[#7F8CA1] before:h-[16px] before:top-1/2 before:left-0 before:transform before:-translate-x-1/2 before:-translate-y-1/2"><ChevronDown className="inline-block ml-2 cursor-pointer" /></div>
                                 )}
                               </div>
                             </div>
@@ -282,19 +280,19 @@ export default function History() {
                             >
                               <Copy className="text-white" />
                             </button> */}
-                            <button className="copy_icon p-2 ml-3 w-9 h-9 border border-[#4863BE] rounded-[10px] text-center flex justify-center items-center cursor-pointer hover:bg-[#B6F09C] "
+                            <button className="copy_icon p-2 ml-2 w-9 h-9 border border-[#A3AEC0] rounded-[10px] text-center flex justify-center items-center cursor-pointer hover:bg-[#83A873]"
                               onClick={() => copyToClipboard(summary.response)}
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" version="1.1" x="0" y="0" viewBox="0 0 48 48" className="">
                                 <g>
-                                  <path d="M33.46 28.672V7.735c0-2.481-2.019-4.5-4.5-4.5H8.023a4.505 4.505 0 0 0-4.5 4.5v20.937c0 2.481 2.019 4.5 4.5 4.5H28.96c2.481 0 4.5-2.019 4.5-4.5zm-26.937 0V7.735c0-.827.673-1.5 1.5-1.5H28.96c.827 0 1.5.673 1.5 1.5v20.937c0 .827-.673 1.5-1.5 1.5H8.023c-.827 0-1.5-.673-1.5-1.5zm33.454-13.844h-3.646a1.5 1.5 0 1 0 0 3h3.646c.827 0 1.5.673 1.5 1.5v20.937c0 .827-.673 1.5-1.5 1.5H19.041c-.827 0-1.5-.673-1.5-1.5v-4.147a1.5 1.5 0 1 0-3 0v4.147c0 2.481 2.019 4.5 4.5 4.5h20.936c2.481 0 4.5-2.019 4.5-4.5V19.328c0-2.481-2.019-4.5-4.5-4.5z" fill="#000000" opacity="1" data-original="#000000" className="fill-white">
+                                  <path d="M33.46 28.672V7.735c0-2.481-2.019-4.5-4.5-4.5H8.023a4.505 4.505 0 0 0-4.5 4.5v20.937c0 2.481 2.019 4.5 4.5 4.5H28.96c2.481 0 4.5-2.019 4.5-4.5zm-26.937 0V7.735c0-.827.673-1.5 1.5-1.5H28.96c.827 0 1.5.673 1.5 1.5v20.937c0 .827-.673 1.5-1.5 1.5H8.023c-.827 0-1.5-.673-1.5-1.5zm33.454-13.844h-3.646a1.5 1.5 0 1 0 0 3h3.646c.827 0 1.5.673 1.5 1.5v20.937c0 .827-.673 1.5-1.5 1.5H19.041c-.827 0-1.5-.673-1.5-1.5v-4.147a1.5 1.5 0 1 0-3 0v4.147c0 2.481 2.019 4.5 4.5 4.5h20.936c2.481 0 4.5-2.019 4.5-4.5V19.328c0-2.481-2.019-4.5-4.5-4.5z" fill="#7F8CA1" opacity="1" data-original="#000000" className="">
                                   </path>
                                 </g>
                               </svg>
                             </button>
                           </div>
                           <div
-                            className={`whitespace-pre-wrap break-word cursor-pointer text-[#A1ADF4] p-0 rounded-md transition-all duration-300 ease-in-out ${expandedResponses[index]
+                            className={`whitespace-pre-wrap break-word cursor-pointer text-[#0B3C68] p-0 rounded-md transition-all duration-300 ease-in-out ${expandedResponses[index]
                               ? "max-h-full"
                               : "max-h-20 overflow-hidden"
                               }`}
@@ -310,7 +308,7 @@ export default function History() {
                 ))}
           </div>
           {lastKey && (
-            <div className="text-center"><button onClick={() => postsNextBatch(lastKey)} className="mt-4 w-44 text-white px-3 py-2 custom-write bottom bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] hover:opacity-50 !rounded-3xl font-bold">Load More</button></div>
+            <div className="text-center"><button onClick={() => postsNextBatch(lastKey)} className="mt-4 w-44 text-white px-3 py-2 custom-write bottom bg-[#192449] !opacity-100 hover:bg-[#83A873] !rounded-3xl font-bold transition-transform duration-300 ease-in-out">Load More</button></div>
           )}
         </div>
       </div>

@@ -13,10 +13,10 @@ export default function Terms({
 }: Props) {
   return (
     <div className="container mx-auto flex items-center justify-center p-4">
-      <div className="rounded-lg shadow-lg text-white">
+      <div className="rounded-lg text-[#041D34]">
         <h1 className="text-3xl font-extrabold text-left mb-8">Terms of Service</h1>
         <section className="mb-8">
-          <p className="text-gray-300 leading-relaxed mb-2">
+          <p className="text-[#0B3C68] leading-relaxed mb-2">
             Welcome and thank you for your interest in {companyName} services and
             mobile apps! These Terms of Use (the “Agreement”) describe the terms and
             conditions applicable to your use of {companyName} (the “Sites”) and the
@@ -25,13 +25,13 @@ export default function Terms({
             {companyName}, and its affiliates and subsidiaries (collectively “
             {companyName}”).
           </p>
-          <p className="mb-2 text-gray-300">
+          <p className="mb-2 text-[#0B3C68]">
             In this Agreement, we refer to ourselves as {companyName} or “us” or
             “we”; we refer to you as “you” or “Customer.” {companyName} and Customer
             are referred to in this Agreement individually as a “Party” and
             collectively as the “Parties.”
           </p>
-          <p className="mb-2 text-gray-300">
+          <p className="mb-2 text-[#0B3C68]">
             By accessing or using the Services, including access to the Sites, you
             intend and expressly agree to be bound by all the terms and conditions
             of this Agreement and the Privacy Policy (available at {privacyLink}),
@@ -39,8 +39,8 @@ export default function Terms({
             and conditions, you may not use the Services.
           </p>
         </section>
-        <h4 className="!text-2xl font-semibold text-white mt-8 mb-4">Access and Use</h4>
-        <p className="mb-2 text-gray-300">
+        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Access and Use</h4>
+        <p className="mb-2 text-[#0B3C68]">
           {companyName} grants you a limited license to access the Sites subject
           to this Agreement. If you choose to subscribe to and use the Mobile
           Apps, {companyName} further grants you a license to access and use the
@@ -51,13 +51,13 @@ export default function Terms({
           {companyName} may modify, update, and otherwise change the Services at
           any time and in its sole discretion.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           You represent and warrant that you are at least 18 years of age and have
           the legal authority to accept this Agreement on your behalf or on behalf
           of any party you represent. You alone are responsible for your
           activities and interaction with the Services.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           You shall not use the Services for any purposes beyond the scope of the
           access granted in this Agreement. You shall not at any time, directly or
           indirectly, and shall not permit any third-party to: (i) copy, modify,
@@ -70,7 +70,7 @@ export default function Terms({
           (including but not limited to web scraping), or that otherwise violates
           any law, regulation, or other legal requirement.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           Except for the limited license to access the Sites and Mobile Apps
           identified above, you acknowledge that nothing contained in this
           Agreement shall be construed as granting or conferring, by implication,
@@ -86,7 +86,7 @@ export default function Terms({
           trade secrets; or (v) any other tangible or intangible proprietary
           rights anywhere in the world.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           You acknowledge and agree that at times the Services may be inaccessible
           or inoperable for any reason whatsoever, including, without limitation:
           (i) equipment malfunctions; (ii) periodic maintenance procedures or
@@ -94,7 +94,7 @@ export default function Terms({
           notice to you; or (iii) causes which are beyond the control of
           {companyName} or which are not reasonably foreseeable.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           Notwithstanding anything to the contrary in this Agreement,
           {companyName} may temporarily suspend access to the Services provided to
           you and any other third-party for security purposes, to prevent illegal
@@ -102,7 +102,7 @@ export default function Terms({
           or government entity, or if you violate the Agreement or the Privacy
           Policy.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           {companyName} may from time to time and in its sole discretion engage
           other service providers to assist in the performance of the Services,
           such as web hosting providers, payment processors, and other
@@ -110,8 +110,8 @@ export default function Terms({
           requirements associated with the services provided by such third-parties
           in connection with the Services.
         </p>
-        <h4 className="!text-2xl font-semibold text-white mt-8 mb-4">Customer Responsibilities</h4>
-        <p className="mb-2 text-gray-300">
+        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Customer Responsibilities</h4>
+        <p className="mb-2 text-[#0B3C68]">
           You acknowledge that you are solely responsible and liable for your use
           of the Services, directly or indirectly, including understanding whether
           such access or use is permitted by or in violation of this Agreement.
@@ -123,7 +123,7 @@ export default function Terms({
           state laws and regulations governing the offer and sale of securities,
           money laundering, and counter-terrorism.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           You alone are responsible for ensuring and maintaining that you are able
           to access and use the Services, including by securing your own
           compatible hardware, Mobile Apps, internet access, security Mobile Apps,
@@ -135,14 +135,14 @@ export default function Terms({
           including any failure to provide adequate security or backup devices or
           services.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           You are responsible for ensuring {companyName} has accurate and current
           information for your Customer account, including current contact and
           payment information. You are further responsible for regularly reviewing
           the associated Customer email account for any communications from{" "}
           {companyName}.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           If you are provided with a username, password, credentials file, or any
           other piece of information as part of any security procedure
           (“Credentials”), you must treat such information as confidential, and
@@ -156,14 +156,14 @@ export default function Terms({
           username, password, credentials file, or other identifier at any time,
           whether chosen by you or provided by {companyName}.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           {companyName} shall make commercially reasonable efforts to provide
           adequate support services for the Services. Notwithstanding the
           foregoing, this Agreement does not entitle you to any guaranteed level,
           availability, or turnaround time of support services for the Services.
         </p>
-        <h4 className="!text-2xl font-semibold text-white mt-8 mb-4">Payment and Fees</h4>
-        <p className="mb-2 text-gray-300">
+        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Payment and Fees</h4>
+        <p className="mb-2 text-[#0B3C68]">
           Paid Services include the Services, which may be one-time purchases or
           automatically renewing subscription services (“Paid Services”),
           including our Sites and Mobile Apps (“Subscriptions”). We may make
@@ -171,7 +171,7 @@ export default function Terms({
           reason, and {companyName} reserves the sole discretion to determine
           which Services or portions thereof require payment.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           Paid Services may include pre-ordered products that will be produced for
           you in the future (“Pre-Order”). You will be charged a Pre-Order fee
           when placing your Pre-Order. The actual date for shipping any accepted
@@ -179,7 +179,7 @@ export default function Terms({
           to, the date of payment of your Pre-Order fee and {companyName}’s
           production schedule. There is no shipping date guarantee for Pre-Orders.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           You agree to pay all applicable fees for Paid Services including,
           without exclusion, any monthly subscription fees, user fees, and
           offering fees and any other fees, charges, or costs that you agree to
@@ -187,7 +187,7 @@ export default function Terms({
           (“Fees”). You agree to pay all Fees and all applicable taxes incurred
           prior to termination or cancellation of the Agreement.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           You authorize {companyName} to charge your designated payment method for
           Paid Services. By providing an acceptable payment method, you represent
           and warrant that you are authorized to use the designated payment method
@@ -206,7 +206,7 @@ export default function Terms({
           obligation shall survive termination or cancellation of this Agreement
           for any reason whatsoever.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           If you choose to finance a purchase through our third-party payment
           processor and one or more items in your order has an extended ship date,
           your loan payment(s), including interest, may be due before we ship all
@@ -214,12 +214,12 @@ export default function Terms({
           interest that may have already accrued on an amount that is later
           refunded.
         </p>
-        <h4 className="!text-2xl font-semibold text-white mt-8 mb-4">Subscriptions</h4>
-        <p className="mb-2 text-gray-300">
+        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Subscriptions</h4>
+        <p className="mb-2 text-[#0B3C68]">
           Certain Paid Services are subscription-based purchases, to which the
           following terms apply:
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           Your Subscription term may vary as a continuous, monthly, or annual term
           (“Subscription Term(s)”), as described in the course of purchasing the
           Paid Services. Your Subscription will auto-renew for additional
@@ -231,7 +231,7 @@ export default function Terms({
           Subscription Term, we will notify you of the applicable fees, and the
           renewal will occur at the price then in effect for the Paid Service.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           You may cancel your Subscription at any time. Your cancellation will
           take effect at the end of the current Subscription Term. To cancel your
           subscription and automatic payment, click on the “View Subscription”
@@ -244,7 +244,7 @@ export default function Terms({
           communications, unless you opt out of receiving those communications by
           following the unsubscribe instructions provided in the communications.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           When you cancel a Subscription, you cancel only future charges for your
           Subscription. You will not receive a refund for the current Subscription
           Term you paid for, but you will continue to have full access to that
@@ -256,14 +256,14 @@ export default function Terms({
           not entitle you to credits in the future for similar instances, nor does
           it obligate us to provide credits in the future.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           If you reside outside the United States and change your mind about your
           purchase, you may be entitled to receive a full refund within fourteen
           (14) days (the “Cooling-Off Period”), provided that you have not logged
           in or otherwise redeemed or started to use the Services as a subscriber
           during the Cooling-Off Period.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           From time to time, we may offer free trials of certain Subscriptions for
           specified periods of time without payment. Prior to starting your free
           trial we will notify you of the applicable Subscription fees that will
@@ -277,7 +277,7 @@ export default function Terms({
           charges. Instructions for canceling your Subscription are described
           above.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           Your payment information will be processed and stored through a
           third-party payment processor. All paid account holders must maintain at
           least one valid payment method for payment of Fees, which are described
@@ -289,13 +289,13 @@ export default function Terms({
           debited from the saved, designated payment method you provide one day
           prior to the monthly or yearly anniversary of the initial purchase date.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           In the event that you have not logged in or otherwise used the Services
           for six (6) months, we reserve the right to terminate your subscription
           and cancel any pending purchase(s). You will not be entitled to a refund
           for the value of the Subscription during the free trial.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           {companyName} reserves the right to adjust the Fees for our Paid
           Services, or any features or parts of our Paid Services, at any time.
           You acknowledge that {companyName} may change the Fees for Paid Services
@@ -306,8 +306,8 @@ export default function Terms({
           of any changes to the Fees. You are solely responsible for all
           applicable taxes, and will be charged for taxes when required by law.
         </p>
-        <h4 className="!text-2xl font-semibold text-white mt-8 mb-4">Data and Communications</h4>
-        <p className="mb-2 text-gray-300">
+        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Data and Communications</h4>
+        <p className="mb-2 text-[#0B3C68]">
           {companyName} may collect and process information regarding your usage
           of the Services. You consent to {companyName}’s collection and use of
           such information, as well as the sharing of such information with
@@ -317,7 +317,7 @@ export default function Terms({
           {companyName} is treated in accordance with the{" "}
           <a href={privacyLink}>Privacy Policy</a>.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           By agreeing to the terms and conditions in this Agreement and providing
           your contact information to {companyName}, you give your express consent
           to allow {companyName}, its affiliates, and agents to contact you from
@@ -337,7 +337,7 @@ export default function Terms({
           opt out any time using the opt-out mechanism provided in any such
           communications.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           {companyName} disclaims all liability under this Agreement for any
           information you provide to {companyName} that may constitute electronic
           patient health records or similar information supplied by you or an end
@@ -345,8 +345,8 @@ export default function Terms({
           otherwise required by any applicable federal, state, or international
           laws, rules, or regulations.
         </p>
-        <h4 className="!text-2xl font-semibold text-white mt-8 mb-4">Intellectual Property Rights</h4>
-        <p className="mb-2 text-gray-300">
+        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Intellectual Property Rights</h4>
+        <p className="mb-2 text-[#0B3C68]">
           {companyName} is a trademark of {companyName}.{companyName} Content,{" "}
           {companyName} products,
           {companyName} features and Services, and our underlying technology are
@@ -362,7 +362,7 @@ export default function Terms({
           use any Trademarks displayed in connection with the Services without
           {companyName}’s express written permission.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           All content provided in association with the Services and this
           Agreement, including, but not limited to, the Sites, the Mobile Apps,
           all text, graphics, user interfaces, visual interfaces, photographs,
@@ -380,7 +380,7 @@ export default function Terms({
           distribute, or publicly display the Copyrighted Works without the prior
           express written permission of {companyName}.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           If you provide any communications or materials to {companyName} by mail,
           email, telephone, or otherwise, suggesting or recommending changes to
           the Services, including without limitation, new features or
@@ -393,7 +393,7 @@ export default function Terms({
           Feedback, for any purpose whatsoever, although
           {companyName} is not required to use any Feedback.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           {companyName} respects the intellectual property rights of others and it
           is our policy to expeditiously process and review notices of claimed
           infringement of copyright or other applicable intellectual property
@@ -414,8 +414,8 @@ export default function Terms({
           owner or are authorized to act on behalf of the owner of a copyright
           that is allegedly infringed.
         </p>
-        <h4 className="!text-2xl font-semibold text-white mt-8 mb-4">Warranty Disclaimer</h4>
-        <p className="uppercase mb-2 text-gray-300">
+        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Warranty Disclaimer</h4>
+        <p className="uppercase mb-2 text-[#0B3C68]">
           THE SERVICES ARE PROVIDED TO YOU “AS IS WITH ALL FAULTS” AND “AS
           AVAILABLE” WITHOUT WARRANTY OF ANY KIND, AND {companyName} AND ITS
           SUBSIDIARIES, AFFILIATES, OFFICERS, DIRECTORS, EMPLOYEES,
@@ -436,8 +436,8 @@ export default function Terms({
           THE EXCLUSION OF IMPLIED WARRANTIES OR LIMITATIONS ON APPLICABLE
           STATUTORY RIGHTS OF A CONSUMER, SO THE ABOVE EXCLUSION MAY NOT APPLY.
         </p>
-        <h4 className="!text-2xl font-semibold text-white mt-8 mb-4">Limitation of Liability</h4>
-        <p className="uppercase mb-2 text-gray-300">
+        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Limitation of Liability</h4>
+        <p className="uppercase mb-2 text-[#0B3C68]">
           IN NO EVENT WILL {companyName}, ITS SUBSIDIARIES, AFFILIATES, OFFICERS,
           DIRECTORS, EMPLOYEES, REPRESENTATIVES, AGENTS, PARTNERS, AND LICENSORS
           BE LIABLE FOR DAMAGES OF ANY KIND, UNDER ANY LEGAL THEORY, ARISING OUT
@@ -454,15 +454,15 @@ export default function Terms({
           REGARDLESS OF WHETHER OR NOT {companyName} HAS BEEN WARNED OF THE
           POSSIBILITY OF SUCH DAMAGES.
         </p>
-        <p className="uppercase mb-2 text-gray-300">
+        <p className="uppercase mb-2 text-[#0B3C68]">
           THE FOREGOING DOES NOT AFFECT ANY LIABILITY WHICH CANNOT BE EXCLUDED OR
           LIMITED UNDER APPLICABLE LAW. TO THE EXTENT LIABILITY CANNOT BE EXCLUDED
           OR LIMITED AS SET FORTH ABOVE, IN NO EVENT SHALL {companyName} BE LIABLE
           FOR ANY CLAIM, WHETHER IN CONTRACT, TORT, OR UNDER ANY OTHER THEORY OF
           LIABILITY, IN EXCESS OF $100.
         </p>
-        <h4 className="!text-2xl font-semibold text-white mt-8 mb-4">Precautions</h4>
-        <p className="uppercase mb-2 text-gray-300">
+        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Precautions</h4>
+        <p className="uppercase mb-2 text-[#0B3C68]">
           THE SERVICES ARE NOT A MEDICAL DEVICE AND YOU EXPRESSLY AGREE THAT THE
           SERVICES DO NOT INVOLVE THE PROVISION OF MEDICAL ADVICE BY
           {companyName}. THE SERVICES ARE NOT INTENDED TO DIAGNOSE, TREAT, CURE,
@@ -470,7 +470,7 @@ export default function Terms({
           INFORMATIONAL PURPOSES ONLY AND CANNOT REPLACE THE SERVICES OF
           PHYSICIANS OR MEDICAL PROFESSIONALS.
         </p>
-        <p className="uppercase mb-2 text-gray-300">
+        <p className="uppercase mb-2 text-[#0B3C68]">
           THE SERVICES, INCLUDING ALL INFORMATION, TEXT, PHOTOGRAPHS, IMAGES,
           ILLUSTRATIONS, GRAPHICS, AUDIO, VIDEO, AND AUDIO-VIDEO CLIPS, AND OTHER
           MATERIALS, WHETHER PROVIDED BY US OR THIRD PARTIES, IS NOT INTENDED TO
@@ -479,7 +479,7 @@ export default function Terms({
           YOUR PHYSICIAN OR OTHER MEDICAL PROFESSIONALS, OR (c) INFORMATION
           CONTAINED ON OR IN ANY PRODUCT PACKAGING OR LABEL.
         </p>
-        <p className="uppercase mb-2 text-gray-300">
+        <p className="uppercase mb-2 text-[#0B3C68]">
           SHOULD YOU HAVE ANY HEALTH-RELATED QUESTIONS, PLEASE CALL OR SEE YOUR
           PHYSICIAN OR OTHER MEDICAL PROVIDER PROMPTLY. SHOULD YOU HAVE AN
           EMERGENCY, CALL YOUR PHYSICIAN OR 911 IMMEDIATELY. YOU SHOULD NEVER
@@ -492,7 +492,7 @@ export default function Terms({
           OR OTHER HEALTHCARE PROFESSIONAL RELATIONSHIP BETWEEN YOU AND
           {companyName}.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           You should always consult a physician before making any changes to your
           sleep or activity based on information provided through the Services, or
           if you have any questions regarding a medical condition.
@@ -508,7 +508,7 @@ export default function Terms({
           responses differ significantly from population averages due to medical
           conditions or rare natural differences.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           The Services may provide links to other websites maintained by third
           parties. You acknowledge and agree that such links are provided for your
           convenience only and do not reflect any endorsement, affiliation,
@@ -527,7 +527,7 @@ export default function Terms({
           or with {companyName}. {companyName} may not even be aware that a third
           party has linked to the Services.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           Any other content not owned by {companyName} is owned by its respective
           owner. You acknowledge and agree that such content is provided by its
           owner and does not reflect any endorsement, affiliation, relationship,
@@ -539,7 +539,7 @@ export default function Terms({
           your reliance thereon. {companyName} MAKES NO REPRESENTATIONS OR
           WARRANTIES WITH RESPECT TO ANY THIRD PARTY CONTENT.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           You agree to indemnify, hold harmless, and defend {companyName}, its
           subsidiaries, affiliates, officers, directors, employees,
           representatives, agents, partners, licensors, successors, and assigns,
@@ -555,8 +555,8 @@ export default function Terms({
           using your account or Credentials; or (v) violation of any law,
           regulation, or other legal requirement.
         </p>
-        <h4 className="!text-2xl font-semibold text-white mt-8 mb-4">Notice for California Users</h4>
-        <p className="mb-2 text-gray-300">
+        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Notice for California Users</h4>
+        <p className="mb-2 text-[#0B3C68]">
           Under California Civil Code Section 1789.3, California users of the
           Services are entitled to the following specific consumer rights notice:
         </p>
@@ -566,12 +566,12 @@ export default function Terms({
           writing at 1625 N. Market Blvd., Suite N 112, Sacramento, California
           95834, or by telephone at (800) 952-5210.
         </h5>
-        <h4 className="!text-2xl font-semibold text-white mt-8 mb-4">Termination; Cancellation</h4>
-        <p className="mb-2 text-gray-300">
+        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Termination; Cancellation</h4>
+        <p className="mb-2 text-[#0B3C68]">
           This Agreement shall continue in full force until terminated or canceled
           pursuant to this Agreement.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           {companyName} shall have the right to terminate this Agreement (i) for
           any reason whatsoever by providing thirty (30) days’ notice to you; (ii)
           immediately for your material breach of this Agreement, other than
@@ -580,13 +580,13 @@ export default function Terms({
           and without notice, at any time and for any reason, to remove, modify,
           suspend, or disable access to all or any portion of the Services.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           You may terminate the Agreement for any reason whatsoever by providing
           thirty (30) days’ notice to {companyName} by email at {companyEmail}.
           You shall be responsible for all Fees incurred prior to and during the
           notice period.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           Sections titled Precautions, Intellectual Property Rights, Data and
           Communications, Indemnification, Warranty Disclaimer, Limitation of
           Liability, Governing Law, Forum; Mandatory Binding Arbitration; Class
@@ -594,8 +594,8 @@ export default function Terms({
           during any notice period shall survive termination of this Agreement for
           any reason whatsoever.
         </p>
-        <h4 className="!text-2xl font-semibold text-white mt-8 mb-4">Federal Government End Use Restrictions</h4>
-        <p className="mb-2 text-gray-300">
+        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Federal Government End Use Restrictions</h4>
+        <p className="mb-2 text-[#0B3C68]">
           If you are a U.S. federal government department or agency or are
           contracting on behalf of such a department or agency, Services are
           “Commercial Items” as that term is defined at 48 C.F.R. §2.101,
@@ -606,17 +606,17 @@ export default function Terms({
           to you with only those rights as provided under the terms and conditions
           of this Agreement.
         </p>
-        <h4 className="!text-2xl font-semibold text-white mt-8 mb-4">Export Compliance and Use Restrictions</h4>
-        <p className="mb-2 text-gray-300">
+        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Export Compliance and Use Restrictions</h4>
+        <p className="mb-2 text-[#0B3C68]">
           You will not directly or indirectly export or re-export the Services, or
           any technical information related thereto, to any destination or person
           prohibited or restricted by applicable law, including, without
           limitation, all applicable U.S. export control laws and regulations.
         </p>
-        <h4 className="!text-2xl font-semibold text-white mt-8 mb-4">
+        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">
           Governing Law; Forum; Mandatory Binding Arbitration, Class Action Waiver
         </h4>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           Any action related to this Agreement, the Services, and your
           relationship with {companyName} shall be governed by, construed, and
           interpreted in accordance with the laws of the State of California
@@ -652,12 +652,12 @@ export default function Terms({
           representative action, except where such waiver is prohibited by law or
           deemed by a court of law to be against public policy.
         </p>
-        <h4 className="!text-2xl font-semibold text-white mt-8 mb-4">Miscellaneous</h4>
-        <p className="mb-2 text-gray-300">
+        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Miscellaneous</h4>
+        <p className="mb-2 text-[#0B3C68]">
           You acknowledge that {companyName} has the right to monitor use of the
           Services to ensure compliance with the Agreement.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           No waiver of any term, provision, or condition of this Agreement,
           whether by conduct or otherwise, in any one or more instances, shall be
           deemed to be, or shall constitute, a waiver of any other term,
@@ -666,29 +666,29 @@ export default function Terms({
           condition hereof. No waiver shall be binding unless executed in writing
           by the party making the waiver.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           You may not assign this Agreement to any other party and any attempt to
           do so is void.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           If any provision of this Agreement is determined to be illegal or
           unenforceable, then such provision will be enforced to the maximum
           extent possible, and the other provisions will remain fully effective
           and enforceable.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           This Agreement and the Privacy Policy constitute the complete and
           exclusive statement of the agreement between you and {companyName}
           regarding the Services, and supersedes any and all prior or
           contemporaneous communications, representations, statements, and
           understandings, whether oral or written, between the parties.
         </p>
-        <p className="mb-2 text-gray-300">
+        <p className="mb-2 text-[#0B3C68]">
           In case of any conflict between the terms of this Agreement and the
           terms of the Privacy Policy, the terms of this Agreement shall prevail.
         </p>
-        <h4 className="!text-2xl font-semibold text-white mt-8 mb-4">Modification of the Terms and Services</h4>
-        <p className="mb-2 text-gray-300">
+        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Modification of the Terms and Services</h4>
+        <p className="mb-2 text-[#0B3C68]">
           {companyName} reserves the right to update this Agreement and/or the
           Privacy Policy at any time and for any reason in its sole discretion by
           posting updated terms. Unless otherwise indicated by

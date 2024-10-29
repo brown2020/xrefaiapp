@@ -23,7 +23,7 @@ export default function SummarizeTopic() {
   const [site1, setSite1] = useState<string>("");
   const [words, setWords] = useState<string>("30");
   const [progress, setProgress] = useState<number>(0); // State for progress
- 
+
   async function saveHistory(
     prompt: string,
     response: string,
@@ -156,10 +156,10 @@ export default function SummarizeTopic() {
         <h3 className="text-4xl sm:text-4xl md:text-4xl chnage_title font-extrabold my-2 text-center"><span className="bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] bg-clip-text text-transparent">What would you like to write about today?</span></h3>
       )}
       <form onSubmit={(e) => getResponse(e)}>
-        <label htmlFor="topic-field" className="text-[#585E70] font-bold">
+        <label htmlFor="topic-field" className="text-[#041D34] font-semibold">
           Topic
           <input
-            className="bg-[#131C3C] text-white mt-1 border border-[#263566] font-normal placeholder:text-[#585E70]"
+            className="bg-[#F5F5F5] text-[#0B3C68] mt-1 border border-[#ECECEC] font-normal placeholder:text-[#BBBEC9] focus:bg-[#F5F5F5]"
             type="text"
             id="topic-field"
             maxLength={80}
@@ -168,10 +168,10 @@ export default function SummarizeTopic() {
           />
         </label>
 
-        <label htmlFor="site1-field" className="text-[#585E70] font-bold">
+        <label htmlFor="site1-field" className="text-[#041D34] font-semibold">
           Website reference
           <input
-            className="bg-[#131C3C] text-white mt-1 border border-[#263566] font-normal placeholder:text-[#585E70]"
+            className="bg-[#F5F5F5] text-[#0B3C68] mt-1 border border-[#ECECEC] font-normal placeholder:text-[#BBBEC9] focus:bg-[#F5F5F5]"
             type="text"
             id="site1-field"
             maxLength={120}
@@ -182,10 +182,10 @@ export default function SummarizeTopic() {
           />
         </label>
 
-        <label htmlFor="words-field" className="text-[#585E70] font-bold">
+        <label htmlFor="words-field" className="text-[#041D34] font-semibold">
           Approximate number of words (Between 3 and 800)
           <input
-            className="bg-[#131C3C] text-white mt-1 border border-[#263566] font-normal placeholder:text-[#585E70]"
+            className="bg-[#F5F5F5] text-[#0B3C68] mt-1 border border-[#ECECEC] font-normal placeholder:text-[#BBBEC9] focus:bg-[#F5F5F5]"
             defaultValue={"30"}
             type="number"
             id="words-field"
@@ -195,29 +195,29 @@ export default function SummarizeTopic() {
         </label>
         <div className="sm:flex sm:flex-row-reverse flex flex-col-reverse gap-4 sm:justify-end items-center !mt-[2rem]">
           <div className="w-[100%] sm:w-[30%] text-center sm:text-start">
-            <button className="w-44 custom-write bottom bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] !rounded-3xl font-bold" type="submit" disabled={!active}>
+            <button className="w-44 text-white px-3 py-2 custom-write bottom bg-[#192449] !opacity-100 hover:bg-[#83A873] !rounded-3xl font-bold transition-transform duration-300 ease-in-out" type="submit" disabled={!active}>
               <span className="text-white">{thinking ? <PulseLoader color="#fff" size={8} /> : "Let's Write!"}</span>
             </button>
           </div>
           <div className="w-[100%] sm:w-[40%] progress-main">
             {thinking && <div className="w-full bg-gray-200 h-3.5 rounded-full">
-              <div className={`bg-[#48B461] text-xs h-3.5 font-medium text-blue-100 text-center p-0.5 leading-none rounded-full Striped-bar`} style={{ width: `${progress}%` }}>  <div className="text-white">{ progress }%</div></div>
+              <div className={`bg-[#48B461] text-xs h-3.5 font-medium text-blue-100 text-center p-0.5 leading-none rounded-full Striped-bar`} style={{ width: `${progress}%` }}>  <div className="text-white">{progress}%</div></div>
             </div>}
-            
+
           </div>
         </div>
-       
+
         {Boolean(flagged) && <h3 id="flagged">{flagged}</h3>}
 
         {!Boolean(flagged) && Boolean(summary) && (
           <div id="response">
             <h3
-              className="cursor-pointer response bg-[#293A74] text-[#A1ADF4]"
+              className="cursor-pointer response bg-[#E7EAEF] text-[#0B3C68]"
               onClick={() => copyToClipboard(summary)}
             >
               {summary}
             </h3>
-            <p className="disclaimer text-white">
+            <p className="disclaimer text-[#041D34]">
               <span>*</span>
               {`I'm a new AI and I'm still learning, so these
               results might have inaccuracies.`}
