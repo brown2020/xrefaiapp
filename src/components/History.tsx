@@ -170,13 +170,13 @@ export default function History() {
                             <h3 className="text-[#041D34] font-bold mb-[0.2rem]">You</h3>
                             <p className="text-[#041D34] text-xs">{new Date(summary.timestamp.seconds * 1000).toLocaleString()}</p>
                           </div>
-                          <div className="">
+                          {/* <div className="">
                             {expandedPrompts[index] ? (
                               <div className="text-[#7F8CA1] cursor-pointer"><ChevronUp className="inline-block ml-2 " /></div>
                             ) : (
                               <div className="text-[#7F8CA1] cursor-pointer"><ChevronDown className="inline-block ml-2 " /></div>
                             )}
-                          </div>
+                          </div> */}
                         </div>
                         <div
                           className={`flex items-center break-word whitespace-pre-wrap transition-all duration-300 ease-in-out text-[#0B3C68] ${expandedPrompts[index]
