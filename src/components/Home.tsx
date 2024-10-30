@@ -24,7 +24,7 @@ export default function Home() {
               <Image height={300} width={300} className="w-full h-full object-cover" src="/bg_img_1.png" alt="" />
             </div>
             <div className="z-10 relative Typewriter_Section w-full">
-              <h3 className="h-16 text-4xl sm:text-5xl md:text-5xl chnage_title font-extrabold my-4">
+              <h3 className="h-16 text-4xl sm:text-5xl md:text-5xl chnage_title font-extrabold my-5">
                 <Typewriter
                   loop={false}
                   words={[

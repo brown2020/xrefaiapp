@@ -354,7 +354,7 @@
 }
 
 .text-section-ai {
-  max-width: 100%;
+  /* max-width: 100%; */
   /* Ensure it doesn't overflow the parent */
   overflow-wrap: break-word;
   /* Break words if they're too long */
@@ -380,9 +380,42 @@
   background: #0B3C68;
 }
 
+.text-section-ai ol,
+.text-section-ai ul {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.text-section-ai ol li {
+  line-height: 10px;
+}
+
+.text-section-ai ol p {
+  line-height: 22px;
+}
+
+.text-section-ai ol ul {
+  line-height: 6px;
+}
+
+.text-section-ai ol ul li {
+  line-height: 24px;
+}
+
+.text-section-ai ol li pre code {
+  line-height: 15px;
+}
+
+
 @media screen and (max-width: 640px) {
   .chat-bord-main {
     padding: 1rem;
+    padding-bottom: 0rem;
+  }
+
+  .text-section-ai ol li {
+    line-height: 20px;
   }
 
   /* .text-section-ai {

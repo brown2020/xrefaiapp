@@ -23,6 +23,7 @@ import RootLayout from "@/app/layout";
 import ScrollToBottom from 'react-scroll-to-bottom';
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import useProfileStore from "@/zustand/useProfileStore";
+import { debounce } from "lodash";
 
 const MAX_WORDS_IN_CONTEXT = 5000; // Adjust based on OpenAI model limits
 
@@ -169,6 +170,9 @@ export default function Chat() {
 
     return context; // Return the collected chat history
   };
+  const debouncedScrollToBottom = debounce(() => {
+    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, 100);
 
   // Handle sending a new prompt
   const handleSendPrompt = async () => {
@@ -201,7 +205,7 @@ export default function Chat() {
         if (content) {
           finishedSummary = content.trim();
           setStreamedResponse(finishedSummary);
-          scrollToBottom(); // Directly update state with the latest content chunk
+          debouncedScrollToBottom(); // Directly update state with the latest content chunk
         }
       }
 
@@ -237,7 +241,7 @@ export default function Chat() {
   return (
     <RootLayout showFooter={false}>
 
-      <div className="relative flex flex-col items-center container mx-auto justify-center p-0 space-y-5 sm:p-5">
+      <div className="relative flex flex-col items-center container mx-auto justify-center p-0 space-y-5 sm:p-5 sm:pb-0">
 
         {/* Load more button if needed */}
         {
@@ -245,13 +249,13 @@ export default function Chat() {
             <button
               onClick={loadMoreChats}
               disabled={loadingMore}
-             className="w-44 text-white px-3 py-2 custom-write bottom bg-[#192449] !opacity-100 hover:bg-[#83A873] !rounded-3xl font-bold transition-transform duration-300 ease-in-out"
->
+              className="w-44 text-white px-3 py-2 custom-write bottom bg-[#192449] !opacity-100 hover:bg-[#83A873] !rounded-3xl font-bold transition-transform duration-300 ease-in-out"
+            >
               {loadingMore ? "Loading..." : "Load More"}
             </button>
           )
         }
-        <div className="flex flex-col w-full h-full space-y-4 chat-bord-main">
+        <div className="flex flex-col w-full h-full space-y-4 chat-bord-main ">
           <ScrollToBottom className="scroll-to-bottom" initialScrollBehavior="smooth">
             <div className="flex flex-col">
 
@@ -302,7 +306,7 @@ export default function Chat() {
                 </div>
               ))}
               {loadingResponse && (
-                <div className="p-2 bg-[#E7EAEF] text-[#0B3C68] whitespace-pre-wrap rounded-md">
+                <div className="max-w-5xl p-2 bg-[#E7EAEF] text-[#0B3C68] whitespace-pre-wrap rounded-md text-section-ai">
                   <div className="flex mb-2 gap-4">
                     <div className="flex gap-3 items-center">
                       <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#0A0F20]">

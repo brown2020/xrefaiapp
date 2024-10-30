@@ -120,6 +120,10 @@ export default function Header() {
     router.push(link);
   };
 
+  const toggleMenu = () => {
+    setShowMenu((prev) => !prev);
+  };
+
   const menuDisplay = menuItems.map((item, index) => (
     <div
       key={index}
@@ -145,27 +149,27 @@ export default function Header() {
         <span onClick={() => handleNavigation("/")} className="px-3 py-2 text-white bg-orange-500 rounded-md cursor-pointer text-lg font-bold">
           XREF.AI
         </span>
-        <span><i className="fa-solid fa-xmark text-[#041D34] cursor-pointer"></i></span>
+        <button onClick={toggleMenu} className="menu-button">
+          <i className="fa-solid fa-xmark text-[#041D34] cursor-pointer"></i>
+        </button>
       </div>
-      {menuItems.map((item, index) => (
-        <div
-          key={index}
-          onClick={() => handleNavigation(item.link)}
-          className={`whitespace-nowrap flex h-14 gap-2 w-full items-center justify-start p-4 navbar-link font-semibold cursor-pointer md:py-2 ${pathname === item.link
-            ? "text-[#041D34]"
-            : "text-[#041D34]"
-            }`}
-        >
-          {/* {
-            item.icon &&
-            <i className={item.icon} style={{ marginRight: "0.5rem" }}></i>
-          } */}
-          {
-            item.svg && item.svg
-          }
-          {item.label}
+      {showMenu && (
+        <div className="menu">
+          {menuItems.map((item, index) => (
+            <div
+              key={index}
+              onClick={() => {
+                router.push(item.link);
+                setShowMenu(false); // Close the menu on item click
+              }}
+              className={`transition-all whitespace-nowrap flex h-14 gap-2 w-full items-center justify-start p-4 navbar-link font-semibold cursor-pointer md:py-2 ${pathname === item.link ? "active" : ""}`}
+            >
+              {item.svg}
+              <span>{item.label}</span>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   );
 
