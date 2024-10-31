@@ -4,6 +4,7 @@ import RootLayout from "@/app/layout";
 import AuthDataDisplay from "./AuthDataDisplay";
 import PaymentsPage from "./PaymentsPage";
 import ProfileComponent from "./ProfileComponent";
+import DeleteAccount from "./DeleteAccount";
 
 export default function Profile() {
   return (
@@ -14,6 +15,7 @@ export default function Profile() {
           <AuthDataDisplay />
           <ProfileComponent />
           <PaymentsPage />
+          <DeleteAccount />
         </div>
       </div>
     </RootLayout>

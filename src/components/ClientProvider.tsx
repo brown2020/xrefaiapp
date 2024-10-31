@@ -66,9 +66,9 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
     return (
       <ErrorBoundary>
         <div
-          className={`flex flex-col items-center justify-center h-full bg-[#333b51]`}
+          className={`flex flex-col items-center justify-center h-full bg-white`}
         >
-          <ClipLoader color="#fff" size={80} />
+          <ClipLoader color="#333b51" size={80} />
         </div>
       </ErrorBoundary>
     );
