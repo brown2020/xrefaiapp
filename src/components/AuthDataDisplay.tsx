@@ -4,19 +4,14 @@ import { useAuthStore } from "@/zustand/useAuthStore";
 import { signOut } from "firebase/auth";
 import { auth, db, storage } from "@/firebase/firebaseClient";
 import useProfileStore from "@/zustand/useProfileStore";
-import { ChangeEvent, useCallback, useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import { resizeImage } from "@/utils/resizeImage";
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
 import { doc } from "firebase/firestore";
 import Image from "next/image";
 import { ClipLoader } from "react-spinners";
-import toast from "react-hot-toast";
-import { useRouter } from "next/navigation";
-import DeleteConfirmModal from "./DeleteConfirmModal";
-
 
 export default function AuthDataDisplay() {
-  const router = useRouter();
   const uid = useAuthStore((s) => s.uid);
   const authEmail = useAuthStore((s) => s.authEmail);
   const clearAuthDetails = useAuthStore((s) => s.clearAuthDetails);
@@ -24,10 +19,6 @@ export default function AuthDataDisplay() {
   const updateProfile = useProfileStore((s) => s.updateProfile);
   const [newProfile, setNewProfile] = useState(profile);
   const [loading, setLoading] = useState(false);
-  const deleteAccount = useProfileStore((state) => state.deleteAccount);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [loadingDelete, setLoadingDelete] = useState(false);
-
 
   useEffect(() => {
     setNewProfile(profile);
@@ -96,24 +87,24 @@ export default function AuthDataDisplay() {
     }
   };
 
-  const handleDeleteClick = () => {
-    setShowDeleteModal(true);
-  };
+  // const handleDeleteClick = () => {
+  //   setShowDeleteModal(true);
+  // };
 
-  const onDeleteConfirm = useCallback(async () => {
-    setLoadingDelete(true);
-    setShowDeleteModal(false);
-    try {
-      await deleteAccount();
-      await signOut(auth);
-      clearAuthDetails();
-      toast.success("Account deleted successfully.");
-      router.replace("/");
-    } catch (error) {
-      setLoadingDelete(false);
-      console.error("Error on deletion of account:", error);
-    }
-  }, [deleteAccount, clearAuthDetails, router]);
+  // const onDeleteConfirm = useCallback(async () => {
+  //   setLoadingDelete(true);
+  //   setShowDeleteModal(false);
+  //   try {
+  //     await deleteAccount();
+  //     await signOut(auth);
+  //     clearAuthDetails();
+  //     toast.success("Account deleted successfully.");
+  //     router.replace("/");
+  //   } catch (error) {
+  //     setLoadingDelete(false);
+  //     console.error("Error on deletion of account:", error);
+  //   }
+  // }, [deleteAccount, clearAuthDetails, router]);
 
   return (
     <>
@@ -211,7 +202,7 @@ export default function AuthDataDisplay() {
                     />
                   </div> */}
                   {/* <!-- Save Button --> */}
-                  <div className="w-full sm:flex sm:flex-row flex flex-col gap-2 items-center justify-between !mt-5">
+                  <div className="w-full sm:flex sm:flex-row flex flex-col gap-2 items-center justify-end !mt-5">
                     <button
                       type="button"
                       disabled={!hasChanges}
@@ -219,8 +210,14 @@ export default function AuthDataDisplay() {
                       className="w-56 text-white px-3 py-2 custom-write bottom bg-[#192449] !opacity-100 hover:bg-[#83A873] !rounded-3xl font-bold transition-transform duration-300 ease-in-out">
                       Save Profile Changes
                     </button>
-                    <div className="!mt-0  credits-block sm:flex sm:flex-row flex flex-col justify-center items-center gap-2">
-                      <button
+                    <button
+                      onClick={logoutUser}
+                      className="w-56 text-white px-3 py-2 custom-write bottom bg-[#192449] !opacity-100 hover:bg-[#83A873] !rounded-3xl font-bold transition-transform duration-300 ease-in-out"
+                    >
+                      Logout
+                    </button>
+                    {/* <div className="!mt-0  credits-block sm:flex sm:flex-row flex flex-col justify-center items-center gap-2"> */}
+                    {/* <button
                         onClick={handleDeleteClick}
                         className="font-bold bg-[#FF5356] hover:bg-[#c0373a] rounded-3xl text-white w-56 block px-3 py-2"
                       >
@@ -231,14 +228,8 @@ export default function AuthDataDisplay() {
                         showDeleteModal={showDeleteModal}
                         onHideModal={() => setShowDeleteModal(false)}
                         onDeleteConfirm={onDeleteConfirm}
-                      />
-                      <button
-                        onClick={logoutUser}
-                        className="w-56 text-white px-3 py-2 custom-write bottom bg-[#192449] !opacity-100 hover:bg-[#83A873] !rounded-3xl font-bold transition-transform duration-300 ease-in-out"
-                      >
-                        Logout
-                      </button>
-                    </div>
+                      /> */}
+                    {/* </div> */}
                   </div>
                 </div>
               </div>

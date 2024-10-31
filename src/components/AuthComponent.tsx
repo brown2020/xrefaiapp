@@ -199,7 +199,7 @@ export default function AuthComponent() {
                       label="Continue with Google"
                       logo={googleLogo}
                       onClick={signInWithGoogle}
-                      
+
                     />
                     <div className="flex items-center justify-center w-full h-12">
                       <hr className="flex-grow h-px bg-gray-400 border-0" />
@@ -293,10 +293,10 @@ function AuthButton({
       <div className="w-6 h-6 relative">
         <Image
           src={logo}
-          height={100} 
+          height={100}
           width={100}
           alt={`${label} logo`}
-          
+
           objectFit="contain"
         />
       </div>
