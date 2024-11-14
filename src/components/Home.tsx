@@ -21,7 +21,13 @@ export default function Home() {
           </h3>
           <div className="container wrapper relative px-4">
             <div className="overlayer-bgi absolute h-min sm:block hidden">
-              <Image height={300} width={300} className="w-full h-full object-cover" src="/bg_img_1.png" alt="" />
+              <Image
+                height={300}
+                width={300}
+                className="w-full h-full object-cover"
+                src="/bg_img_1.png"
+                alt=""
+              />
             </div>
             <div className="z-10 relative Typewriter_Section w-full">
               <h3 className="h-16 text-4xl sm:text-5xl md:text-5xl chnage_title font-extrabold my-5">
@@ -47,15 +53,25 @@ export default function Home() {
             </div>
             <div className="z-10 relative Hero_Image flex flex-col md:flex-row md:gap-8">
               <div className="hero-img sd:w-4/6 md:w-3/5 lg:w-3/5">
-                <Image className="rounded-3xl w-full h-auto object-cover" src="/hero.png" alt="Hero Image" height={1000} width={1000} />
+                <Image
+                  className="rounded-3xl w-full h-auto object-cover"
+                  src="/hero.png"
+                  alt="Hero Image"
+                  height={1000}
+                  width={1000}
+                />
               </div>
               <div className="flex flex-col justify-between gap-4 img-section py-4 sm:w-2/6 md:w-2/5">
                 <div className="">
-                  <Image src="/hero_2.png" className="w-full h-auto object-cover" alt="" height={1000} width={1000} />
+                  <Image
+                    src="/hero_2.png"
+                    className="w-full h-auto object-cover"
+                    alt=""
+                    height={1000}
+                    width={1000}
+                  />
                 </div>
-                <p className="content-text text-start text-[#041D34]">
-                  It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout.
-                </p>
+
                 <div className="text-start">
                   <AuthComponent />
                 </div>
@@ -70,21 +86,27 @@ export default function Home() {
               <div className="credits_icon flex justify-center ">
                 {/* <Image src="credits_1.svg" alt="" className="max-w-16	" height={100} width={100}/> */}
                 <Image src="credits_1.svg" alt="" height={60} width={60} />
-
               </div>
               <div className="premium_title flex justify-center">
-                <div className="bg-white max-w-max p-1 px-2 font-semibold cursor-pointer" onClick={() => handleNavigation("/account")}>
+                <div
+                  className="bg-white max-w-max p-1 px-2 font-semibold cursor-pointer"
+                  onClick={() => handleNavigation("/account")}
+                >
                   BUY CREDITS
                 </div>
               </div>
               <div className="paraghragh">
                 <p className="text-2xl sm:text-2xl font-bold text-white">
-                  We are moving from a subscription model to a pay-as-you-go model.
+                  We are moving from a subscription model to a pay-as-you-go
+                  model.
                 </p>
               </div>
               <div className="paraghragh">
                 <p className="text-xl sm:text-1xl font-normal text-white max-w-xl mx-auto">
-                  If you are a previous paying subscriber, we have stopped your billing and added <span className="font-bold text-2xl">$99.99</span> of credits to your account.
+                  If you are a previous paying subscriber, we have stopped your
+                  billing and added{" "}
+                  <span className="font-bold text-2xl">$99.99</span> of credits
+                  to your account.
                 </p>
               </div>
             </div>
