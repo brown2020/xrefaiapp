@@ -15,7 +15,7 @@
     "ai": "^3.4.29",
     "axios": "^1.7.7",
     "cheerio": "^1.0.0",
-    "cookies-next": "^5.0.2",
+    "cookies-next": "^4.3.0",
     "dotenv": "^16.4.5",
     "firebase": "^11.0.1",
     "firebase-admin": "^12.6.0",
