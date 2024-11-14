@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function Footer() {
   const router = useRouter();
@@ -50,19 +51,23 @@ export default function Footer() {
 
         {/* Social Media Icons */}
         <div className="flex lg:justify-center gap-3 order-1 lg:order-2 lg:w-[33%]">
-          <div className="flex items-center justify-center w-8 h-8 bg-[#141D3D] text-white cursor-pointer hover:bg-[#83A873] hover:text-[#ffffff] rounded-full">
-            <i className="fa-brands fa-facebook-f"></i>
-          </div>
-          <div className="flex items-center justify-center w-8 h-8 bg-[#141D3D] text-white cursor-pointer hover:bg-[#83A873] hover:text-[#ffffff] rounded-full">
-            <i className="fa-brands fa-twitter"></i>
-          </div>
-          <div className="flex items-center justify-center w-8 h-8 bg-[#141D3D] text-white cursor-pointer hover:bg-[#83A873] hover:text-[#ffffff] rounded-full">
-            <i className="fa-brands fa-pinterest-p"></i>
-          </div>
-          <div className="flex items-center justify-center w-8 h-8 bg-[#141D3D] text-white cursor-pointer hover:bg-[#83A873] hover:text-[#ffffff] rounded-full">
-            <i className="fa-brands fa-youtube"></i>
-          </div>
+          <Link href="https://x.com/xrefdotai" target="_blank" rel="noopener noreferrer">
+            <div className="flex items-center justify-center w-8 h-8 bg-[#141D3D] text-white cursor-pointer hover:bg-[#83A873] hover:text-[#ffffff] rounded-full">
+              <i className="fa-brands fa-x"></i>
+            </div>
+          </Link>
+          <Link href="https://www.facebook.com/xrefdotai" target="_blank" rel="noopener noreferrer">
+            <div className="flex items-center justify-center w-8 h-8 bg-[#141D3D] text-white cursor-pointer hover:bg-[#83A873] hover:text-[#ffffff] rounded-full">
+              <i className="fa-brands fa-facebook-f"></i>
+            </div>
+          </Link>
+          <Link href="https://www.instagram.com/xrefdotai" target="_blank" rel="noopener noreferrer">
+            <div className="flex items-center justify-center w-8 h-8 bg-[#141D3D] text-white cursor-pointer hover:bg-[#83A873] hover:text-[#ffffff] rounded-full">
+              <i className="fa-brands fa-instagram"></i>
+            </div>
+          </Link>
         </div>
+
 
         {/* Right Menu and Copyright */}
         <div className="flex lg:justify-end gap-2 order-3 lg:order-3 lg:w-[33%] text-[#041D34]">

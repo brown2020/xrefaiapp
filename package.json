@@ -22,7 +22,7 @@
     "formdata-node": "^6.0.3",
     "lodash": "^4.17.21",
     "lucide-react": "^0.456.0",
-    "next": "^15.0.2",
+    "next": "^14.2.14",
     "node-fetch": "^3.3.2",
     "react": "^18",
     "react-cookie-consent": "^9.0.0",
@@ -39,7 +39,7 @@
     "remark-gfm": "^4.0.0",
     "sharp": "^0.33.5",
     "stripe": "^17.1.0",
-    "uuid": "^11.0.2",
+    "uuid": "^11.0.3",
     "zustand": "^5.0.0-rc.2"
   },
   "devDependencies": {
@@ -48,8 +48,8 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/react-scroll-to-bottom": "^4.2.5",
-    "eslint": "^9.13.0",
-    "eslint-config-next": "^15.0.2",
+    "eslint": "^8",
+    "eslint-config-next": "^15.0.3",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
