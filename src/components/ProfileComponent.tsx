@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import useProfileStore from "@/zustand/useProfileStore";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { isIOSReactNativeWebView } from "@/utils/platform"; // Import the platform check function
+import { usePaymentsStore } from "@/zustand/usePaymentsStore";
 
 export default function ProfileComponent() {
   const profile = useProfileStore((state) => state.profile);
@@ -17,6 +17,33 @@ export default function ProfileComponent() {
   );
   const [useCredits, setUseCredits] = useState(profile.useCredits);
   const [showCreditsSection, setShowCreditsSection] = useState(true); // State to control visibility of credits section
+  const addCredits = useProfileStore((state) => state.addCredits);
+  const addPayment = usePaymentsStore((state) => state.addPayment);
+
+  useEffect(() => {
+    const handleMessageFromRN = async (event: MessageEvent) => {
+      const message = event.data;
+      if (message?.type === "IAP_SUCCESS") {
+        await addPayment({
+          id: message.message,
+          amount: message.amount,
+          status: "succeeded",
+          mode: 'iap',
+          platform: message.platform,
+          productId: message.productId,
+          currency: message.currency
+        });
+        await addCredits(10000);
+      }
+    };
+
+    // Listen for messages from the RN WebView
+    window.addEventListener("message", handleMessageFromRN);
+
+    return () => {
+      window.removeEventListener("message", handleMessageFromRN);
+    };
+  }, [addCredits, addPayment]);
 
   useEffect(() => {
     setFireworksApiKey(profile.fireworks_api_key);
@@ -59,9 +86,19 @@ export default function ProfileComponent() {
 
   const areApiKeysAvailable = fireworksApiKey && openaiApiKey;
 
+  const handleBuyClick = useCallback(
+    () => {
+      if (showCreditsSection) {
+        window.location.href = "/payment-attempt";
+      } else {
+        window.ReactNativeWebView?.postMessage("INIT_IAP");
+      }
+    },
+    [showCreditsSection]
+  );
+
   return (
     <div className="flex flex-col gap-4 ">
-      {showCreditsSection && ( // Conditionally render the credits section
         <div className="bg-[#ffffff] border border-[#81878D] rounded-2xl">
           <div className="flex flex-col sm:flex-row px-5 py-3 gap-3">
             <div className="flex items-center by-credits gap-2 pt-2 pb-2 w-full">
@@ -70,12 +107,12 @@ export default function ProfileComponent() {
                 <span className="text-[#83A873] font-semibold">{Math.round(profile.credits)}</span>
               </div>
               <div className="w-[48%] credits-block">
-                <Link
+                <button
                   className="font-bold bg-[#192449] hover:bg-[#83A873] rounded-3xl text-white w-[12rem] block  mx-auto px-3 py-2 flex-1 text-center"
-                  href={"/payment-attempt"}
+                  onClick={handleBuyClick}
                 >
                   Buy 10,000 Credits
-                </Link>
+                </button>
               </div>
             </div>
           </div>
@@ -84,8 +121,6 @@ export default function ProfileComponent() {
             and OpenAI.
           </div>
         </div>
-
-      )}
 
       <div className="flex flex-col p-5 space-y-3 bg-[#ffffff] border border-[#81878D] rounded-2xl">
         <div className="flex flex-col">

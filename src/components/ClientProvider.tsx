@@ -37,18 +37,6 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (window.ReactNativeWebView) {
-      document.body.classList.add("noscroll");
-    } else {
-      document.body.classList.remove("noscroll");
-    }
-
-    return () => {
-      document.body.classList.remove("noscroll");
-    };
-  }, []);
-
-  useEffect(() => {
     if (
       !loading &&
       !uid &&
