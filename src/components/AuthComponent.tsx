@@ -16,7 +16,7 @@ import { LockIcon, MailIcon, XIcon } from "lucide-react";
 import { PulseLoader } from "react-spinners";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { auth } from "@/firebase/firebaseClient";
-import toast from "react-hot-toast";
+import { toast } from 'react-toastify';
 
 import googleLogo from "@/app/assets/google.svg";
 import Image from "next/image";

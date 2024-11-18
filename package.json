@@ -35,6 +35,7 @@
     "react-simple-typewriter": "^5.0.1",
     "react-spinners": "^0.14.1",
     "react-textarea-autosize": "^8.5.3",
+    "react-toastify": "^10.0.6",
     "remark": "^15.0.1",
     "remark-gfm": "^4.0.0",
     "sharp": "^0.33.5",
