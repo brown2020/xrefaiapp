@@ -6,14 +6,17 @@ import {
   sendSignInLinkToEmail,
   signInWithPopup,
   signOut,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 
 import Link from "next/link";
-import { MailIcon, XIcon } from "lucide-react";
+import { LockIcon, MailIcon, XIcon } from "lucide-react";
 import { PulseLoader } from "react-spinners";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { auth } from "@/firebase/firebaseClient";
-import toast from "react-hot-toast";
+import { toast } from 'react-toastify';
 
 import googleLogo from "@/app/assets/google.svg";
 import Image from "next/image";
@@ -27,10 +30,12 @@ export default function AuthComponent() {
   const authDisplayName = useAuthStore((s) => s.authDisplayName);
   const authPending = useAuthStore((s) => s.authPending);
   const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
   const [name, setName] = useState<string>("");
   const [acceptTerms, setAcceptTerms] = useState<boolean>(true);
   const formRef = useRef<HTMLFormElement>(null);
   const [isVisible, setIsVisible] = useState<boolean>(false);
+  const [isEmailLinkLogin, setIsEmailLinkLogin] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   const [showGoogleSignIn, setShowGoogleSignIn] = useState(true); // State to control Google Sign-In visibility
 
@@ -82,6 +87,56 @@ export default function AuthComponent() {
     }
   };
 
+  const handlePasswordLogin = async () => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      window.localStorage.setItem("xrefEmail", email);
+      window.localStorage.setItem("xrefName", email.split("@")[0]);
+    } catch (error: unknown) {
+      handleAuthError(error);
+    } finally {
+      hideModal();
+    }
+  };
+
+  const handlePasswordSignup = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      window.localStorage.setItem("xrefEmail", email);
+      window.localStorage.setItem("xrefName", email.split("@")[0]);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        if ((error as { code?: string }).code === "auth/email-already-in-use") {
+          handlePasswordLogin();
+          return;
+        }
+      }
+      hideModal();
+      handleAuthError(error);
+    }
+  };
+
+  const handleAuthError = (error: unknown) => {
+    if (isFirebaseError(error)) {
+      toast.error(error.message);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!email) {
+      toast.error("Please enter your email to reset your password.");
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast.success(`Password reset email sent to ${email}`);
+    } catch (error) {
+      handleAuthError(error);
+    }
+  };
+
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -132,8 +187,12 @@ export default function AuthComponent() {
         </button>
       )}
       {!uid && (
-        <button onClick={showModal} className="bg-[#02C173] hover:bg-[#009d5b] hover:opacity-100 btn-blue mt-0 w-auto">
-          Sign In to Enable Your Account <i className="fa-solid fa-arrow-right"></i>
+        <button
+          onClick={showModal}
+          className="bg-[#02C173] hover:bg-[#009d5b] hover:opacity-100 btn-blue mt-0 w-auto"
+        >
+          Sign In to Enable Your Account{" "}
+          <i className="fa-solid fa-arrow-right"></i>
         </button>
       )}
 
@@ -186,7 +245,9 @@ export default function AuthComponent() {
               </div>
             ) : (
               <form
-                onSubmit={handleSubmit}
+                onSubmit={
+                  isEmailLinkLogin ? handleSubmit : handlePasswordSignup
+                }
                 ref={formRef}
                 className="flex flex-col gap-2"
               >
@@ -199,7 +260,6 @@ export default function AuthComponent() {
                       label="Continue with Google"
                       logo={googleLogo}
                       onClick={signInWithGoogle}
-
                     />
                     <div className="flex items-center justify-center w-full h-12">
                       <hr className="flex-grow h-px bg-gray-400 border-0" />
@@ -209,14 +269,16 @@ export default function AuthComponent() {
                   </>
                 )}
 
-                <input
-                  id="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter your name"
-                  className="input-primary"
-                />
+                {isEmailLinkLogin && (
+                  <input
+                    id="name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Enter your name"
+                    className="input-primary mb-2"
+                  />
+                )}
                 <input
                   id="email"
                   type="email"
@@ -225,16 +287,52 @@ export default function AuthComponent() {
                   placeholder="Enter your email"
                   className="input-primary mt-2"
                 />
+                {!isEmailLinkLogin && (
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    className="input-primary mt-2"
+                  />
+                )}
+                 {!isEmailLinkLogin && (
+                  <div className="text-right mt-2">
+                    <button
+                      type="button"
+                      onClick={handlePasswordReset}
+                      className="underline text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      Forgot Password?
+                    </button>
+                  </div>
+                )}
                 <button
                   type="submit"
                   className="btn-primary"
-                  disabled={!email || !name}
+                  disabled={!email || (!isEmailLinkLogin && !password)}
                 >
-                  <div className="flex items-center gap-2 h-8">
-                    <MailIcon size={20} />
-                    <div className="text-lg">Continue with Email</div>
-                  </div>
+                  {isEmailLinkLogin ? (
+                    <div className="flex items-center gap-2 h-8">
+                      <MailIcon size={20} />
+                      <span>Continue with Email Link</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 h-8">
+                      <LockIcon size={20} />
+                      <span>Continue with Password</span>
+                    </div>
+                  )}
                 </button>
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => setIsEmailLinkLogin(!isEmailLinkLogin)}
+                    className="underline"
+                  >
+                    {isEmailLinkLogin ? "Use Email/Password" : "Use Email Link"}
+                  </button>
+                </div>
                 <label className="flex items-center space-x-2 pl-1">
                   <input
                     type="checkbox"
@@ -296,7 +394,6 @@ function AuthButton({
           height={100}
           width={100}
           alt={`${label} logo`}
-
           objectFit="contain"
         />
       </div>

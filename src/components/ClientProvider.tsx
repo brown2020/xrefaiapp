@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { Toaster } from "react-hot-toast";
 import { ClipLoader } from "react-spinners";
 import CookieConsent from "react-cookie-consent";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 import useAuthToken from "@/hooks/useAuthToken";
 import { useInitializeStores } from "@/zustand/useInitializeStores";
@@ -71,6 +73,7 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
           </CookieConsent>
         )}
         <Toaster position="bottom-center" />
+        <ToastContainer position="bottom-center"/>
       </div>
     </ErrorBoundary>
   );
