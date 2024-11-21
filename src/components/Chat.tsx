@@ -20,11 +20,15 @@ import { readStreamableValue } from "ai/rsc";
 import { generateResponseWithMemory } from "@/actions/generateResponseWithMemory";
 import Image from "next/image";
 import RootLayout from "@/app/layout";
-import ScrollToBottom from 'react-scroll-to-bottom';
+import ScrollToBottom from "react-scroll-to-bottom";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import useProfileStore from "@/zustand/useProfileStore";
 import { debounce } from "lodash";
 import { copyToClipboard } from "@/utils/copyToClipboard";
+import {
+  checkRestrictedWords,
+  isIOSReactNativeWebView,
+} from "@/utils/platform";
 
 const MAX_WORDS_IN_CONTEXT = 5000; // Adjust based on OpenAI model limits
 
@@ -42,14 +46,14 @@ export default function Chat() {
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
   const uid = useAuthStore((s) => s.uid);
   const profile = useProfileStore((s) => s.profile);
-  const [loading, setLoading] = useState(true);  // Add loading state
-
+  const [loading, setLoading] = useState(true); // Add loading state
 
   // Effect to track scroll position
   useEffect(() => {
     const handleScroll = () => {
       if (chatContainerRef.current) {
-        const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+        const { scrollTop, scrollHeight, clientHeight } =
+          chatContainerRef.current;
         // Check if the user is near the bottom (e.g., within 50 pixels)
         if (scrollHeight - scrollTop - clientHeight > 50) {
           setIsButtonVisible(true);
@@ -183,7 +187,10 @@ export default function Chat() {
   // Handle sending a new prompt
   const handleSendPrompt = async () => {
     if (!newPrompt.trim()) return;
-
+    if (isIOSReactNativeWebView() && checkRestrictedWords(newPrompt)) {
+      alert("Your description contains restricted words and cannot be used.");
+      return;
+    }
     setLoadingResponse(true);
     setStreamedResponse(""); // Reset the streamed response
     setResponseSaved(false); // Reset the response saved flag
@@ -240,7 +247,7 @@ export default function Chat() {
 
   const scrollToBottom = () => {
     if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: 'smooth' });
+      scrollRef.current.scrollIntoView({ behavior: "smooth" });
     }
   };
 
@@ -252,21 +259,17 @@ export default function Chat() {
 
   return (
     <RootLayout showFooter={false}>
-
       <div className="relative flex flex-col items-center container mx-auto justify-center p-0 space-y-5 sm:p-5 sm:pb-0">
-
         {/* Load more button if needed */}
-        {
-          lastKey && (
-            <button
-              onClick={loadMoreChats}
-              disabled={loadingMore}
-              className="w-44 text-white px-3 py-2 custom-write bottom bg-[#192449] !opacity-100 hover:bg-[#83A873] !rounded-3xl font-bold transition-transform duration-300 ease-in-out"
-            >
-              {loadingMore ? "Loading..." : "Load More"}
-            </button>
-          )
-        }
+        {lastKey && (
+          <button
+            onClick={loadMoreChats}
+            disabled={loadingMore}
+            className="w-44 text-white px-3 py-2 custom-write bottom bg-[#192449] !opacity-100 hover:bg-[#83A873] !rounded-3xl font-bold transition-transform duration-300 ease-in-out"
+          >
+            {loadingMore ? "Loading..." : "Load More"}
+          </button>
+        )}
 
         {loading ? (
           <div className="flex items-center justify-center w-full h-full">
@@ -274,56 +277,86 @@ export default function Chat() {
           </div>
         ) : (
           <div className="flex flex-col w-full h-full space-y-4 chat-bord-main ">
-            <ScrollToBottom className="scroll-to-bottom" initialScrollBehavior="smooth">
+            <ScrollToBottom
+              className="scroll-to-bottom"
+              initialScrollBehavior="smooth"
+            >
               <div className="flex flex-col">
-
                 {/* Display chat list */}
-                {chatlist.slice().reverse().map((chat, index) => (
-                  <div key={index} className="flex flex-col my-3 space-y-3">
-                    <div className="flex justify-end max-w-5xl ml-auto rounded-xl gap-4 items-center p-4 text-right bg-[#F0F6FF]">
-                      <div className="text-[#A1ADF4] whitespace-pre-wrap rounded-md">
-                        <p className="text-[#041D34] font-bold">You</p>
-                        <p className="break-word text-[#0B3C68] font-normal">{chat.prompt}</p>
-                      </div>
-                      <div className="flex items-center justify-center flex-shrink-0 w-10 h-10 text-xs font-bold text-white rounded-full bg-blue-500">
-                        {/* You */}
-                        <Image src={profile.photoUrl} alt="" height={100} width={100} className="object-cover rounded-full" />
-                      </div>
-                    </div>
-                    <div className="flex flex-col max-w-5xl p-4 gap-4 rounded-xl text-left bg-[#E7EAEF]">
-                      <div className="flex w-full gap-4">
-                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#0A0F20]">
+                {chatlist
+                  .slice()
+                  .reverse()
+                  .map((chat, index) => (
+                    <div key={index} className="flex flex-col my-3 space-y-3">
+                      <div className="flex justify-end max-w-5xl ml-auto rounded-xl gap-4 items-center p-4 text-right bg-[#F0F6FF]">
+                        <div className="text-[#A1ADF4] whitespace-pre-wrap rounded-md">
+                          <p className="text-[#041D34] font-bold">You</p>
+                          <p className="break-word text-[#0B3C68] font-normal">
+                            {chat.prompt}
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-center flex-shrink-0 w-10 h-10 text-xs font-bold text-white rounded-full bg-blue-500">
+                          {/* You */}
                           <Image
-                            src="/logo(X).png"
-                            alt="bot"
-                            className="flex-shrink-0 object-contain w-10 h-10 rounded-full px-[5px]"
-                            width={40}
-                            height={40}
+                            src={profile.photoUrl}
+                            alt=""
+                            height={100}
+                            width={100}
+                            className="object-cover rounded-full"
                           />
                         </div>
-                        <div className="w-full flex justify-between items-center mb-2">
-                          <div className="flex gap-3 items-center">
-                            <h3 className="m-0 text-[#041D34] font-bold">XREF.AI</h3>
-                            <p className="px-[10px] py-0 text-[12px] rounded-[10px] bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] text-white ">Bot</p>
+                      </div>
+                      <div className="flex flex-col max-w-5xl p-4 gap-4 rounded-xl text-left bg-[#E7EAEF]">
+                        <div className="flex w-full gap-4">
+                          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#0A0F20]">
+                            <Image
+                              src="/logo(X).png"
+                              alt="bot"
+                              className="flex-shrink-0 object-contain w-10 h-10 rounded-full px-[5px]"
+                              width={40}
+                              height={40}
+                            />
                           </div>
-                          <button className="copy_icon p-2 ml-3 w-9 h-9 border border-[#A3AEC0] rounded-[10px] text-center flex justify-center items-center cursor-pointer hover:bg-[#83A873]"
-                          onClick={() => copyToClipboard(chat.response)}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" version="1.1" x="0" y="0" viewBox="0 0 48 48" className="">
-                              <g>
-                                <path d="M33.46 28.672V7.735c0-2.481-2.019-4.5-4.5-4.5H8.023a4.505 4.505 0 0 0-4.5 4.5v20.937c0 2.481 2.019 4.5 4.5 4.5H28.96c2.481 0 4.5-2.019 4.5-4.5zm-26.937 0V7.735c0-.827.673-1.5 1.5-1.5H28.96c.827 0 1.5.673 1.5 1.5v20.937c0 .827-.673 1.5-1.5 1.5H8.023c-.827 0-1.5-.673-1.5-1.5zm33.454-13.844h-3.646a1.5 1.5 0 1 0 0 3h3.646c.827 0 1.5.673 1.5 1.5v20.937c0 .827-.673 1.5-1.5 1.5H19.041c-.827 0-1.5-.673-1.5-1.5v-4.147a1.5 1.5 0 1 0-3 0v4.147c0 2.481 2.019 4.5 4.5 4.5h20.936c2.481 0 4.5-2.019 4.5-4.5V19.328c0-2.481-2.019-4.5-4.5-4.5z" fill="#000000" opacity="1" data-original="#000000" className="fill-[#7F8CA1]">
-                                </path>
-                              </g>
-                            </svg>
-                          </button>
+                          <div className="w-full flex justify-between items-center mb-2">
+                            <div className="flex gap-3 items-center">
+                              <h3 className="m-0 text-[#041D34] font-bold">
+                                XREF.AI
+                              </h3>
+                              <p className="px-[10px] py-0 text-[12px] rounded-[10px] bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] text-white ">
+                                Bot
+                              </p>
+                            </div>
+                            <button
+                              className="copy_icon p-2 ml-3 w-9 h-9 border border-[#A3AEC0] rounded-[10px] text-center flex justify-center items-center cursor-pointer hover:bg-[#83A873]"
+                              onClick={() => copyToClipboard(chat.response)}
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                version="1.1"
+                                x="0"
+                                y="0"
+                                viewBox="0 0 48 48"
+                                className=""
+                              >
+                                <g>
+                                  <path
+                                    d="M33.46 28.672V7.735c0-2.481-2.019-4.5-4.5-4.5H8.023a4.505 4.505 0 0 0-4.5 4.5v20.937c0 2.481 2.019 4.5 4.5 4.5H28.96c2.481 0 4.5-2.019 4.5-4.5zm-26.937 0V7.735c0-.827.673-1.5 1.5-1.5H28.96c.827 0 1.5.673 1.5 1.5v20.937c0 .827-.673 1.5-1.5 1.5H8.023c-.827 0-1.5-.673-1.5-1.5zm33.454-13.844h-3.646a1.5 1.5 0 1 0 0 3h3.646c.827 0 1.5.673 1.5 1.5v20.937c0 .827-.673 1.5-1.5 1.5H19.041c-.827 0-1.5-.673-1.5-1.5v-4.147a1.5 1.5 0 1 0-3 0v4.147c0 2.481 2.019 4.5 4.5 4.5h20.936c2.481 0 4.5-2.019 4.5-4.5V19.328c0-2.481-2.019-4.5-4.5-4.5z"
+                                    fill="#000000"
+                                    opacity="1"
+                                    data-original="#000000"
+                                    className="fill-[#7F8CA1]"
+                                  ></path>
+                                </g>
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                        <div className="text-[#0B3C68] whitespace-pre-wrap w-full text-section-ai pb-4">
+                          <MarkdownRenderer content={chat.response} />
                         </div>
                       </div>
-                      <div className="text-[#0B3C68] whitespace-pre-wrap w-full text-section-ai pb-4">
-                        <MarkdownRenderer content={chat.response} />
-                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
                 {loadingResponse && (
                   <div className="max-w-5xl p-2 bg-[#E7EAEF] text-[#0B3C68] whitespace-pre-wrap rounded-md text-section-ai">
                     <div className="flex mb-2 gap-4">
@@ -337,11 +370,17 @@ export default function Chat() {
                             height={40}
                           />
                         </div>
-                        <h3 className="m-0 text-[#0B3C68] font-bold">XREF.AI</h3>
-                        <p className="px-[10px] py-0 text-[12px] rounded-[10px] bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] text-white ">Bot</p>
+                        <h3 className="m-0 text-[#0B3C68] font-bold">
+                          XREF.AI
+                        </h3>
+                        <p className="px-[10px] py-0 text-[12px] rounded-[10px] bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] text-white ">
+                          Bot
+                        </p>
                       </div>
                     </div>
-                    <MarkdownRenderer content={streamedResponse || "Generating response..."} />
+                    <MarkdownRenderer
+                      content={streamedResponse || "Generating response..."}
+                    />
                   </div>
                 )}
               </div>
@@ -357,7 +396,7 @@ export default function Chat() {
                   value={newPrompt}
                   onChange={(e) => setNewPrompt(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey && newPrompt.trim()) {
+                    if (e.key === "Enter" && !e.shiftKey && newPrompt.trim()) {
                       e.preventDefault(); // Prevents adding a newline
                       handleSendPrompt();
                     }
@@ -367,16 +406,22 @@ export default function Chat() {
                 {/* Button */}
                 <button
                   onClick={handleSendPrompt}
-                  className={`absolute right-4 bottom-6 px-5 py-3 text-[#ffffff] bg-[#39509E] rounded-md transition-opacity duration-200 ${loadingResponse || !newPrompt.trim() ? "opacity-50 cursor-not-allowed" : "hover:shadow-lg hover:transition-all"
-                    }`}
+                  className={`absolute right-4 bottom-6 px-5 py-3 text-[#ffffff] bg-[#39509E] rounded-md transition-opacity duration-200 ${
+                    loadingResponse || !newPrompt.trim()
+                      ? "opacity-50 cursor-not-allowed"
+                      : "hover:shadow-lg hover:transition-all"
+                  }`}
                   disabled={loadingResponse || !newPrompt.trim()}
                   aria-label="Send prompt"
                 >
-                  {loadingResponse ? "Generating..." : <i className="fa-regular fa-paper-plane"></i>}
+                  {loadingResponse ? (
+                    "Generating..."
+                  ) : (
+                    <i className="fa-regular fa-paper-plane"></i>
+                  )}
                 </button>
               </div>
             </div>
-
           </div>
         )}
         {isButtonVisible && (
@@ -388,8 +433,6 @@ export default function Chat() {
           </button>
         )}
       </div>
-
     </RootLayout>
-
   );
 }

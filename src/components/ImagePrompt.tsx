@@ -9,6 +9,7 @@ import { generateImage } from "@/actions/generateImage";
 import toast from "react-hot-toast";
 import Image from "next/image";
 import { copyImageToClipboard, downloadImage } from "@/utils/helpers";
+import { checkRestrictedWords, isIOSReactNativeWebView } from "@/utils/platform";
 
 export default function ImagePrompt() {
   const uid = useAuthStore((state) => state.uid);
@@ -49,6 +50,12 @@ export default function ImagePrompt() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isIOSReactNativeWebView() && checkRestrictedWords(topic)) {
+      alert(
+        "Your description contains restricted words and cannot be used."
+      );
+      return;
+    }
     setActive(false);
     setSummary("");
     setFlagged("");

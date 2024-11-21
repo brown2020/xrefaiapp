@@ -7,6 +7,7 @@ import { db } from "@/firebase/firebaseClient";
 import { generateResponse } from "@/actions/generateResponse";
 import { readStreamableValue } from "ai/rsc";
 import { toast } from "react-hot-toast"; // For notifications
+import { checkRestrictedWords, isIOSReactNativeWebView } from "@/utils/platform";
 
 interface GenericPromptProps {
   title: string;
@@ -59,6 +60,12 @@ export default function GenericPrompt({
 
   const getResponse = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isIOSReactNativeWebView() && checkRestrictedWords(topic)) {
+      alert(
+        "Your description contains restricted words and cannot be used."
+      );
+      return;
+    }
     setActive(false);
     setSummary("");
     setFlagged("");

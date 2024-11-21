@@ -9,6 +9,7 @@ import { readStreamableValue } from "ai/rsc";
 import axios from "axios"; // Import axios for web scraping
 import { load } from "cheerio"; // Import cheerio for scraping
 import { toast } from "react-hot-toast"; // Import react-hot-toast for notifications
+import { checkRestrictedWords, isIOSReactNativeWebView } from "@/utils/platform";
 
 export default function SummarizeTopic() {
   const uid = useAuthStore((state) => state.uid);
@@ -78,6 +79,12 @@ export default function SummarizeTopic() {
 
   const getResponse = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isIOSReactNativeWebView() && checkRestrictedWords(topic)) {
+      alert(
+        "Your description contains restricted words and cannot be used."
+      );
+      return;
+    }
     setActive(false);
     setSummary("");
     setFlagged("");
