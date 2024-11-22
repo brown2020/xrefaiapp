@@ -10,8 +10,8 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^0.0.72",
-    "@stripe/react-stripe-js": "^2.8.0",
-    "@stripe/stripe-js": "^4.6.0",
+    "@stripe/react-stripe-js": "^3.0.0",
+    "@stripe/stripe-js": "^5.2.0",
     "ai": "^3.4.29",
     "axios": "^1.7.7",
     "cheerio": "^1.0.0",
