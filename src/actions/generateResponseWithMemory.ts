@@ -31,7 +31,7 @@ export async function generateResponseWithMemory(
   ];
 
   // Stream the response from the AI model
-  const result = await streamText({
+  const result = streamText({
     model,
     messages: allMessages, // Send the entire list of converted messages
   });
