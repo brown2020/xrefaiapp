@@ -1,6 +1,6 @@
-# Xref.ai: A Next.js 14 AI-Powered Application for Text, Image, and Product Design
+# Xref.ai: A Next.js 15 AI-Powered Application for Text, Image, and Product Design
 
-Welcome to **Xref.ai**, a cutting-edge application built using **Next.js 14** with **TypeScript**, **Tailwind CSS**, and **Firebase**. Xref.ai leverages powerful **AI capabilities** to provide features like text summarization, image generation, product design, and even scraping web content for creating summaries.
+Welcome to **Xref.ai**, a cutting-edge application built using **Next.js 15** with **TypeScript**, **Tailwind CSS**, and **Firebase**. Xref.ai leverages powerful **AI capabilities** to provide features like text summarization, image generation, product design, and even scraping web content for creating summaries.
 
 ## Table of Contents
 
@@ -16,7 +16,7 @@ Welcome to **Xref.ai**, a cutting-edge application built using **Next.js 14** wi
 - [API Routes](#api-routes)
   - [Web Scraping Proxy API](#web-scraping-proxy-api)
 - [Server Actions](#server-actions)
-  - [What are Server Actions in Next.js 14?](#what-are-server-actions-in-nextjs-14)
+  - [What are Server Actions in Next.js 15?](#what-are-server-actions-in-nextjs-15)
   - [generateImage](#generateimage)
   - [generateResponse](#generateresponse)
   - [generateResponseWithMemory](#generateresponsewithmemory)
@@ -36,7 +36,7 @@ Welcome to **Xref.ai**, a cutting-edge application built using **Next.js 14** wi
 
 ## Technology Stack
 
-- **Next.js 14**: The primary framework for server-side rendering, client-side routing, and API routes.
+- **Next.js 15**: The primary framework for server-side rendering, client-side routing, and API routes.
 - **TypeScript**: For strong typing and better maintainability.
 - **Tailwind CSS**: Utility-first CSS framework for rapid UI development.
 - **Firebase**: Used for authentication, Firestore for database storage, and Cloud Storage for images.
@@ -199,9 +199,9 @@ export async function GET(req: NextRequest) {
 
 ## Server Actions
 
-### What are Server Actions in Next.js 14?
+### What are Server Actions in Next.js 15?
 
-Server Actions in **Next.js 14** allow you to run asynchronous tasks directly on the server. These actions can be used in components and invoked from both the client and server, streamlining the process of interacting with the server-side logic. This removes the need to define separate API routes for every server-side interaction, making the application more efficient and simplifying the overall architecture.
+Server Actions in **Next.js 15** allow you to run asynchronous tasks directly on the server. These actions can be used in components and invoked from both the client and server, streamlining the process of interacting with the server-side logic. This removes the need to define separate API routes for every server-side interaction, making the application more efficient and simplifying the overall architecture.
 
 #### Key Benefits:
 
