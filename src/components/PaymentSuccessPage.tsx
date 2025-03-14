@@ -6,6 +6,7 @@ import useProfileStore from "@/zustand/useProfileStore";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { validatePaymentIntent } from "@/actions/paymentActions";
+import { useSearchParams } from "next/navigation";
 
 type Props = {
   payment_intent: string;
@@ -19,6 +20,9 @@ export default function PaymentSuccessPage({ payment_intent }: Props) {
   const [id, setId] = useState("");
   const [amount, setAmount] = useState(0);
   const [status, setStatus] = useState("");
+
+  const searchParams = useSearchParams();
+  const redirectPath = searchParams.get("redirect") || "/profile";
 
   const addPayment = usePaymentsStore((state) => state.addPayment);
   const checkIfPaymentProcessed = usePaymentsStore(
@@ -119,7 +123,7 @@ export default function PaymentSuccessPage({ payment_intent }: Props) {
       )}
 
       <Link
-        href="/profile"
+        href={redirectPath}
         className="px-4 py-2 bg-blue-500 text-white rounded-md hover:opacity-50"
       >
         View Account

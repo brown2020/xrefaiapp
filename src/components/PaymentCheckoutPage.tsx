@@ -60,7 +60,7 @@ export default function PaymentCheckoutPage({ amount }: Props) {
         elements,
         clientSecret,
         confirmParams: {
-          return_url: `${window.location.origin}/payment-success?amount=${amount}`,
+          return_url: `${window.location.origin}/payment-success?amount=${amount}&redirect=/account`,
         },
       });
 
@@ -87,33 +87,64 @@ export default function PaymentCheckoutPage({ amount }: Props) {
 
   if (!clientSecret) {
     return (
-      <div className="flex items-center justify-center max-w-6xl h-36 mx-auto w-full">
-        <ClipLoader color="#4A90E2" size={36} />
+      <div className="flex items-center justify-center h-screen w-full bg-[#F0F6FF]">
+        <div className="text-center">
+          <ClipLoader color="#4A90E2" size={40} />
+          <p className="mt-4 text-[#0B3C68]">Initializing payment...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#F0F6FF] p-4">
-      <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-lg">
-        <div className="flex justify-center mb-6">
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] bg-clip-text text-transparent">
-            XREF.AI
-          </h2>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#F0F6FF] px-4 py-10">
+      <div className="w-full max-w-md bg-white rounded-xl shadow-lg overflow-hidden">
+        <div className="bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] py-6 px-6 text-center">
+          <h2 className="text-3xl font-bold text-white">XREF.AI</h2>
         </div>
-        <h1 className="text-2xl font-bold text-center text-gray-800 mb-6">
-          Complete Your Purchase
-        </h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <PaymentElement />
-          {errorMessage && <p className="text-red-500">{errorMessage}</p>}
-          <button
-            disabled={!stripe || loading}
-            className="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50"
-          >
-            {loading ? "Processing..." : `Pay $${amount}`}
-          </button>
-        </form>
+
+        <div className="p-6">
+          <div className="mb-8 text-center">
+            <h1 className="text-2xl font-bold text-[#041D34] mb-2">
+              Complete Your Purchase
+            </h1>
+            <p className="text-[#0B3C68]">
+              You are purchasing{" "}
+              <span className="font-bold text-[#02C173]">${amount}</span> worth
+              of credits
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="bg-[#F8FAFC] p-4 rounded-lg">
+              <PaymentElement />
+            </div>
+
+            {errorMessage && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                {errorMessage}
+              </div>
+            )}
+
+            <button
+              disabled={!stripe || loading}
+              className="w-full py-3 px-4 bg-[#192449] text-white font-semibold rounded-xl hover:bg-[#83A873] transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center">
+                  <ClipLoader color="#ffffff" size={20} className="mr-2" />
+                  Processing...
+                </span>
+              ) : (
+                `Pay $${amount}`
+              )}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center text-sm text-[#7F8CA1]">
+            <p>Secure payment processed by Stripe</p>
+          </div>
+        </div>
       </div>
     </div>
   );
