@@ -263,7 +263,7 @@ export default function Chat() {
         <button
           onClick={loadMoreChats}
           disabled={loadingMore}
-          className="w-44 text-white px-3 py-2 custom-write bottom bg-[#192449] !opacity-100 hover:bg-[#83A873] !rounded-3xl font-bold transition-transform duration-300 ease-in-out"
+          className="w-44 text-white px-3 py-2 custom-write bottom bg-[#192449] opacity-100! hover:bg-[#83A873] rounded-3xl! font-bold transition-transform duration-300 ease-in-out"
         >
           {loadingMore ? "Loading..." : "Load More"}
         </button>
@@ -293,7 +293,7 @@ export default function Chat() {
                           {chat.prompt}
                         </p>
                       </div>
-                      <div className="flex items-center justify-center flex-shrink-0 w-10 h-10 text-xs font-bold text-white rounded-full bg-blue-500">
+                      <div className="flex items-center justify-center shrink-0 w-10 h-10 text-xs font-bold text-white rounded-full bg-blue-500">
                         {/* You */}
                         <Image
                           src={profile.photoUrl}
@@ -306,11 +306,11 @@ export default function Chat() {
                     </div>
                     <div className="flex flex-col max-w-5xl p-4 gap-4 rounded-xl text-left bg-[#E7EAEF]">
                       <div className="flex w-full gap-4">
-                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#0A0F20]">
+                        <div className="shrink-0 w-10 h-10 rounded-full bg-[#0A0F20]">
                           <Image
                             src="/logo(X).png"
                             alt="bot"
-                            className="flex-shrink-0 object-contain w-10 h-10 rounded-full px-[5px]"
+                            className="shrink-0 object-contain w-10 h-10 rounded-full px-[5px]"
                             width={40}
                             height={40}
                           />
@@ -320,7 +320,7 @@ export default function Chat() {
                             <h3 className="m-0 text-[#041D34] font-bold">
                               XREF.AI
                             </h3>
-                            <p className="px-[10px] py-0 text-[12px] rounded-[10px] bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] text-white ">
+                            <p className="px-[10px] py-0 text-[12px] rounded-[10px] bg-linear-to-r from-[#9C26D7] to-[#1EB1DB] text-white ">
                               Bot
                             </p>
                           </div>
@@ -359,17 +359,17 @@ export default function Chat() {
                 <div className="max-w-5xl p-2 bg-[#E7EAEF] text-[#0B3C68] whitespace-pre-wrap rounded-md text-section-ai">
                   <div className="flex mb-2 gap-4">
                     <div className="flex gap-3 items-center">
-                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#0A0F20]">
+                      <div className="shrink-0 w-10 h-10 rounded-full bg-[#0A0F20]">
                         <Image
                           src="/logo(X).png"
                           alt="bot"
-                          className="flex-shrink-0 object-contain w-10 h-10 rounded-full px-[5px]"
+                          className="shrink-0 object-contain w-10 h-10 rounded-full px-[5px]"
                           width={40}
                           height={40}
                         />
                       </div>
                       <h3 className="m-0 text-[#0B3C68] font-bold">XREF.AI</h3>
-                      <p className="px-[10px] py-0 text-[12px] rounded-[10px] bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] text-white ">
+                      <p className="px-[10px] py-0 text-[12px] rounded-[10px] bg-linear-to-r from-[#9C26D7] to-[#1EB1DB] text-white ">
                         Bot
                       </p>
                     </div>
@@ -386,7 +386,7 @@ export default function Chat() {
             <div className="relative bg-[#ffffff] pt-4">
               {/* Input field */}
               <TextareaAutosize
-                className="text_area w-full px-3 py-4 rounded-lg bg-[#ffffff] text-[#0B3C68] outline-none textarea placeholder-[#BBBEC9]"
+                className="text_area w-full px-3 py-4 rounded-lg bg-[#ffffff] text-[#0B3C68] outline-hidden textarea placeholder-[#BBBEC9]"
                 placeholder="Ask me anything!"
                 minRows={2}
                 value={newPrompt}

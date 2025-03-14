@@ -160,7 +160,7 @@ export default function SummarizeTopic() {
   return (
     <div className="form-wrapper">
       {!thinking && !Boolean(prompt) && (
-        <h3 className="text-4xl sm:text-4xl md:text-4xl chnage_title font-extrabold my-2 text-center"><span className="bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] bg-clip-text text-transparent">What would you like to write about today?</span></h3>
+        <h3 className="text-4xl sm:text-4xl md:text-4xl chnage_title font-extrabold my-2 text-center"><span className="bg-linear-to-r from-[#9C26D7] to-[#1EB1DB] bg-clip-text text-transparent">What would you like to write about today?</span></h3>
       )}
       <form onSubmit={(e) => getResponse(e)}>
         <label htmlFor="topic-field" className="text-[#041D34] font-semibold">
@@ -200,9 +200,9 @@ export default function SummarizeTopic() {
             onChange={(e) => setWords(e.target.value || "30")}
           />
         </label>
-        <div className="sm:flex sm:flex-row-reverse flex flex-col-reverse gap-4 sm:justify-end items-center !mt-[2rem]">
+        <div className="sm:flex sm:flex-row-reverse flex flex-col-reverse gap-4 sm:justify-end items-center mt-[2rem]!">
           <div className="w-[100%] sm:w-[30%] text-center sm:text-start">
-            <button className="w-44 text-white px-3 py-2 custom-write bottom bg-[#192449] !opacity-100 hover:bg-[#83A873] !rounded-3xl font-bold transition-transform duration-300 ease-in-out" type="submit" disabled={!active}>
+            <button className="w-44 text-white px-3 py-2 custom-write bottom bg-[#192449] opacity-100! hover:bg-[#83A873] rounded-3xl! font-bold transition-transform duration-300 ease-in-out" type="submit" disabled={!active}>
               <span className="text-white">{thinking ? <PulseLoader color="#fff" size={8} /> : "Let's Write!"}</span>
             </button>
           </div>

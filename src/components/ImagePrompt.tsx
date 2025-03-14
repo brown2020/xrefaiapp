@@ -127,7 +127,7 @@ export default function ImagePrompt() {
   return (
     <div className="form-wrapper">
       {!thinking && !Boolean(prompt) && (
-        <h3 className="text-4xl sm:text-4xl md:text-4xl chnage_title font-extrabold my-2 text-center"><span className="bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] bg-clip-text text-transparent">What would you like to visualize today?</span></h3>
+        <h3 className="text-4xl sm:text-4xl md:text-4xl chnage_title font-extrabold my-2 text-center"><span className="bg-linear-to-r from-[#9C26D7] to-[#1EB1DB] bg-clip-text text-transparent">What would you like to visualize today?</span></h3>
       )}
       <form onSubmit={(e) => handleSubmit(e)}>
         <label htmlFor="topic-field" className="text-[#041D34] font-semibold">
@@ -140,8 +140,8 @@ export default function ImagePrompt() {
             onChange={(e) => setTopic(e.target.value)}
           />
         </label>
-        <div className="text-center !my-[2rem]">
-          <button className="w-44 text-white px-3 py-2 custom-write bottom bg-[#192449] !opacity-100 hover:bg-[#83A873] !rounded-3xl font-bold transition-transform duration-300 ease-in-out" type="submit" disabled={!active}>
+        <div className="text-center my-[2rem]!">
+          <button className="w-44 text-white px-3 py-2 custom-write bottom bg-[#192449] opacity-100! hover:bg-[#83A873] rounded-3xl! font-bold transition-transform duration-300 ease-in-out" type="submit" disabled={!active}>
             <span className="text-white">{thinking ? (
               <PulseLoader color="#fff" size={8} />
             ) : (
@@ -153,7 +153,7 @@ export default function ImagePrompt() {
         {Boolean(flagged) && <h3 id="flagged">{flagged}</h3>}
 
         {!Boolean(flagged) && Boolean(summary) && (
-          <div id="response" className="!my-[0rem]">
+          <div id="response" className="my-[0rem]!">
             {/* <a href={summary} target="_blank" rel="noreferrer"> */}
             <div className="bg-[#E7EAEF] p-4 rounded-lg">
               <Image

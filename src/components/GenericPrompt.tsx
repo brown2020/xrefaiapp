@@ -151,8 +151,8 @@ export default function GenericPrompt({
             onChange={(e) => setWords(e.target.value || "30")}
           />
         </label>
-        <div className="text-center !mt-[2rem]">
-          <button className="w-44 text-white px-3 py-2 custom-write bottom bg-[#192449] !opacity-100 hover:bg-[#83A873] !rounded-3xl font-bold transition-transform duration-300 ease-in-out" type="submit" disabled={!active}>
+        <div className="text-center mt-[2rem]!">
+          <button className="w-44 text-white px-3 py-2 custom-write bottom bg-[#192449] opacity-100! hover:bg-[#83A873] rounded-3xl! font-bold transition-transform duration-300 ease-in-out" type="submit" disabled={!active}>
             <span className="text-white">{thinking ? <PulseLoader color="#fff" size={8} /> : "Let's Write!"}</span>
           </button>
         </div>

@@ -138,7 +138,7 @@ export default function History() {
       <div className="container mx-auto px-4 py-4">
         <div className="w-full mb-5 border-[#ECECEC] border-2 py-2 rounded-md  bg-[#F5F5F5] flex">
           <input
-            className="px-3 py-1 border-0 outline-none w-full text-[#0B3C68] bg-[#F5F5F5] border-[#263566] placeholder:text-[#BBBEC9]"
+            className="px-3 py-1 border-0 outline-hidden w-full text-[#0B3C68] bg-[#F5F5F5] border-[#263566] placeholder:text-[#BBBEC9]"
             type="text"
             placeholder="Filter results..."
             onChange={(e) => setSearch(e.target.value)}
@@ -161,7 +161,7 @@ export default function History() {
                   className="p-5 rounded-3xl bg-[#ffffff] border border-[#7F8CA1]"
                 >
                   <div className="flex items-start gap-3 mb-3">
-                    <div className="flex items-center justify-center flex-shrink-0 w-11 h-11 text-xs font-bold text-white rounded-full bg-blue-500">
+                    <div className="flex items-center justify-center shrink-0 w-11 h-11 text-xs font-bold text-white rounded-full bg-blue-500">
                       <Image
                         src={profile.photoUrl}
                         alt=""
@@ -313,11 +313,11 @@ export default function History() {
                   ) : (
                     <div className="flex justify-start items-start w-full p-4 ml-auto gap-2 rounded-3xl text-left bg-[#E7EAEF]">
                       <div className="p-2">
-                        <div className="flex-shrink-0 w-11 h-11 rounded-full bg-[#0A0F20]">
+                        <div className="shrink-0 w-11 h-11 rounded-full bg-[#0A0F20]">
                           <Image
                             src="/logo(X).png"
                             alt="bot"
-                            className="flex-shrink-0 object-contain w-11 h-11 rounded-full px-[5px]"
+                            className="shrink-0 object-contain w-11 h-11 rounded-full px-[5px]"
                             width={512}
                             height={512}
                           />
@@ -333,7 +333,7 @@ export default function History() {
                               <h3 className="m-0 text-[#041D34] font-bold">
                                 XEEF.AI
                               </h3>
-                              <p className="px-[10px] py-0 text-[12px] rounded-[10px] bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] text-white">
+                              <p className="px-[10px] py-0 text-[12px] rounded-[10px] bg-linear-to-r from-[#9C26D7] to-[#1EB1DB] text-white">
                                 Bot
                               </p>
                             </div>
@@ -401,7 +401,7 @@ export default function History() {
           <div className="text-center">
             <button
               onClick={() => postsNextBatch(lastKey)}
-              className="mt-4 w-44 text-white px-3 py-2 custom-write bottom bg-[#192449] !opacity-100 hover:bg-[#83A873] !rounded-3xl font-bold transition-transform duration-300 ease-in-out"
+              className="mt-4 w-44 text-white px-3 py-2 custom-write bottom bg-[#192449] opacity-100! hover:bg-[#83A873] rounded-3xl! font-bold transition-transform duration-300 ease-in-out"
             >
               Load More
             </button>

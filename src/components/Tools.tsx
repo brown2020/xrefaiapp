@@ -207,7 +207,7 @@ export default function Tools() {
           ))}
         </div>
 
-        <div className="w-[80%] mt-[0] right-contant-section">
+        <div className="w-[80%] mt-0 right-contant-section">
           {toolComponents[selectedTool]}
         </div>
       </div>

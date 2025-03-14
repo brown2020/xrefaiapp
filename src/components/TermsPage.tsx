@@ -39,7 +39,7 @@ export default function Terms({
             and conditions, you may not use the Services.
           </p>
         </section>
-        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Access and Use</h4>
+        <h4 className="text-2xl! font-semibold text-[#041D34] mt-8 mb-4">Access and Use</h4>
         <p className="mb-2 text-[#0B3C68]">
           {companyName} grants you a limited license to access the Sites subject
           to this Agreement. If you choose to subscribe to and use the Mobile
@@ -110,7 +110,7 @@ export default function Terms({
           requirements associated with the services provided by such third-parties
           in connection with the Services.
         </p>
-        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Customer Responsibilities</h4>
+        <h4 className="text-2xl! font-semibold text-[#041D34] mt-8 mb-4">Customer Responsibilities</h4>
         <p className="mb-2 text-[#0B3C68]">
           You acknowledge that you are solely responsible and liable for your use
           of the Services, directly or indirectly, including understanding whether
@@ -162,7 +162,7 @@ export default function Terms({
           foregoing, this Agreement does not entitle you to any guaranteed level,
           availability, or turnaround time of support services for the Services.
         </p>
-        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Payment and Fees</h4>
+        <h4 className="text-2xl! font-semibold text-[#041D34] mt-8 mb-4">Payment and Fees</h4>
         <p className="mb-2 text-[#0B3C68]">
           Paid Services include the Services, which may be one-time purchases or
           automatically renewing subscription services (“Paid Services”),
@@ -214,7 +214,7 @@ export default function Terms({
           interest that may have already accrued on an amount that is later
           refunded.
         </p>
-        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Subscriptions</h4>
+        <h4 className="text-2xl! font-semibold text-[#041D34] mt-8 mb-4">Subscriptions</h4>
         <p className="mb-2 text-[#0B3C68]">
           Certain Paid Services are subscription-based purchases, to which the
           following terms apply:
@@ -306,7 +306,7 @@ export default function Terms({
           of any changes to the Fees. You are solely responsible for all
           applicable taxes, and will be charged for taxes when required by law.
         </p>
-        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Data and Communications</h4>
+        <h4 className="text-2xl! font-semibold text-[#041D34] mt-8 mb-4">Data and Communications</h4>
         <p className="mb-2 text-[#0B3C68]">
           {companyName} may collect and process information regarding your usage
           of the Services. You consent to {companyName}’s collection and use of
@@ -345,7 +345,7 @@ export default function Terms({
           otherwise required by any applicable federal, state, or international
           laws, rules, or regulations.
         </p>
-        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Intellectual Property Rights</h4>
+        <h4 className="text-2xl! font-semibold text-[#041D34] mt-8 mb-4">Intellectual Property Rights</h4>
         <p className="mb-2 text-[#0B3C68]">
           {companyName} is a trademark of {companyName}.{companyName} Content,{" "}
           {companyName} products,
@@ -414,7 +414,7 @@ export default function Terms({
           owner or are authorized to act on behalf of the owner of a copyright
           that is allegedly infringed.
         </p>
-        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Warranty Disclaimer</h4>
+        <h4 className="text-2xl! font-semibold text-[#041D34] mt-8 mb-4">Warranty Disclaimer</h4>
         <p className="uppercase mb-2 text-[#0B3C68]">
           THE SERVICES ARE PROVIDED TO YOU “AS IS WITH ALL FAULTS” AND “AS
           AVAILABLE” WITHOUT WARRANTY OF ANY KIND, AND {companyName} AND ITS
@@ -436,7 +436,7 @@ export default function Terms({
           THE EXCLUSION OF IMPLIED WARRANTIES OR LIMITATIONS ON APPLICABLE
           STATUTORY RIGHTS OF A CONSUMER, SO THE ABOVE EXCLUSION MAY NOT APPLY.
         </p>
-        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Limitation of Liability</h4>
+        <h4 className="text-2xl! font-semibold text-[#041D34] mt-8 mb-4">Limitation of Liability</h4>
         <p className="uppercase mb-2 text-[#0B3C68]">
           IN NO EVENT WILL {companyName}, ITS SUBSIDIARIES, AFFILIATES, OFFICERS,
           DIRECTORS, EMPLOYEES, REPRESENTATIVES, AGENTS, PARTNERS, AND LICENSORS
@@ -461,7 +461,7 @@ export default function Terms({
           FOR ANY CLAIM, WHETHER IN CONTRACT, TORT, OR UNDER ANY OTHER THEORY OF
           LIABILITY, IN EXCESS OF $100.
         </p>
-        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Precautions</h4>
+        <h4 className="text-2xl! font-semibold text-[#041D34] mt-8 mb-4">Precautions</h4>
         <p className="uppercase mb-2 text-[#0B3C68]">
           THE SERVICES ARE NOT A MEDICAL DEVICE AND YOU EXPRESSLY AGREE THAT THE
           SERVICES DO NOT INVOLVE THE PROVISION OF MEDICAL ADVICE BY
@@ -555,7 +555,7 @@ export default function Terms({
           using your account or Credentials; or (v) violation of any law,
           regulation, or other legal requirement.
         </p>
-        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Notice for California Users</h4>
+        <h4 className="text-2xl! font-semibold text-[#041D34] mt-8 mb-4">Notice for California Users</h4>
         <p className="mb-2 text-[#0B3C68]">
           Under California Civil Code Section 1789.3, California users of the
           Services are entitled to the following specific consumer rights notice:
@@ -566,7 +566,7 @@ export default function Terms({
           writing at 1625 N. Market Blvd., Suite N 112, Sacramento, California
           95834, or by telephone at (800) 952-5210.
         </h5>
-        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Termination; Cancellation</h4>
+        <h4 className="text-2xl! font-semibold text-[#041D34] mt-8 mb-4">Termination; Cancellation</h4>
         <p className="mb-2 text-[#0B3C68]">
           This Agreement shall continue in full force until terminated or canceled
           pursuant to this Agreement.
@@ -594,7 +594,7 @@ export default function Terms({
           during any notice period shall survive termination of this Agreement for
           any reason whatsoever.
         </p>
-        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Federal Government End Use Restrictions</h4>
+        <h4 className="text-2xl! font-semibold text-[#041D34] mt-8 mb-4">Federal Government End Use Restrictions</h4>
         <p className="mb-2 text-[#0B3C68]">
           If you are a U.S. federal government department or agency or are
           contracting on behalf of such a department or agency, Services are
@@ -606,14 +606,14 @@ export default function Terms({
           to you with only those rights as provided under the terms and conditions
           of this Agreement.
         </p>
-        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Export Compliance and Use Restrictions</h4>
+        <h4 className="text-2xl! font-semibold text-[#041D34] mt-8 mb-4">Export Compliance and Use Restrictions</h4>
         <p className="mb-2 text-[#0B3C68]">
           You will not directly or indirectly export or re-export the Services, or
           any technical information related thereto, to any destination or person
           prohibited or restricted by applicable law, including, without
           limitation, all applicable U.S. export control laws and regulations.
         </p>
-        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">
+        <h4 className="text-2xl! font-semibold text-[#041D34] mt-8 mb-4">
           Governing Law; Forum; Mandatory Binding Arbitration, Class Action Waiver
         </h4>
         <p className="mb-2 text-[#0B3C68]">
@@ -652,7 +652,7 @@ export default function Terms({
           representative action, except where such waiver is prohibited by law or
           deemed by a court of law to be against public policy.
         </p>
-        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Miscellaneous</h4>
+        <h4 className="text-2xl! font-semibold text-[#041D34] mt-8 mb-4">Miscellaneous</h4>
         <p className="mb-2 text-[#0B3C68]">
           You acknowledge that {companyName} has the right to monitor use of the
           Services to ensure compliance with the Agreement.
@@ -687,7 +687,7 @@ export default function Terms({
           In case of any conflict between the terms of this Agreement and the
           terms of the Privacy Policy, the terms of this Agreement shall prevail.
         </p>
-        <h4 className="!text-2xl font-semibold text-[#041D34] mt-8 mb-4">Modification of the Terms and Services</h4>
+        <h4 className="text-2xl! font-semibold text-[#041D34] mt-8 mb-4">Modification of the Terms and Services</h4>
         <p className="mb-2 text-[#0B3C68]">
           {companyName} reserves the right to update this Agreement and/or the
           Privacy Policy at any time and for any reason in its sole discretion by

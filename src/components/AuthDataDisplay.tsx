@@ -1,5 +1,3 @@
-
-
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { signOut } from "firebase/auth";
 import { auth, db, storage } from "@/firebase/firebaseClient";
@@ -83,7 +81,6 @@ export default function AuthDataDisplay() {
       console.error("Error signing out:", error);
       alert("An error occurred while signing out.");
     } finally {
-
     }
   };
 
@@ -111,23 +108,29 @@ export default function AuthDataDisplay() {
       <div className="bg-[#ffffff] border border-[#81878D] rounded-2xl mb-4">
         <div className="flex flex-col p-5 space-y-3">
           <div className="flex flex-col space-y-1">
-            <div className="text-base text-[#041D34] font-semibold">Login email</div>
+            <div className="text-base text-[#041D34] font-semibold">
+              Login email
+            </div>
             <div className="text-[#0B3C68] border-b-[1px] pb-3 border-[#B8D2FA] text-word">
               {authEmail}
             </div>
           </div>
           <div className="flex flex-col space-y-1">
-            <div className="text-base text-[#041D34] font-semibold">User ID</div>
+            <div className="text-base text-[#041D34] font-semibold">
+              User ID
+            </div>
             <div className="text-[#0B3C68] border-b-[1px] pb-3 border-[#B8D2FA] text-word">
               {uid}
             </div>
           </div>
           <div className="flex flex-col space-y-1">
-            <div className="text-base text-[#041D34] mb-1 font-semibold">Profile</div>
+            <div className="text-base text-[#041D34] mb-1 font-semibold">
+              Profile
+            </div>
             <div className="">
               <div className="flex flex-col md:flex-row md:items-start md:space-x-4">
                 {/* <!-- Profile Image --> */}
-                <div className="flex-shrink-0 mb-4 md:mb-0">
+                <div className="shrink-0 mb-4 md:mb-0">
                   <div className="relative w-44	aspect-square ">
                     {newProfile.photoUrl && (
                       <Image
@@ -145,7 +148,7 @@ export default function AuthDataDisplay() {
                       </div>
                     )}
                     {loading && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-gray-700 bg-opacity-50 rounded-md">
+                      <div className="absolute inset-0 flex items-center justify-center bg-gray-700/50 rounded-md">
                         <ClipLoader color="#4A90E2" />
                       </div>
                     )}
@@ -161,28 +164,38 @@ export default function AuthDataDisplay() {
                   </div>
                 </div>
                 {/* <!-- Form Inputs --> */}
-                <div className="flex-grow space-y-3">
+                <div className="grow space-y-3">
                   <div>
-                    <label className="text-base text-[#041D34] mb-1 font-semibold">First Name</label>
+                    <label className="text-base text-[#041D34] mb-1 font-semibold">
+                      First Name
+                    </label>
                     <input
                       type="text"
                       id="first-name"
                       value={newProfile.firstName}
                       onChange={(e) =>
-                        setNewProfile({ ...newProfile, firstName: e.target.value })
+                        setNewProfile({
+                          ...newProfile,
+                          firstName: e.target.value,
+                        })
                       }
                       className="mt-2 w-full border border-[#ECECEC] bg-[#F5F5F5] text-[#0B3C68] rounded-md px-3 py-3 placeholder:text-[#BBBEC9]"
                       placeholder="Enter your First Name"
                     />
                   </div>
                   <div>
-                    <label className="text-base text-[#041D34] mb-1 font-semibold">Last Name</label>
+                    <label className="text-base text-[#041D34] mb-1 font-semibold">
+                      Last Name
+                    </label>
                     <input
                       type="text"
                       id="last-name"
                       value={newProfile.lastName}
                       onChange={(e) =>
-                        setNewProfile({ ...newProfile, lastName: e.target.value })
+                        setNewProfile({
+                          ...newProfile,
+                          lastName: e.target.value,
+                        })
                       }
                       className="mt-2 w-full border border-[#ECECEC] bg-[#F5F5F5] text-[#0B3C68] rounded-md px-3 py-3 placeholder:text-[#BBBEC9]"
                       placeholder="Enter your Last Name"
@@ -202,21 +215,22 @@ export default function AuthDataDisplay() {
                     />
                   </div> */}
                   {/* <!-- Save Button --> */}
-                  <div className="w-full sm:flex sm:flex-row flex flex-col gap-2 items-center justify-end !mt-5">
+                  <div className="w-full sm:flex sm:flex-row flex flex-col gap-2 items-center justify-end mt-5!">
                     <button
                       type="button"
                       disabled={!hasChanges}
                       onClick={handleSubmit}
-                      className="w-56 text-white px-3 py-2 custom-write bottom bg-[#192449] !opacity-100 hover:bg-[#83A873] !rounded-3xl font-bold transition-transform duration-300 ease-in-out">
+                      className="w-56 text-white px-3 py-2 custom-write bottom bg-[#192449] opacity-100! hover:bg-[#83A873] rounded-3xl! font-bold transition-transform duration-300 ease-in-out"
+                    >
                       Save Profile Changes
                     </button>
                     <button
                       onClick={logoutUser}
-                      className="w-56 text-white px-3 py-2 custom-write bottom bg-[#192449] !opacity-100 hover:bg-[#83A873] !rounded-3xl font-bold transition-transform duration-300 ease-in-out"
+                      className="w-56 text-white px-3 py-2 custom-write bottom bg-[#192449] opacity-100! hover:bg-[#83A873] rounded-3xl! font-bold transition-transform duration-300 ease-in-out"
                     >
                       Logout
                     </button>
-                    {/* <div className="!mt-0  credits-block sm:flex sm:flex-row flex flex-col justify-center items-center gap-2"> */}
+                    {/* <div className="mt-0!  credits-block sm:flex sm:flex-row flex flex-col justify-center items-center gap-2"> */}
                     {/* <button
                         onClick={handleDeleteClick}
                         className="font-bold bg-[#FF5356] hover:bg-[#c0373a] rounded-3xl text-white w-56 block px-3 py-2"
