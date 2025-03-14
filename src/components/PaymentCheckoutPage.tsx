@@ -97,7 +97,9 @@ export default function PaymentCheckoutPage({ amount }: Props) {
     <div className="flex flex-col items-center justify-center min-h-screen bg-[#F0F6FF] p-4">
       <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-lg">
         <div className="flex justify-center mb-6">
-          <img src="/logo.png" alt="Xref.ai Logo" className="h-12 w-auto" />
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] bg-clip-text text-transparent">
+            XREF.AI
+          </h2>
         </div>
         <h1 className="text-2xl font-bold text-center text-gray-800 mb-6">
           Complete Your Purchase
@@ -107,7 +109,7 @@ export default function PaymentCheckoutPage({ amount }: Props) {
           {errorMessage && <p className="text-red-500">{errorMessage}</p>}
           <button
             disabled={!stripe || loading}
-            className="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-md shadow-xs hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50"
+            className="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50"
           >
             {loading ? "Processing..." : `Pay $${amount}`}
           </button>
