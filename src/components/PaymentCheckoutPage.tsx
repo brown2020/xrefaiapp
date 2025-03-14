@@ -10,7 +10,6 @@ import { useEffect, useState } from "react";
 import { createPaymentIntent } from "@/actions/paymentActions";
 import convertToSubcurrency from "@/utils/convertToSubcurrency";
 import { ClipLoader } from "react-spinners";
-import RootLayout from "@/app/layout";
 
 type Props = { amount: number };
 
@@ -86,7 +85,7 @@ export default function PaymentCheckoutPage({ amount }: Props) {
     setLoading(false);
   };
 
-  if (!clientSecret || !stripe || !elements) {
+  if (!clientSecret) {
     return (
       <div className="flex items-center justify-center max-w-6xl h-36 mx-auto w-full">
         <ClipLoader color="#4A90E2" size={36} />
@@ -95,27 +94,25 @@ export default function PaymentCheckoutPage({ amount }: Props) {
   }
 
   return (
-    <RootLayout showFooter={true}>
-    <main className="flex flex-col  items-center container  mx-auto py-10">
-      <div className="mb-10">
-        <h1 className="text-2xl text-[#041D34]">Buy <span className="text-[#02C173] font-bold text-4xl">10,000</span> Credits</h1>
-        <h2 className="text-2xl text-[#041D34]">
-          Purchase amount: <span className="font-bold text-[#02C173] text-4xl">${amount}</span>
-        </h2>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#F0F6FF] p-4">
+      <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-lg">
+        <div className="flex justify-center mb-6">
+          <img src="/logo.png" alt="Xref.ai Logo" className="h-12 w-auto" />
+        </div>
+        <h1 className="text-2xl font-bold text-center text-gray-800 mb-6">
+          Complete Your Purchase
+        </h1>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <PaymentElement />
+          {errorMessage && <p className="text-red-500">{errorMessage}</p>}
+          <button
+            disabled={!stripe || loading}
+            className="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50"
+          >
+            {loading ? "Processing..." : `Pay $${amount}`}
+          </button>
+        </form>
       </div>
-      <form onSubmit={handleSubmit} className="bg-[#E7EAEF] p-2 rounded-md w-full">
-        {clientSecret && <PaymentElement />}
-
-        {errorMessage && <p className="text-red-500">{errorMessage}</p>}
-
-        <button
-          disabled={!stripe || loading}
-          className="text-white w-full p-5 bg-black mt-2 rounded-md font-bold disabled:opacity-50 disabled:animate-pulse"
-        >
-          {!loading ? `Pay $${amount}` : "Processing..."}
-        </button>
-      </form>
-    </main>
-    </RootLayout>
+    </div>
   );
 }
