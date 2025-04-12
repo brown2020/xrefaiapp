@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import ScrollToBottom from "react-scroll-to-bottom";
 import useProfileStore from "@/zustand/useProfileStore";
