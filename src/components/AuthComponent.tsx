@@ -16,7 +16,7 @@ import { LockIcon, MailIcon, XIcon } from "lucide-react";
 import { PulseLoader } from "react-spinners";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { auth } from "@/firebase/firebaseClient";
-import { toast } from 'react-toastify';
+import { toast } from "react-toastify";
 
 import googleLogo from "@/app/assets/google.svg";
 import Image from "next/image";
@@ -101,19 +101,67 @@ export default function AuthComponent() {
 
   const handlePasswordSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    // Check if this is likely an existing email (contains @ and domain)
+    const isLikelyExistingEmail = email.includes("@") && email.split("@")[1];
+
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      window.localStorage.setItem("xrefEmail", email);
-      window.localStorage.setItem("xrefName", email.split("@")[0]);
+      if (isLikelyExistingEmail) {
+        // If it looks like an existing email, try to sign in first
+        await signInWithEmailAndPassword(auth, email, password);
+        window.localStorage.setItem("xrefEmail", email);
+        window.localStorage.setItem("xrefName", email.split("@")[0]);
+      } else {
+        // Otherwise try to create a new account
+        await createUserWithEmailAndPassword(auth, email, password);
+        window.localStorage.setItem("xrefEmail", email);
+        window.localStorage.setItem("xrefName", email.split("@")[0]);
+      }
     } catch (error: unknown) {
       if (error instanceof Error) {
-        if ((error as { code?: string }).code === "auth/email-already-in-use") {
-          handlePasswordLogin();
+        const errorCode = (error as { code?: string }).code;
+
+        if (errorCode === "auth/email-already-in-use") {
+          // Email exists but we tried to create an account
+          toast.info(
+            `An account with this email already exists. Please sign in with your password.`
+          );
+          const passwordInput = document.getElementById(
+            "password"
+          ) as HTMLInputElement;
+          if (passwordInput) {
+            passwordInput.focus();
+          }
           return;
+        } else if (errorCode === "auth/user-not-found") {
+          // Email doesn't exist but we tried to sign in
+          try {
+            // Try to create a new account instead
+            await createUserWithEmailAndPassword(auth, email, password);
+            window.localStorage.setItem("xrefEmail", email);
+            window.localStorage.setItem("xrefName", email.split("@")[0]);
+            return;
+          } catch (signupError) {
+            handleAuthError(signupError);
+          }
+        } else if (errorCode === "auth/wrong-password") {
+          toast.error(
+            "Incorrect password. Please try again or reset your password."
+          );
+          return;
+        } else {
+          handleAuthError(error);
         }
+      } else {
+        handleAuthError(error);
       }
-      hideModal();
-      handleAuthError(error);
+    } finally {
+      if (
+        !document.activeElement ||
+        (document.activeElement as HTMLElement).id !== "password"
+      ) {
+        hideModal();
+      }
     }
   };
 
@@ -135,7 +183,6 @@ export default function AuthComponent() {
       handleAuthError(error);
     }
   };
-
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -289,6 +336,7 @@ export default function AuthComponent() {
                 />
                 {!isEmailLinkLogin && (
                   <input
+                    id="password"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -296,7 +344,7 @@ export default function AuthComponent() {
                     className="input-primary mt-2"
                   />
                 )}
-                 {!isEmailLinkLogin && (
+                {!isEmailLinkLogin && (
                   <div className="text-right mt-2">
                     <button
                       type="button"
@@ -320,7 +368,13 @@ export default function AuthComponent() {
                   ) : (
                     <div className="flex items-center gap-2 h-8">
                       <LockIcon size={20} />
-                      <span>Continue with Password</span>
+                      <span>
+                        Sign{" "}
+                        {email.includes("@") && email.split("@")[1]
+                          ? "In"
+                          : "Up"}{" "}
+                        with Password
+                      </span>
                     </div>
                   )}
                 </button>

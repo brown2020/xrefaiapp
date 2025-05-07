@@ -95,41 +95,19 @@ export default function Home() {
             </div>
             <div className="paraghragh">
               <p className="text-2xl sm:text-2xl font-bold text-white">
-                We are moving from a subscription model to a pay-as-you-go
-                model.
+                Pay only for what you use
               </p>
             </div>
             <div className="paraghragh">
               <p className="text-xl sm:text-1xl font-normal text-white max-w-xl mx-auto">
-                If you are a previous paying subscriber, we have stopped your
-                billing and added{" "}
-                <span className="font-bold text-2xl">$99.99</span> of credits to
-                your account.
+                Purchase credits as needed for your content creation.
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Dismissible Notice */}
-      {/* {showNotice && (
-      <div className="relative p-4 text-center mt-80 text-white bg-blue-500 rounded-md w-full">
-        <p className="text-lg font-semibold">
-          We are moving from a subscription model to a pay-as-you-go model.
-        </p>
-        <p className="text-sm mt-2">
-          If you are a previous paying subscriber, we have stopped your
-          billing and added <strong>$99.99</strong> of credits to your
-          account.
-        </p>
-        <button
-          onClick={() => setShowNotice(false)}
-          className="absolute top-1 right-3 text-white font-bold"
-        >
-          &times;
-        </button>
-      </div>
-    )} */}
+      {/* End of premium section */}
     </div>
   );
 }
