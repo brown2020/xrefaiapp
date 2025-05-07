@@ -87,18 +87,6 @@ export default function AuthComponent() {
     }
   };
 
-  const handlePasswordLogin = async () => {
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      window.localStorage.setItem("xrefEmail", email);
-      window.localStorage.setItem("xrefName", email.split("@")[0]);
-    } catch (error: unknown) {
-      handleAuthError(error);
-    } finally {
-      hideModal();
-    }
-  };
-
   const handlePasswordSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
