@@ -5,7 +5,7 @@ import { copyToClipboard } from "../utils/copyToClipboard";
 import { db } from "@/firebase/firebaseClient";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { generateResponse } from "@/actions/generateResponse";
-import { readStreamableValue } from "ai/rsc";
+import { readStreamableValue } from '@ai-sdk/rsc';
 import axios from "axios"; // Import axios for web scraping
 import { load } from "cheerio"; // Import cheerio for scraping
 import { toast } from "react-hot-toast"; // Import react-hot-toast for notifications

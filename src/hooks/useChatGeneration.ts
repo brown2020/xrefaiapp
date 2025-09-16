@@ -2,7 +2,7 @@ import { useState } from "react";
 import { addDoc, collection, Timestamp } from "firebase/firestore";
 import { db } from "@/firebase/firebaseClient";
 import { generateResponseWithMemory } from "@/actions/generateResponseWithMemory";
-import { readStreamableValue } from "ai/rsc";
+import { readStreamableValue } from '@ai-sdk/rsc';
 import { ChatType } from "@/types/ChatType";
 import {
   checkRestrictedWords,

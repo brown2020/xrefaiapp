@@ -5,7 +5,7 @@ import { copyToClipboard } from "../utils/copyToClipboard";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { db } from "@/firebase/firebaseClient";
 import { generateResponse } from "@/actions/generateResponse";
-import { readStreamableValue } from "ai/rsc";
+import { readStreamableValue } from '@ai-sdk/rsc';
 import { toast } from "react-hot-toast"; // For notifications
 import { checkRestrictedWords, isIOSReactNativeWebView } from "@/utils/platform";
 

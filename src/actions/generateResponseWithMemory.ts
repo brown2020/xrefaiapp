@@ -1,7 +1,7 @@
 "use server";
 
-import { createStreamableValue } from "ai/rsc";
-import { CoreMessage, streamText } from "ai";
+import { createStreamableValue } from '@ai-sdk/rsc';
+import { ModelMessage, streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { ChatType } from "@/types/ChatType"; // Import ChatType
 
@@ -13,16 +13,16 @@ export async function generateResponseWithMemory(
   const model = openai("gpt-4o");
 
   // Convert ChatType[] to CoreMessage[]
-  const allMessages: CoreMessage[] = [
+  const allMessages: ModelMessage[] = [
     {
       role: "system",
       content: systemPrompt,
     },
     ...chatlist.map((chat) => {
       if (chat.prompt) {
-        return { role: "user", content: chat.prompt } as CoreMessage; // User prompt
+        return { role: "user", content: chat.prompt } as ModelMessage; // User prompt
       } else if (chat.response) {
-        return { role: "assistant", content: chat.response } as CoreMessage; // AI response
+        return { role: "assistant", content: chat.response } as ModelMessage; // AI response
       } else {
         // Handle cases where neither prompt nor response is valid, adjust if needed
         throw new Error(`Invalid chat entry: ${chat.id}`);
