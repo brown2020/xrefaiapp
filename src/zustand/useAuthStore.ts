@@ -21,6 +21,7 @@ interface AuthState {
 interface AuthActions {
   setAuthDetails: (details: Partial<AuthState>) => void;
   clearAuthDetails: () => void;
+  syncAuthProfile: (details?: Partial<AuthState>) => Promise<void>;
 }
 
 type AuthStore = AuthState & AuthActions;
@@ -41,17 +42,51 @@ const defaultAuthState: AuthState = {
   premium: false,
 };
 
+const PERSISTED_KEYS: (keyof AuthState)[] = [
+  "authEmail",
+  "authDisplayName",
+  "authPhotoUrl",
+  "authEmailVerified",
+  "firebaseUid",
+  "isAdmin",
+  "isAllowed",
+  "isInvited",
+  "premium",
+];
+
 export const useAuthStore = create<AuthStore>((set, get) => ({
   ...defaultAuthState,
 
-  setAuthDetails: async (details: Partial<AuthState>) => {
-    const { ...oldState } = get();
-    const newState = { ...oldState, ...details };
-    set(newState);
-    await updateUserDetailsInFirestore(newState, get().uid);
+  setAuthDetails: (details: Partial<AuthState>) => {
+    set((state) => ({ ...state, ...details }));
   },
 
   clearAuthDetails: () => set({ ...defaultAuthState }),
+
+  syncAuthProfile: async (overrides?: Partial<AuthState>) => {
+    const currentState = get();
+    const uid = overrides?.uid || currentState.uid;
+
+    if (!uid) {
+      return;
+    }
+
+    const persistableDetails: Partial<AuthState> = {};
+    PERSISTED_KEYS.forEach((key) => {
+      const value =
+        overrides && overrides[key] !== undefined
+          ? overrides[key]
+          : currentState[key];
+      if (value === undefined || value === null) {
+        return;
+      }
+
+      (persistableDetails as Record<string, AuthState[typeof key]>)[key] =
+        value as AuthState[typeof key];
+    });
+
+    await updateUserDetailsInFirestore(persistableDetails, uid);
+  },
 }));
 
 async function updateUserDetailsInFirestore(

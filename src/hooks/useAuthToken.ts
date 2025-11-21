@@ -10,6 +10,7 @@ const useAuthToken = (cookieName = "authToken") => {
   const [user, loading, error] = useAuthState(auth);
   const setAuthDetails = useAuthStore((state) => state.setAuthDetails);
   const clearAuthDetails = useAuthStore((state) => state.clearAuthDetails);
+  const syncAuthProfile = useAuthStore((state) => state.syncAuthProfile);
 
   const refreshInterval = 50 * 60 * 1000; // 50 minutes
   const lastTokenRefresh = `lastTokenRefresh_${cookieName}`;
@@ -72,7 +73,7 @@ const useAuthToken = (cookieName = "authToken") => {
 
   useEffect(() => {
     if (user?.uid) {
-      setAuthDetails({
+      const authDetails = {
         uid: user.uid,
         authEmail: user.email || "",
         authDisplayName: user.displayName || "",
@@ -80,12 +81,14 @@ const useAuthToken = (cookieName = "authToken") => {
         authEmailVerified: user.emailVerified || false,
         authReady: true,
         authPending: false,
-      });
+      };
+      setAuthDetails(authDetails);
+      void syncAuthProfile(authDetails);
     } else {
       clearAuthDetails();
       deleteCookie(cookieName);
     }
-  }, [clearAuthDetails, cookieName, setAuthDetails, user]);
+  }, [clearAuthDetails, cookieName, setAuthDetails, syncAuthProfile, user]);
 
   return { uid: user?.uid, loading, error };
 };
