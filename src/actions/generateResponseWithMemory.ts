@@ -1,6 +1,6 @@
 "use server";
 
-import { createStreamableValue } from '@ai-sdk/rsc';
+import { createStreamableValue } from "@ai-sdk/rsc";
 import { ModelMessage, streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { ChatType } from "@/types/ChatType"; // Import ChatType
@@ -10,7 +10,7 @@ export async function generateResponseWithMemory(
   systemPrompt: string,
   chatlist: ChatType[]
 ) {
-  const model = openai("gpt-4o");
+  const model = openai("gpt-4.1");
 
   // Convert ChatType[] to CoreMessage[]
   const allMessages: ModelMessage[] = [

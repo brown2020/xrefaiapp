@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Toaster } from "react-hot-toast";
 import { ClipLoader } from "react-spinners";
 import CookieConsent from "react-cookie-consent";
@@ -12,11 +12,21 @@ import { useInitializeStores } from "@/zustand/useInitializeStores";
 import ErrorBoundary from "./ErrorBoundary";
 import { usePathname, useRouter } from "next/navigation";
 
+const useIsClient = () => {
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+  return isClient;
+};
+
 export function ClientProvider({ children }: { children: React.ReactNode }) {
   const { loading, uid } = useAuthToken(process.env.NEXT_PUBLIC_COOKIE_NAME!);
   const router = useRouter();
   const pathname = usePathname();
   useInitializeStores();
+  const isClient = useIsClient();
+  const [isWebView, setIsWebView] = useState(false);
 
   useEffect(() => {
     function adjustHeight() {
@@ -36,6 +46,11 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener("resize", adjustHeight);
       window.removeEventListener("orientationchange", adjustHeight);
     };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setIsWebView(Boolean(window.ReactNativeWebView));
   }, []);
 
   useEffect(() => {
@@ -67,13 +82,13 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
     <ErrorBoundary>
       <div className="flex flex-col h-full">
         {children}
-        {!window.ReactNativeWebView && (
+        {isClient && !isWebView && (
           <CookieConsent>
             This app uses cookies to enhance the user experience.
           </CookieConsent>
         )}
-        <Toaster position="bottom-center" />
-        <ToastContainer position="bottom-center"/>
+        {isClient && <ToastContainer position="bottom-center" />}
+        {isClient && <Toaster position="bottom-center" />}
       </div>
     </ErrorBoundary>
   );

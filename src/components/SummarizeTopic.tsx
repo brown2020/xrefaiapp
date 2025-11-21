@@ -46,16 +46,32 @@ export default function SummarizeTopic() {
     }
   }
 
-  const scrapeWebsite = async (url: string) => {
+  const normalizeUrl = (value: string) => {
+    if (!value) return "";
     try {
+      const parsed = new URL(value);
+      if (parsed.protocol === "http:") {
+        parsed.protocol = "https:";
+      }
+      return parsed.toString();
+    } catch {
+      return `https://${value.replace(/^https?:\/\//i, "")}`;
+    }
+  };
+
+  const scrapeWebsite = async (rawUrl: string) => {
+    try {
+      const url = normalizeUrl(rawUrl);
+      if (!url) {
+        toast.error("Website URL is invalid");
+        return "";
+      }
       console.log("Starting website scrape for:", url); // Log the URL being scraped
       setProgress(20); // Start progress for scraping
 
-      // Make sure the URL is being passed correctly
-      const encodedUrl = encodeURIComponent(url);
-      console.log("Encoded URL:", encodedUrl);
-
-      const response = await axios.get(`/api/proxy?url=${encodedUrl}`);
+      const response = await axios.get("/api/proxy", {
+        params: { url },
+      });
 
       // Log the response from the proxy to ensure the request is going through
       console.log("Received response from proxy:", response);
