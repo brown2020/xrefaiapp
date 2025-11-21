@@ -236,7 +236,7 @@ export default function Header() {
   );
 
   return (
-    <div className="container mx-auto bg-[#ffffff] sticky top-0 z-30 text-gray-700  px-4 py-4">
+    <div className="container mx-auto bg-[#ffffff] sticky top-0 z-[20] text-gray-700  px-4 py-4">
       <div className="flex items-center justify-between text-sm">
         {/* Logo */}
         <div

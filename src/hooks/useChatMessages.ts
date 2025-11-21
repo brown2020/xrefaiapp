@@ -23,16 +23,21 @@ export function useChatMessages(uid: string) {
 
   // Initial load of chat messages from Firebase
   useEffect(() => {
-    if (!uid) return;
+    if (!uid) {
+      setChatlist([]);
+      setLoading(false);
+      return;
+    }
 
-    const getChatlist = () => {
-      const q = query(
-        collection(db, "profiles", uid, "xrefchat"),
-        orderBy("timestamp", "desc"),
-        limit(MAX_LOAD)
-      );
+    const q = query(
+      collection(db, "profiles", uid, "xrefchat"),
+      orderBy("timestamp", "desc"),
+      limit(MAX_LOAD)
+    );
 
-      const unsub = onSnapshot(q, (querySnapshot) => {
+    const unsub = onSnapshot(
+      q,
+      (querySnapshot) => {
         const chats: ChatType[] = [];
         let newLastKey: Timestamp | undefined = undefined;
 
@@ -59,12 +64,16 @@ export function useChatMessages(uid: string) {
         if (responseSaved) {
           setResponseSaved(false);
         }
-      });
+      },
+      (error) => {
+        // Ignore permission errors that happen during sign-out
+        if (error.code !== "permission-denied") {
+          console.error("Error fetching chat messages:", error);
+        }
+      }
+    );
 
-      return () => unsub();
-    };
-
-    getChatlist();
+    return () => unsub();
   }, [uid, responseSaved]);
 
   // Load more messages (pagination)
