@@ -175,9 +175,6 @@ export default function SummarizeTopic() {
 
   return (
     <div className="form-wrapper">
-      {!thinking && !Boolean(prompt) && (
-        <h3 className="text-4xl sm:text-4xl md:text-4xl chnage_title font-extrabold my-2 text-center"><span className="bg-linear-to-r from-[#9C26D7] to-[#1EB1DB] bg-clip-text text-transparent">What would you like to write about today?</span></h3>
-      )}
       <form onSubmit={(e) => getResponse(e)}>
         <label htmlFor="topic-field" className="text-[#041D34] font-semibold">
           Topic
@@ -216,18 +213,34 @@ export default function SummarizeTopic() {
             onChange={(e) => setWords(e.target.value || "30")}
           />
         </label>
-        <div className="sm:flex sm:flex-row-reverse flex flex-col-reverse gap-4 sm:justify-end items-center mt-[2rem]!">
-          <div className="w-[100%] sm:w-[30%] text-center sm:text-start">
-            <button className="w-44 text-white px-3 py-2 custom-write bottom bg-[#192449] opacity-100! hover:bg-[#83A873] rounded-3xl! font-bold transition-transform duration-300 ease-in-out" type="submit" disabled={!active}>
-              <span className="text-white">{thinking ? <PulseLoader color="#fff" size={8} /> : "Let's Write!"}</span>
-            </button>
-          </div>
-          <div className="w-[100%] sm:w-[40%] progress-main">
-            {thinking && <div className="w-full bg-gray-200 h-3.5 rounded-full">
-              <div className={`bg-[#48B461] text-xs h-3.5 font-medium text-blue-100 text-center p-0.5 leading-none rounded-full Striped-bar`} style={{ width: `${progress}%` }}>  <div className="text-white">{progress}%</div></div>
-            </div>}
-
-          </div>
+        <div className="mt-6">
+          {thinking && (
+            <div className="w-full mb-4 bg-gray-100 h-2 rounded-full overflow-hidden">
+              <div
+                className="bg-[#48B461] h-full transition-all duration-500 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          )}
+          
+          <button
+            className={`w-full py-3 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center ${
+              active
+                ? "bg-[#192449] text-white hover:bg-[#263566]"
+                : "bg-gray-200 text-gray-400 cursor-not-allowed"
+            }`}
+            type="submit"
+            disabled={!active}
+          >
+            {thinking ? (
+              <div className="flex items-center gap-2">
+                <span>Summarizing</span>
+                <PulseLoader color="#fff" size={6} />
+              </div>
+            ) : (
+              "Let's Write!"
+            )}
+          </button>
         </div>
 
         {Boolean(flagged) && <h3 id="flagged">{flagged}</h3>}
@@ -240,11 +253,6 @@ export default function SummarizeTopic() {
             >
               {summary}
             </h3>
-            <p className="disclaimer text-[#041D34]">
-              <span>*</span>
-              {`I'm a new AI and I'm still learning, so these
-              results might have inaccuracies.`}
-            </p>
           </div>
         )}
       </form>

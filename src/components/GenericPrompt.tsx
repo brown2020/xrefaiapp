@@ -151,11 +151,24 @@ export default function GenericPrompt({
             onChange={(e) => setWords(e.target.value || "30")}
           />
         </label>
-        <div className="text-center mt-[2rem]!">
-          <button className="w-44 text-white px-3 py-2 custom-write bottom bg-[#192449] opacity-100! hover:bg-[#83A873] rounded-3xl! font-bold transition-transform duration-300 ease-in-out" type="submit" disabled={!active}>
-            <span className="text-white">{thinking ? <PulseLoader color="#fff" size={8} /> : "Let's Write!"}</span>
-          </button>
-        </div>
+        <button
+          className={`w-full mt-6 py-3 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center ${
+            active
+              ? "bg-[#192449] text-white hover:bg-[#263566]"
+              : "bg-gray-200 text-gray-400 cursor-not-allowed"
+          }`}
+          type="submit"
+          disabled={!active}
+        >
+          {thinking ? (
+            <div className="flex items-center gap-2">
+              <span>Writing</span>
+              <PulseLoader color="#fff" size={6} />
+            </div>
+          ) : (
+            "Let's Write!"
+          )}
+        </button>
         {Boolean(flagged) && <h3 id="flagged">{flagged}</h3>}
 
         {!Boolean(flagged) && Boolean(summary) && (
@@ -166,10 +179,6 @@ export default function GenericPrompt({
             >
               {summary}
             </h3>
-            <p className="disclaimer text-[#041D34]">
-              <span>*</span>
-              {`I'm a new AI and I'm still learning, so these results might have inaccuracies.`}
-            </p>
           </div>
         )}
       </form>
