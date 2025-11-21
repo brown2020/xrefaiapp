@@ -10,6 +10,8 @@ import toast from "react-hot-toast";
 import Image from "next/image";
 import { copyImageToClipboard, downloadImage } from "@/utils/helpers";
 import { checkRestrictedWords, isIOSReactNativeWebView } from "@/utils/platform";
+import { StyledSelect } from "@/components/DesignerPrompt/StyledSelect";
+import { painters } from "@/data/painters";
 
 export default function ImagePrompt() {
   const uid = useAuthStore((state) => state.uid);
@@ -21,6 +23,7 @@ export default function ImagePrompt() {
   const [active, setActive] = useState<boolean>(true);
 
   const [topic, setTopic] = useState<string>("");
+  const [selectedPainter, setSelectedPainter] = useState<string>("");
 
   const [thinking, setThinking] = useState<boolean>(false);
 
@@ -50,7 +53,13 @@ export default function ImagePrompt() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (isIOSReactNativeWebView() && checkRestrictedWords(topic)) {
+    
+    let finalTopic = topic;
+    if (selectedPainter) {
+      finalTopic = `${topic}. In the style of ${selectedPainter}`;
+    }
+
+    if (isIOSReactNativeWebView() && checkRestrictedWords(finalTopic)) {
       alert(
         "Your description contains restricted words and cannot be used."
       );
@@ -63,18 +72,18 @@ export default function ImagePrompt() {
 
     // Show loading toast
     const toastId = toast.loading("Working on the design...");
-    console.log("Submitting prompt:", topic);
+    console.log("Submitting prompt:", finalTopic);
 
-    const result = await generateImage(topic, uid);
+    const result = await generateImage(finalTopic, uid);
 
-    setPrompt(topic);
+    setPrompt(finalTopic);
     setThinking(false);
     console.log("Result from generateImage:", result);
 
     if (result.imageUrl && uid) {
       try {
         setSummary(result.imageUrl);
-        await saveHistory(topic, result.imageUrl, topic, "image", []);
+        await saveHistory(finalTopic, result.imageUrl, finalTopic, "image", []);
 
         // Dismiss the loading toast
         toast.dismiss(toastId);
@@ -127,6 +136,16 @@ export default function ImagePrompt() {
   return (
     <div className="form-wrapper">
       <form onSubmit={(e) => handleSubmit(e)}>
+        <div className="mb-4">
+          <StyledSelect
+            label="Artist Inspiration (Optional)"
+            name="painters"
+            options={painters}
+            onChange={(v) => setSelectedPainter(v ? v.value : "")}
+            placeholder="Select an artist style..."
+          />
+        </div>
+
         <label htmlFor="topic-field" className="text-[#041D34] font-semibold">
           Prompt
           <textarea

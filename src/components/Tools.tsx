@@ -3,11 +3,12 @@
 import { useState } from "react";
 import type { ReactElement } from "react";
 import SummarizeTopic from "./SummarizeTopic";
+import SummarizeText from "./SummarizeText";
 import FreestylePrompt from "./FreestylePrompt";
 import SimplifyPrompt from "./SimplifyPrompt";
 import DesignerPrompt from "./DesignerPrompt";
 import ImagePrompt from "./ImagePrompt";
-import { FileText, PenTool, Wand2, Image as ImageIcon, Layout } from "lucide-react";
+import { FileText, PenTool, Wand2, Image as ImageIcon, Layout, AlignLeft } from "lucide-react";
 
 export default function Tools() {
   const [selectedTool, setSelectedTool] = useState<string>("Summarize Website");
@@ -16,6 +17,10 @@ export default function Tools() {
     {
       title: "Summarize Website",
       icon: <FileText size={20} />,
+    },
+    {
+      title: "Summarize Text",
+      icon: <AlignLeft size={20} />,
     },
     {
       title: "Freestyle Writing",
@@ -38,6 +43,7 @@ export default function Tools() {
   // Mapping tool names to components
   const toolComponents: Record<string, ReactElement> = {
     "Summarize Website": <SummarizeTopic />,
+    "Summarize Text": <SummarizeText />,
     "Freestyle Writing": <FreestylePrompt />,
     "Simplify Writing": <SimplifyPrompt />,
     "Generate Image": <ImagePrompt />,

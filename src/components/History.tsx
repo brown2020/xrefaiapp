@@ -211,25 +211,10 @@ export default function History() {
                       <div className="p-5 space-y-6">
                         {/* User Prompt */}
                         <div className="flex w-full justify-end">
-                          <div className="flex max-w-[85%] md:max-w-[75%] gap-3 items-start flex-row-reverse">
-                            <div className="shrink-0 w-8 h-8 rounded-full overflow-hidden border-2 border-white shadow-sm bg-gray-100">
-                              {profile.photoUrl ? (
-                                <Image
-                                  src={profile.photoUrl}
-                                  alt="User"
-                                  height={32}
-                                  width={32}
-                                  className="object-cover w-full h-full"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                    <User size={16} />
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex flex-col items-end">
-                              <div className={`px-5 py-3.5 bg-[#2563EB] text-white rounded-2xl rounded-tr-sm shadow-sm text-left transition-all duration-300 ${expandedItems[index] ? '' : 'max-h-32 overflow-y-hidden relative'}`}>
-                                  <p className="text-sm md:text-base whitespace-pre-wrap leading-relaxed">
+                          <div className="flex max-w-[90%] md:max-w-[80%] gap-3 items-start flex-row-reverse">
+                            <div className="flex flex-col items-end w-full">
+                              <div className={`px-5 py-3.5 bg-[#2563EB] text-white rounded-2xl rounded-tr-sm shadow-sm text-left transition-all duration-300 w-full ${expandedItems[index] ? '' : 'max-h-32 overflow-y-hidden relative'}`}>
+                                  <p className="text-sm md:text-base whitespace-pre-wrap leading-relaxed break-all">
                                     {summary.prompt}
                                   </p>
                                   {!expandedItems[index] && (
@@ -242,26 +227,15 @@ export default function History() {
 
                         {/* Bot Response */}
                         <div className="flex w-full justify-start">
-                          <div className="flex max-w-[95%] md:max-w-[85%] gap-4 items-start">
-                            <div className="shrink-0 w-8 h-8 rounded-full bg-[#0A0F20] flex items-center justify-center overflow-hidden shadow-sm border border-gray-100 p-1">
-                              <Image
-                                src="/logo(X).png"
-                                alt="AI"
-                                width={32}
-                                height={32}
-                                className="w-full h-full object-contain"
-                              />
-                            </div>
-
+                          <div className="flex max-w-[100%] gap-4 items-start">
                             <div className="flex flex-col flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1.5">
-                                  <span className="font-semibold text-sm text-gray-900">XREF.AI</span>
-                                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] text-white">
-                                  Bot
-                                  </span>
-                              </div>
-
                               <div className="bg-white border border-gray-100 rounded-2xl rounded-tl-sm px-6 py-5 shadow-sm text-gray-800 relative group">
+                                <div className="flex items-center gap-2 mb-3 border-b border-gray-50 pb-2">
+                                    <span className="font-semibold text-sm text-gray-900">XREF.AI</span>
+                                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] text-white">
+                                    Bot
+                                    </span>
+                                </div>
                                 
                                 {/* Content */}
                                 {summary.words === "image" ? (
@@ -276,7 +250,7 @@ export default function History() {
                                         unoptimized
                                       />
                                     </div>
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-2 flex-wrap">
                                       <button
                                         onClick={() => copyImageToClipboard(summary.response)}
                                         className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
@@ -292,7 +266,7 @@ export default function History() {
                                     </div>
                                   </div>
                                 ) : (
-                                  <div className={`prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:p-0 transition-all duration-300 ${expandedItems[index] ? '' : 'max-h-60 overflow-y-hidden relative'}`}>
+                                  <div className={`prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:p-0 transition-all duration-300 break-words ${expandedItems[index] ? '' : 'max-h-60 overflow-y-hidden relative'}`}>
                                     <MarkdownRenderer content={summary.response} />
                                     {!expandedItems[index] && (
                                       <div className="absolute bottom-0 left-0 w-full h-20 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>

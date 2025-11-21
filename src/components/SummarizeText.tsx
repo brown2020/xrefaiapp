@@ -2,16 +2,15 @@ import { collection, doc, setDoc, Timestamp } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { PulseLoader } from "react-spinners";
 import { copyToClipboard } from "../utils/copyToClipboard";
-import { db } from "@/firebase/firebaseClient";
 import { useAuthStore } from "@/zustand/useAuthStore";
+import { db } from "@/firebase/firebaseClient";
 import { generateResponse } from "@/actions/generateResponse";
 import { readStreamableValue } from '@ai-sdk/rsc';
-import axios from "axios"; // Import axios for web scraping
-import { load } from "cheerio"; // Import cheerio for scraping
-import { toast } from "react-hot-toast"; // Import react-hot-toast for notifications
+import { toast } from "react-hot-toast";
 import { checkRestrictedWords, isIOSReactNativeWebView } from "@/utils/platform";
+import TextareaAutosize from "react-textarea-autosize";
 
-export default function SummarizeTopic() {
+export default function SummarizeText() {
   const uid = useAuthStore((state) => state.uid);
 
   const [prompt, setPrompt] = useState("");
@@ -20,10 +19,9 @@ export default function SummarizeTopic() {
   const [active, setActive] = useState<boolean>(true);
   const [thinking, setThinking] = useState<boolean>(false);
 
-  const [topic, setTopic] = useState<string>("");
-  const [site1, setSite1] = useState<string>("");
+  const [textToSummarize, setTextToSummarize] = useState<string>("");
   const [words, setWords] = useState<string>("30");
-  const [progress, setProgress] = useState<number>(0); // State for progress
+  const [progress, setProgress] = useState<number>(0);
 
   async function saveHistory(
     prompt: string,
@@ -46,58 +44,11 @@ export default function SummarizeTopic() {
     }
   }
 
-  const normalizeUrl = (value: string) => {
-    if (!value) return "";
-    try {
-      const parsed = new URL(value);
-      if (parsed.protocol === "http:") {
-        parsed.protocol = "https:";
-      }
-      return parsed.toString();
-    } catch {
-      return `https://${value.replace(/^https?:\/\//i, "")}`;
-    }
-  };
-
-  const scrapeWebsite = async (rawUrl: string) => {
-    try {
-      const url = normalizeUrl(rawUrl);
-      if (!url) {
-        toast.error("Website URL is invalid");
-        return "";
-      }
-      console.log("Starting website scrape for:", url); // Log the URL being scraped
-      setProgress(20); // Start progress for scraping
-
-      const response = await axios.get("/api/proxy", {
-        params: { url },
-      });
-
-      // Log the response from the proxy to ensure the request is going through
-      console.log("Received response from proxy:", response);
-
-      setProgress(50); // Progress after successful scraping
-
-      const html = response.data;
-      console.log("HTML content received:", html); // Log the HTML content to ensure it's retrieved correctly
-
-      const $ = load(html);
-      const scrapedContent = $("body").text().replace(/\s+/g, " ").trim();
-
-      console.log("Scraped content:", scrapedContent); // Log the final scraped content
-      return scrapedContent;
-    } catch (err) {
-      console.error("Error scraping website:", err);
-      toast.error("Failed to scrape website");
-      return "";
-    }
-  };
-
   const getResponse = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (isIOSReactNativeWebView() && checkRestrictedWords(topic)) {
+    if (isIOSReactNativeWebView() && checkRestrictedWords(textToSummarize)) {
       alert(
-        "Your description contains restricted words and cannot be used."
+        "Your text contains restricted words and cannot be used."
       );
       return;
     }
@@ -105,57 +56,50 @@ export default function SummarizeTopic() {
     setSummary("");
     setFlagged("");
     setThinking(true);
-    setProgress(0); // Reset progress
+    setProgress(0);
 
     let wordnum = Number(words || "30");
     if (wordnum < 3) wordnum = 3;
     if (wordnum > 800) wordnum = 800;
 
-    let newPrompt = "Summarize this topic";
-    let scrapedContent = "";
-
-    if (site1) {
-      scrapedContent = await scrapeWebsite(site1);
-      if (scrapedContent) {
-        newPrompt += ` based on the content from the website ${site1}`;
-        newPrompt += ` in approximately ${wordnum} words: ${scrapedContent}`;
-      } else {
-        newPrompt += ` in approximately ${wordnum} words: ${topic}`;
-      }
-    } else {
-      newPrompt += ` in approximately ${wordnum} words: ${topic}`;
-    }
+    // Construct the prompt
+    const newPrompt = `Summarize the following text in approximately ${wordnum} words:\n\n${textToSummarize}`;
+    const systemPrompt = "Summarize the provided text.";
 
     console.log("newPrompt", newPrompt);
-    const systemPrompt = "Summarize this topic";
     let finishedSummary = "";
 
     try {
       const result = await generateResponse(systemPrompt, newPrompt);
-      let chunkCount = 0; // Initialize chunk counter
+      let chunkCount = 0;
       for await (const content of readStreamableValue(result)) {
         if (content) {
           finishedSummary = content.trim();
           setSummary(finishedSummary);
           chunkCount++;
-          setProgress(70 + (chunkCount / wordnum) * 30); // Update progress bar during summarizing
+          // Estimate progress based on expected word count
+          const currentProgress = 20 + (chunkCount / wordnum) * 80; 
+          setProgress(Math.min(currentProgress, 95));
         }
       }
 
       setThinking(false);
       setPrompt(newPrompt);
 
-      await saveHistory(newPrompt, finishedSummary, topic, words, []);
-      toast.success("Summary generated successfully");
+      // Save history - using a truncated version of the text as the "topic" for display purposes
+      const topicDisplay = textToSummarize.length > 50 ? textToSummarize.substring(0, 50) + "..." : textToSummarize;
+      await saveHistory(newPrompt, finishedSummary, topicDisplay, words, []);
+      toast.success("Text summarized successfully");
     } catch (error: unknown) {
       setThinking(false);
       setFlagged(
         "No suggestions found. Servers might be overloaded right now."
       );
       console.error("Error generating response:", error);
-      toast.error("Failed to generate summary");
+      toast.error("Failed to summarize text");
     } finally {
-      setProgress(100); // Complete progress
+      setProgress(100);
+      setActive(true);
     }
   };
 
@@ -176,37 +120,23 @@ export default function SummarizeTopic() {
   return (
     <div className="form-wrapper">
       <form onSubmit={(e) => getResponse(e)}>
-        <label htmlFor="site1-field" className="text-[#041D34] font-semibold">
-          Website reference
-          <input
-            className="bg-[#F5F5F5] text-[#0B3C68] mt-1 border border-[#ECECEC] font-normal placeholder:text-[#BBBEC9] focus:bg-[#F5F5F5]"
-            type="text"
-            id="site1-field"
-            maxLength={120}
-            placeholder="Website URL to use as a reference."
-            onChange={(e) => {
-              setSite1(e.target.value);
-            }}
+        <label htmlFor="text-field" className="text-[#041D34] font-semibold">
+          Text to Summarize
+          <TextareaAutosize
+            className="bg-[#F5F5F5] text-[#0B3C68] mt-1 border border-[#ECECEC] font-normal placeholder:text-[#BBBEC9] focus:bg-[#F5F5F5] w-full p-3 rounded-md outline-none resize-none"
+            id="text-field"
+            minRows={4}
+            placeholder="Paste the text you want to summarize here."
+            onChange={(e) => setTextToSummarize(e.target.value)}
+            value={textToSummarize}
             required
-          />
-        </label>
-
-        <label htmlFor="topic-field" className="text-[#041D34] font-semibold">
-          Focus (Optional)
-          <input
-            className="bg-[#F5F5F5] text-[#0B3C68] mt-1 border border-[#ECECEC] font-normal placeholder:text-[#BBBEC9] focus:bg-[#F5F5F5]"
-            type="text"
-            id="topic-field"
-            maxLength={80}
-            placeholder="Enter a specific focus or aspect to summarize (optional)."
-            onChange={(e) => setTopic(e.target.value)}
           />
         </label>
 
         <label htmlFor="words-field" className="text-[#041D34] font-semibold">
           Approximate number of words (Between 3 and 800)
           <input
-            className="bg-[#F5F5F5] text-[#0B3C68] mt-1 border border-[#ECECEC] font-normal placeholder:text-[#BBBEC9] focus:bg-[#F5F5F5]"
+            className="bg-[#F5F5F5] text-[#0B3C68] mt-1 border border-[#ECECEC] font-normal placeholder:text-[#BBBEC9] focus:bg-[#F5F5F5] w-full p-3 rounded-md outline-none"
             defaultValue={"30"}
             type="number"
             id="words-field"
@@ -214,6 +144,7 @@ export default function SummarizeTopic() {
             onChange={(e) => setWords(e.target.value || "30")}
           />
         </label>
+
         <div className="mt-6">
           {thinking && (
             <div className="w-full mb-4 bg-gray-100 h-2 rounded-full overflow-hidden">
@@ -226,12 +157,12 @@ export default function SummarizeTopic() {
           
           <button
             className={`w-full py-3 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center ${
-              active
+              active && textToSummarize.trim()
                 ? "bg-[#192449] text-white hover:bg-[#263566]"
                 : "bg-gray-200 text-gray-400 cursor-not-allowed"
             }`}
             type="submit"
-            disabled={!active || !site1.trim()}
+            disabled={!active || !textToSummarize.trim()}
           >
             {thinking ? (
               <div className="flex items-center gap-2">
@@ -239,7 +170,7 @@ export default function SummarizeTopic() {
                 <PulseLoader color="#fff" size={6} />
               </div>
             ) : (
-              "Summarize Website"
+              "Summarize Text"
             )}
           </button>
         </div>
@@ -260,3 +191,4 @@ export default function SummarizeTopic() {
     </div>
   );
 }
+
