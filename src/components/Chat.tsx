@@ -9,11 +9,19 @@ import { useChatGeneration } from "@/hooks/useChatGeneration";
 import ChatMessage from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
 import StreamingResponse from "@/components/StreamingResponse";
+import { Loader2 } from "lucide-react";
 
 export default function Chat() {
   const uid = useAuthStore((s) => s.uid);
   const profile = useProfileStore((s) => s.profile);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Helper to scroll to bottom
+  const scrollToBottom = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   const {
     chatlist,
@@ -32,67 +40,74 @@ export default function Chat() {
     handleSendPrompt,
   } = useChatGeneration(uid, chatlist, markResponseSaved, scrollToBottom);
 
-  // Simple scroll to bottom function
-  function scrollToBottom() {
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }
-
   return (
-    <div className="relative flex flex-col items-center container mx-auto justify-center p-0 space-y-5 sm:p-5 sm:pb-0">
-      {/* Load more button if needed */}
-      {lastKey && (
-        <button
-          onClick={loadMoreChats}
-          disabled={loadingMore}
-          className="w-44 text-white px-3 py-2 custom-write bottom bg-[#192449] opacity-100! hover:bg-[#83A873] rounded-3xl! font-bold transition-transform duration-300 ease-in-out"
-        >
-          {loadingMore ? "Loading..." : "Load More"}
-        </button>
-      )}
-
+    <div className="flex flex-col h-[calc(100dvh-80px)] relative bg-gray-50/30 w-full">
       {loading ? (
-        <div className="flex items-center justify-center w-full h-full">
-          <p>Loading chat...</p>
+        <div className="flex flex-1 items-center justify-center h-full">
+          <div className="flex flex-col items-center gap-3 text-gray-500">
+            <Loader2 size={32} className="animate-spin text-[#192449]" />
+            <p className="font-medium">Loading your conversation...</p>
+          </div>
         </div>
       ) : (
-        <div className="flex flex-col w-full h-full space-y-4 chat-bord-main">
-          <div className="relative">
+        <>
+          <div className="flex-1 min-h-0 relative group/chat w-full">
             <ScrollToBottom
-              className="scroll-to-bottom"
-              initialScrollBehavior="smooth"
-              followButtonClassName="hidden" // Hide the default button
+              className="h-full w-full overflow-y-auto scroll-smooth"
+              scrollViewClassName="h-full w-full overflow-x-hidden px-4"
+              followButtonClassName="hidden"
             >
-              <div className="flex flex-col">
-                {/* Display chat list */}
-                {chatlist
-                  .slice()
-                  .reverse()
-                  .map((chat, index) => (
-                    <div key={index} className="flex flex-col my-3 space-y-3">
-                      <ChatMessage
-                        message={chat}
-                        profilePhoto={profile.photoUrl}
-                        isUser={true}
-                      />
-                      <ChatMessage
-                        message={chat}
-                        profilePhoto={profile.photoUrl}
-                        isUser={false}
-                      />
-                    </div>
-                  ))}
-
-                {loadingResponse && (
-                  <StreamingResponse content={streamedResponse} />
+              <div className="max-w-4xl mx-auto pt-8 pb-4">
+                {/* Load More Button */}
+                {lastKey && (
+                  <div className="flex justify-center mb-8">
+                    <button
+                      onClick={loadMoreChats}
+                      disabled={loadingMore}
+                      className="text-xs font-medium text-[#192449] hover:text-blue-700 bg-white border border-gray-200 hover:bg-gray-50 px-4 py-2 rounded-full transition-all shadow-sm flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                    >
+                      {loadingMore && (
+                        <Loader2 size={12} className="animate-spin" />
+                      )}
+                      {loadingMore
+                        ? "Loading older messages..."
+                        : "Load older messages"}
+                    </button>
+                  </div>
                 )}
+
+                {/* Chat List */}
+                <div className="flex flex-col space-y-2">
+                  {chatlist
+                    .slice()
+                    .reverse()
+                    .map((chat, index) => (
+                      <div key={index} className="flex flex-col">
+                        <ChatMessage
+                          message={chat}
+                          profilePhoto={profile.photoUrl}
+                          isUser={true}
+                        />
+                        <ChatMessage
+                          message={chat}
+                          profilePhoto={profile.photoUrl}
+                          isUser={false}
+                        />
+                      </div>
+                    ))}
+
+                  {loadingResponse && (
+                    <div className="flex flex-col">
+                      <StreamingResponse content={streamedResponse} />
+                    </div>
+                  )}
+                </div>
+                <div ref={scrollRef} className="h-1" />
               </div>
-              <div ref={scrollRef} style={{ height: 1 }} />
             </ScrollToBottom>
           </div>
 
-          <div className="sticky bottom-0 rounded-md">
+          <div className="shrink-0 z-20 w-full">
             <ChatInput
               value={newPrompt}
               onChange={setNewPrompt}
@@ -100,32 +115,8 @@ export default function Chat() {
               isLoading={loadingResponse}
             />
           </div>
-        </div>
+        </>
       )}
-
-      {/* Manual scroll button */}
-      <button
-        onClick={scrollToBottom}
-        className="cursor-pointer fixed z-40 rounded-full bg-[#02C173]
-          right-6 bottom-48 
-          text-white w-12 h-12 flex items-center justify-center 
-          shadow-md hover:bg-[#01a862] transition-colors"
-        aria-label="Scroll to bottom"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M12 5v14M5 12l7 7 7-7" />
-        </svg>
-      </button>
     </div>
   );
 }

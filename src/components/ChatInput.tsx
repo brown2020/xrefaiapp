@@ -1,4 +1,5 @@
 import TextareaAutosize from "react-textarea-autosize";
+import { Send, Loader2 } from "lucide-react";
 
 interface ChatInputProps {
   value: string;
@@ -13,51 +14,52 @@ export default function ChatInput({
   onSubmit,
   isLoading,
 }: ChatInputProps) {
-  return (
-    <div className="relative bg-[#ffffff] pt-4">
-      <TextareaAutosize
-        className="text_area w-full px-3 py-4 rounded-lg bg-[#ffffff] text-[#0B3C68] outline-hidden textarea placeholder-[#BBBEC9]"
-        placeholder="Ask me anything!"
-        minRows={2}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey && value.trim()) {
-            e.preventDefault(); // Prevents adding a newline
-            onSubmit();
-          }
-        }}
-      />
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (value.trim() && !isLoading) {
+        onSubmit();
+      }
+    }
+  };
 
-      <button
-        onClick={onSubmit}
-        className={`absolute right-4 bottom-6 px-5 py-3 text-white bg-[#39509E] rounded-md transition-all duration-200 flex items-center justify-center ${
-          isLoading || !value.trim()
-            ? "opacity-50 cursor-not-allowed"
-            : "hover:bg-[#2d407f] hover:shadow-md"
-        }`}
-        disabled={isLoading || !value.trim()}
-        aria-label="Send message"
-      >
-        {isLoading ? (
-          <span className="text-sm font-medium">Generating...</span>
-        ) : (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <line x1="22" y1="2" x2="11" y2="13"></line>
-            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-          </svg>
-        )}
-      </button>
+  return (
+    <div className="w-full bg-white/80 backdrop-blur-lg border-t border-gray-100 p-4 md:p-6 pb-8 md:pb-8">
+      <div className="max-w-4xl mx-auto relative">
+        <div className="relative flex items-end gap-2 bg-gray-50 border border-gray-200 rounded-2xl shadow-sm focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all overflow-hidden">
+          <TextareaAutosize
+            className="w-full py-3.5 pl-4 pr-12 bg-transparent text-gray-900 placeholder:text-gray-400 resize-none focus:outline-hidden text-base leading-relaxed max-h-[200px]"
+            placeholder="Ask me anything..."
+            minRows={1}
+            maxRows={8}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+
+          <div className="absolute right-2 bottom-2">
+            <button
+              onClick={() => !isLoading && value.trim() && onSubmit()}
+              disabled={isLoading || !value.trim()}
+              className={`p-2 rounded-xl flex items-center justify-center transition-all duration-200 cursor-pointer ${
+                value.trim() && !isLoading
+                  ? "bg-[#192449] text-white hover:bg-[#2d407f] shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+              }`}
+              aria-label="Send message"
+            >
+              {isLoading ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <Send size={18} className={value.trim() ? "ml-0.5" : ""} />
+              )}
+            </button>
+          </div>
+        </div>
+        <p className="text-center text-xs text-gray-400 mt-2">
+          AI can make mistakes. Consider checking important information.
+        </p>
+      </div>
     </div>
   );
 }
