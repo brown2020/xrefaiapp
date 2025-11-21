@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Search, Calendar, Copy, Check, Download, User, Loader2 } from "lucide-react";
 import {
   collection,
   getDocs,
@@ -10,13 +10,13 @@ import {
   startAfter,
   Timestamp,
 } from "firebase/firestore";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { db } from "@/firebase/firebaseClient";
 import toast from "react-hot-toast";
 import { UserHistoryType } from "@/types/UserHistoryType";
-import { copyToClipboard } from "@/utils/copyToClipboard"; // Assuming you have this utility
+import { copyToClipboard } from "@/utils/copyToClipboard";
 import Image from "next/image";
 import { copyImageToClipboard, downloadImage } from "@/utils/helpers";
 import MarkdownRenderer from "./MarkdownRenderer";
@@ -27,30 +27,26 @@ export default function History() {
   const [summaries, setSummaries] = useState<UserHistoryType[]>([]);
   const [search, setSearch] = useState<string>("");
   const [lastKey, setLastKey] = useState<Timestamp | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const profile = useProfileStore((s) => s.profile);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Track collapsed/expanded state for each prompt and response
-  const [expandedPrompts, setExpandedPrompts] = useState<{
-    [key: number]: boolean;
-  }>({});
-  const [expandedResponses, setExpandedResponses] = useState<{
-    [key: number]: boolean;
-  }>({});
+  // Track collapsed/expanded state for each history item
+  const [expandedItems, setExpandedItems] = useState<{ [key: number]: boolean }>({});
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
-  // Toggle expansion for prompts
-  const togglePromptExpand = (index: number) => {
-    setExpandedPrompts((prev) => ({
+  const toggleExpand = (index: number) => {
+    setExpandedItems((prev) => ({
       ...prev,
-      [index]: !prev[index], // Toggle the specific index
+      [index]: !prev[index],
     }));
   };
 
-  // Toggle expansion for responses
-  const toggleResponseExpand = (index: number) => {
-    setExpandedResponses((prev) => ({
-      ...prev,
-      [index]: !prev[index], // Toggle the specific index
-    }));
+  const handleCopy = async (text: string, index: number) => {
+    await copyToClipboard(text);
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
   };
 
   const orderedSummaries = summaries
@@ -64,18 +60,61 @@ export default function History() {
     );
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    // Initial load
     const getData = async () => {
       if (uid) {
-        const c = collection(db, "users", uid, "summaries");
-        const q = query(c, orderBy("timestamp", "desc"), limit(100));
-        const querySnapshot = await getDocs(q);
+        setLoading(true);
+        try {
+          const c = collection(db, "users", uid, "summaries");
+          const q = query(c, orderBy("timestamp", "desc"), limit(20));
+          const querySnapshot = await getDocs(q);
 
-        const s: UserHistoryType[] = [];
-        let lastKey: Timestamp | undefined = undefined;
+          const s: UserHistoryType[] = [];
+          let lastKey: Timestamp | undefined = undefined;
+          querySnapshot.forEach((doc) => {
+            const d = doc.data();
+
+            s.push({
+              id: d.id,
+              prompt: d.prompt,
+              response: d.response,
+              timestamp: d.timestamp,
+              topic: d.topic,
+              words: d.words,
+              xrefs: d.xrefs,
+            });
+            lastKey = doc.data().timestamp;
+          });
+
+          setSummaries(s);
+          setLastKey(lastKey);
+        } catch (error) {
+          console.error("Error fetching history:", error);
+          toast.error("Failed to load history");
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    getData();
+  }, [uid]);
+
+  const postsNextBatch = async (key: Timestamp) => {
+    if (uid) {
+      setLoadingMore(true);
+      try {
+        const c = collection(db, "users", uid, "summaries");
+        const q = query(
+          c,
+          orderBy("timestamp", "desc"),
+          startAfter(key),
+          limit(20)
+        );
+        const querySnapshot = await getDocs(q);
+        const s: UserHistoryType[] = [...summaries]; // Create a copy
+        let newLastKey: Timestamp | undefined;
         querySnapshot.forEach((doc) => {
           const d = doc.data();
-
           s.push({
             id: d.id,
             prompt: d.prompt,
@@ -85,328 +124,243 @@ export default function History() {
             words: d.words,
             xrefs: d.xrefs,
           });
-          lastKey = doc.data().timestamp;
+          newLastKey = doc.data().timestamp;
         });
 
         setSummaries(s);
-        setLastKey(lastKey);
+        setLastKey(newLastKey);
+      } catch (error) {
+        console.error("Error fetching more history:", error);
+        toast.error("Failed to load more items");
+      } finally {
+        setLoadingMore(false);
       }
-    };
-    getData();
-  }, [uid]);
-
-  const postsNextBatch = async (key: Timestamp) => {
-    if (uid) {
-      const toastId = toast.loading("Loading history...");
-      const c = collection(db, "users", uid, "summaries");
-      const q = query(
-        c,
-        orderBy("timestamp", "desc"),
-        startAfter(key),
-        limit(100)
-      );
-      const querySnapshot = await getDocs(q);
-      const s: UserHistoryType[] = summaries;
-      let lastKey: Timestamp | undefined;
-      querySnapshot.forEach((doc) => {
-        const d = doc.data();
-
-        s.push({
-          id: d.id,
-          prompt: d.prompt,
-          response: d.response,
-          timestamp: d.timestamp,
-          topic: d.topic,
-          words: d.words,
-          xrefs: d.xrefs,
-        });
-        lastKey = doc.data().timestamp;
-      });
-
-      toast.dismiss(toastId);
-      toast.success("History loaded successfully");
-
-      setSummaries(s);
-      setLastKey(lastKey);
     }
   };
 
-  if (!uid) return <div>Not signed in</div>;
+  if (!uid) return (
+    <div className="flex items-center justify-center h-[calc(100vh-80px)]">
+      <p className="text-gray-500">Please sign in to view your history.</p>
+    </div>
+  );
 
   return (
-    <div className="flex flex-col space-y-5">
-      <div className="container mx-auto px-4 py-4">
-        <div className="w-full mb-5 border-[#ECECEC] border-2 py-2 rounded-md  bg-[#F5F5F5] flex">
-          <input
-            className="px-3 py-1 border-0 outline-hidden w-full text-[#0B3C68] bg-[#F5F5F5] border-[#263566] placeholder:text-[#BBBEC9]"
-            type="text"
-            placeholder="Filter results..."
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <button className="px-4 line-box relative before:absolute before:content-[''] before:w-[2px] before:bg-[#7F8CA1] before:h-[20px] before:top-1/2 before:left-0 before:transform before:-translate-x-1/2 before:-translate-y-1/2">
-            <i className="fa-solid fa-magnifying-glass text-[#7F8CA1]"></i>
-          </button>
-        </div>
-        <div className="flex flex-col space-y-5">
-          {orderedSummaries &&
-            orderedSummaries
-              .filter((summary) =>
-                (summary.response + " " + summary.prompt)
-                  .toUpperCase()
-                  .includes(search ? search.toUpperCase() : "")
-              )
-              .map((summary, index) => (
-                <div
-                  key={index}
-                  className="p-5 rounded-3xl bg-[#ffffff] border border-[#7F8CA1]"
-                >
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="flex items-center justify-center shrink-0 w-11 h-11 text-xs font-bold text-white rounded-full bg-blue-500">
-                      <Image
-                        src={profile.photoUrl}
-                        alt=""
-                        width={512}
-                        height={512}
-                        className="object-cover rounded-full"
-                      />
-                    </div>
-                    <div
-                      className="flex flex-col w-[95%]"
-                      onClick={() => togglePromptExpand(index)}
-                    >
-                      <div className="flex justify-between items-center gap-3 cursor-pointer">
-                        <div className="flex items-center gap-3">
-                          <h3 className="text-[#041D34] font-bold mb-[0.2rem]">
-                            You
-                          </h3>
-                          <p className="text-[#041D34] text-xs">
-                            {new Date(
-                              summary.timestamp.seconds * 1000
-                            ).toLocaleString()}
-                          </p>
-                        </div>
-                        {/* <div className="">
-                          {expandedPrompts[index] ? (
-                            <div className="text-[#7F8CA1] cursor-pointer"><ChevronUp className="inline-block ml-2 " /></div>
-                          ) : (
-                            <div className="text-[#7F8CA1] cursor-pointer"><ChevronDown className="inline-block ml-2 " /></div>
-                          )}
-                        </div> */}
-                      </div>
-                      <div
-                        className={`flex items-center break-word whitespace-pre-wrap transition-all duration-300 ease-in-out text-[#0B3C68] ${
-                          expandedPrompts[index]
-                            ? "max-h-full"
-                            : "max-h-20 overflow-hidden"
-                        }`}
-                      >
-                        {summary.prompt}
-                      </div>
-                    </div>
+    <div className="flex flex-col h-[calc(100dvh-80px)] relative bg-gray-50/30 w-full">
+      {/* Scrollable Content Area */}
+      <div className="flex-1 min-h-0 overflow-y-auto scroll-smooth px-4 pb-8 pt-4">
+        <div className="max-w-4xl mx-auto h-full">
+           
+           {/* Header Section - Now inside scroll area */}
+           <div className="w-full py-6 mb-4">
+             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold text-[#041D34]">History</h1>
+                  <p className="text-sm text-gray-500 mt-1">Your past conversations</p>
+                </div>
+                <div className="relative group w-full md:w-auto md:min-w-[300px]">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Search className="h-4 w-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                   </div>
-                  {/* Collapsible prompt */}
-                  {/* <div
-                    className={`whitespace-pre-wrap cursor-pointer mt-2 transition-all duration-300 ease-in-out text-[#A1ADF4] ${expandedPrompts[index]
-                      ? "max-h-full"
-                      : "max-h-20 overflow-hidden"
-                      }`}
-                    onClick={() => togglePromptExpand(index)}
-                  >
-                    {summary.prompt}
-                    {expandedPrompts[index] ? (
-                      <ChevronUp className="inline-block ml-2" />
-                    ) : (
-                      <ChevronDown className="inline-block ml-2" />
-                    )}
-                  </div> */}
+                  <input
+                    className="block w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm transition-all shadow-sm hover:shadow-md"
+                    type="text"
+                    placeholder="Search..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+             </div>
+           </div>
 
-                  {/* Collapsible response with bg-orange-200 */}
-                  {summary.words === "image" ? (
-                    <div className="mt-2 p-4 rounded-3xl bg-[#E7EAEF] sm:w-[50%] w-full">
-                      <a
-                        href={summary.response}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        <Image
-                          src={summary.response}
-                          alt="Generated Image"
-                          width={512}
-                          height={512}
-                          className="displayImage rounded-2xl w-[100%] "
-                        />
-                      </a>
-                      <div className="flex gap-4 mt-4">
-                        <div
-                          className="copy_icon p-2 w-9 h-9 border border-[#A3AEC0] rounded-[10px] text-center flex justify-center items-center cursor-pointer hover:bg-[#83A873]"
-                          onClick={() => copyImageToClipboard(summary.response)}
+           {loading ? (
+            <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+              <Loader2 size={32} className="animate-spin text-[#192449] mb-4" />
+              <p>Loading history...</p>
+            </div>
+          ) : (
+            <div className="flex flex-col space-y-6">
+              {orderedSummaries &&
+                orderedSummaries
+                  .filter((summary) =>
+                    (summary.response + " " + summary.prompt)
+                      .toUpperCase()
+                      .includes(search ? search.toUpperCase() : "")
+                  )
+                  .map((summary, index) => (
+                    <div
+                      key={index}
+                      className="flex flex-col bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all hover:shadow-md"
+                    >
+                      {/* Header with Date */}
+                      <div className="bg-gray-50/50 border-b border-gray-100 px-5 py-2.5 flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
+                            <Calendar size={14} />
+                            {new Date(summary.timestamp.seconds * 1000).toLocaleString(undefined, {
+                              dateStyle: 'medium',
+                              timeStyle: 'short'
+                            })}
+                        </div>
+                        <button 
+                          onClick={() => toggleExpand(index)}
+                          className="text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
                         >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            version="1.1"
-                            x="0"
-                            y="0"
-                            viewBox="0 0 48 48"
-                            className=""
-                          >
-                            <g>
-                              <path
-                                d="M33.46 28.672V7.735c0-2.481-2.019-4.5-4.5-4.5H8.023a4.505 4.505 0 0 0-4.5 4.5v20.937c0 2.481 2.019 4.5 4.5 4.5H28.96c2.481 0 4.5-2.019 4.5-4.5zm-26.937 0V7.735c0-.827.673-1.5 1.5-1.5H28.96c.827 0 1.5.673 1.5 1.5v20.937c0 .827-.673 1.5-1.5 1.5H8.023c-.827 0-1.5-.673-1.5-1.5zm33.454-13.844h-3.646a1.5 1.5 0 1 0 0 3h3.646c.827 0 1.5.673 1.5 1.5v20.937c0 .827-.673 1.5-1.5 1.5H19.041c-.827 0-1.5-.673-1.5-1.5v-4.147a1.5 1.5 0 1 0-3 0v4.147c0 2.481 2.019 4.5 4.5 4.5h20.936c2.481 0 4.5-2.019 4.5-4.5V19.328c0-2.481-2.019-4.5-4.5-4.5z"
-                                fill="#7F8CA1"
-                                opacity="1"
-                                data-original="#000000"
-                                className=""
-                              ></path>
-                            </g>
-                          </svg>
-                        </div>
-                        <div className="share_icon hidden p-2 w-9 h-9 border border-[#4863BE] rounded-[10px] text-center justify-center items-center cursor-pointer">
-                          <svg
-                            width="25"
-                            height="25"
-                            viewBox="0 0 25 25"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <g clipPath="url(#clip0_59_140)">
-                              <path
-                                d="M13.7819 4.68215C13.7819 4.79636 13.7819 4.91057 13.7819 5.02479C13.7819 8.96895 13.7832 12.9131 13.7788 16.8573C13.7788 17.066 13.768 17.2843 13.7058 17.481C13.5224 18.0635 12.9843 18.3953 12.353 18.3471C11.7984 18.304 11.3276 17.882 11.221 17.316C11.1899 17.1517 11.1836 16.9804 11.1829 16.8122C11.181 12.889 11.1817 8.96641 11.1817 5.04319C11.1817 4.92897 11.1817 4.81476 11.1817 4.61362C11.0541 4.73862 10.9767 4.81222 10.9012 4.88773C9.58522 6.20309 8.27114 7.52161 6.95134 8.8338C6.40946 9.3725 5.66137 9.4074 5.12837 8.93341C4.61187 8.47466 4.54081 7.70435 4.96784 7.16121C5.03954 7.07047 5.12393 6.98862 5.20578 6.90677C7.31111 4.79573 9.41708 2.68468 11.523 0.573644C12.0833 0.0120959 12.8777 0.00638521 13.4387 0.567299C15.5687 2.69864 17.6982 4.83126 19.8257 6.96578C20.4158 7.55778 20.4431 8.34395 19.9012 8.88202C19.3606 9.41946 18.5757 9.389 17.985 8.80017C16.6823 7.50067 15.3822 6.19928 14.0833 4.89598C14.0021 4.81476 13.945 4.71007 13.8765 4.61616C13.8454 4.6371 13.8137 4.6593 13.7819 4.68215Z"
-                                fill="white"
-                              />
-                              <path
-                                d="M12.5002 24.8674C9.90945 24.8674 7.31808 24.8731 4.72734 24.8655C2.78635 24.8598 1.19815 23.5476 0.86186 21.6403C0.769221 21.1149 0.798408 20.566 0.791429 20.0279C0.783815 19.4258 0.772393 18.8211 0.810464 18.2208C0.84917 17.6117 1.34663 17.1352 1.93546 17.073C2.55856 17.007 3.12455 17.3592 3.31237 17.9537C3.36821 18.1307 3.38153 18.3268 3.38343 18.5146C3.39105 19.2868 3.38343 20.0584 3.38788 20.8306C3.39295 21.738 3.9215 22.2672 4.8295 22.2678C9.93737 22.2697 15.0452 22.2697 20.1531 22.2678C21.0611 22.2678 21.5795 21.7386 21.5808 20.823C21.5827 19.9981 21.5713 19.1732 21.5852 18.3484C21.5966 17.6853 22.0998 17.1403 22.7286 17.073C23.3879 17.0026 23.9672 17.3998 24.141 18.0406C24.1468 18.0609 24.1607 18.0806 24.1601 18.1009C24.1353 19.3452 24.2565 20.6155 24.0484 21.8287C23.7331 23.6688 22.1138 24.8617 20.2413 24.8668C17.6614 24.8725 15.0808 24.8674 12.5002 24.8674Z"
-                                fill="white"
-                              />
-                            </g>
-                            <defs>
-                              <clipPath id="clip0_59_140">
-                                <rect width="25" height="25" fill="white" />
-                              </clipPath>
-                            </defs>
-                          </svg>
-                        </div>
-                        <div
-                          className="download_icon p-2 w-9 h-9 border border-[#A3AEC0] rounded-[10px] text-center flex justify-center items-center cursor-pointer hover:bg-[#83A873]"
-                          onClick={() => downloadImage(summary.response)}
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            version="1.1"
-                            x="0"
-                            y="0"
-                            viewBox="0 0 515.283 515.283"
-                            className=""
-                          >
-                            <g>
-                              <path
-                                d="M400.775 515.283H114.507c-30.584 0-59.339-11.911-80.968-33.54C11.911 460.117 0 431.361 0 400.775v-28.628c0-15.811 12.816-28.628 28.627-28.628s28.627 12.817 28.627 28.628v28.628c0 15.293 5.956 29.67 16.768 40.483 10.815 10.814 25.192 16.771 40.485 16.771h286.268c15.292 0 29.669-5.957 40.483-16.771 10.814-10.815 16.771-25.192 16.771-40.483v-28.628c0-15.811 12.816-28.628 28.626-28.628s28.628 12.817 28.628 28.628v28.628c0 30.584-11.911 59.338-33.54 80.968-21.629 21.629-50.384 33.54-80.968 33.54zM257.641 400.774a28.538 28.538 0 0 1-19.998-8.142l-.002-.002-.057-.056-.016-.016c-.016-.014-.03-.029-.045-.044l-.029-.029a.892.892 0 0 0-.032-.031l-.062-.062-114.508-114.509c-11.179-11.179-11.179-29.305 0-40.485 11.179-11.179 29.306-11.18 40.485 0l65.638 65.638V28.627C229.014 12.816 241.83 0 257.641 0s28.628 12.816 28.628 28.627v274.408l65.637-65.637c11.178-11.179 29.307-11.179 40.485 0 11.179 11.179 11.179 29.306 0 40.485L277.883 392.39l-.062.062-.032.031-.029.029c-.014.016-.03.03-.044.044l-.017.016a1.479 1.479 0 0 1-.056.056l-.002.002c-.315.307-.634.605-.96.895a28.441 28.441 0 0 1-7.89 4.995l-.028.012c-.011.004-.02.01-.031.013a28.5 28.5 0 0 1-11.091 2.229z"
-                                fill="#7F8CA1"
-                                opacity="1"
-                                data-original="#000000"
-                                className=""
-                              ></path>
-                            </g>
-                          </svg>
-                        </div>
+                          {expandedItems[index] ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                        </button>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex justify-start items-start w-full p-4 ml-auto gap-2 rounded-3xl text-left bg-[#E7EAEF]">
-                      <div className="p-2">
-                        <div className="shrink-0 w-11 h-11 rounded-full bg-[#0A0F20]">
-                          <Image
-                            src="/logo(X).png"
-                            alt="bot"
-                            className="shrink-0 object-contain w-11 h-11 rounded-full px-[5px]"
-                            width={512}
-                            height={512}
-                          />
-                        </div>
-                      </div>
-                      <div
-                        className="relative w-full cursor-pointer"
-                        onClick={() => toggleResponseExpand(index)}
-                      >
-                        <div className="flex justify-between items-center mb-2">
-                          <div className="flex justify-between items-center w-full">
-                            <div className="flex gap-3 items-center">
-                              <h3 className="m-0 text-[#041D34] font-bold">
-                                XEEF.AI
-                              </h3>
-                              <p className="px-[10px] py-0 text-[12px] rounded-[10px] bg-linear-to-r from-[#9C26D7] to-[#1EB1DB] text-white">
-                                Bot
-                              </p>
-                            </div>
-                            <div>
-                              {expandedResponses[index] ? (
-                                <div className="text-[#7F8CA1] relative before:absolute before:content-[''] before:w-[2px] before:bg-[#7F8CA1] before:h-[16px] before:top-1/2 before:left-0 before:transform before:-translate-x-1/2 before:-translate-y-1/2">
-                                  <ChevronUp className="inline-block ml-2 cursor-pointer" />
-                                </div>
+
+                      <div className="p-5 space-y-6">
+                        {/* User Prompt */}
+                        <div className="flex w-full justify-end">
+                          <div className="flex max-w-[85%] md:max-w-[75%] gap-3 items-start flex-row-reverse">
+                            <div className="shrink-0 w-8 h-8 rounded-full overflow-hidden border-2 border-white shadow-sm bg-gray-100">
+                              {profile.photoUrl ? (
+                                <Image
+                                  src={profile.photoUrl}
+                                  alt="User"
+                                  height={32}
+                                  width={32}
+                                  className="object-cover w-full h-full"
+                                />
                               ) : (
-                                <div className="text-[#7F8CA1] relative before:absolute before:content-[''] before:w-[2px] before:bg-[#7F8CA1] before:h-[16px] before:top-1/2 before:left-0 before:transform before:-translate-x-1/2 before:-translate-y-1/2">
-                                  <ChevronDown className="inline-block ml-2 cursor-pointer" />
+                                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                    <User size={16} />
                                 </div>
                               )}
                             </div>
+                            <div className="flex flex-col items-end">
+                              <div className={`px-5 py-3.5 bg-[#2563EB] text-white rounded-2xl rounded-tr-sm shadow-sm text-left transition-all duration-300 ${expandedItems[index] ? '' : 'max-h-32 overflow-y-hidden relative'}`}>
+                                  <p className="text-sm md:text-base whitespace-pre-wrap leading-relaxed">
+                                    {summary.prompt}
+                                  </p>
+                                  {!expandedItems[index] && (
+                                    <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-[#2563EB] to-transparent pointer-events-none rounded-b-2xl"></div>
+                                  )}
+                              </div>
+                            </div>
                           </div>
-                          {/* Copy to clipboard button */}
-                          {/* <button
-                            className="p-[6px] ml-3 w-8 h-8 border border-[#4863BE] rounded-[10px] text-center flex justify-center items-center cursor-pointer"
-                            title="Copy to Clipboard"
-                          >
-                            <Copy className="text-white" />
-                          </button> */}
-                          <button
-                            className="copy_icon p-2 ml-2 w-9 h-9 border border-[#A3AEC0] rounded-[10px] text-center flex justify-center items-center cursor-pointer hover:bg-[#83A873]"
-                            onClick={() => copyToClipboard(summary.response)}
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              version="1.1"
-                              x="0"
-                              y="0"
-                              viewBox="0 0 48 48"
-                              className=""
-                            >
-                              <g>
-                                <path
-                                  d="M33.46 28.672V7.735c0-2.481-2.019-4.5-4.5-4.5H8.023a4.505 4.505 0 0 0-4.5 4.5v20.937c0 2.481 2.019 4.5 4.5 4.5H28.96c2.481 0 4.5-2.019 4.5-4.5zm-26.937 0V7.735c0-.827.673-1.5 1.5-1.5H28.96c.827 0 1.5.673 1.5 1.5v20.937c0 .827-.673 1.5-1.5 1.5H8.023c-.827 0-1.5-.673-1.5-1.5zm33.454-13.844h-3.646a1.5 1.5 0 1 0 0 3h3.646c.827 0 1.5.673 1.5 1.5v20.937c0 .827-.673 1.5-1.5 1.5H19.041c-.827 0-1.5-.673-1.5-1.5v-4.147a1.5 1.5 0 1 0-3 0v4.147c0 2.481 2.019 4.5 4.5 4.5h20.936c2.481 0 4.5-2.019 4.5-4.5V19.328c0-2.481-2.019-4.5-4.5-4.5z"
-                                  fill="#7F8CA1"
-                                  opacity="1"
-                                  data-original="#000000"
-                                  className=""
-                                ></path>
-                              </g>
-                            </svg>
-                          </button>
                         </div>
-                        <div
-                          className={`whitespace-pre-wrap break-word cursor-pointer text-[#0B3C68] p-0 rounded-md transition-all duration-300 ease-in-out ${
-                            expandedResponses[index]
-                              ? "max-h-full"
-                              : "max-h-20 overflow-hidden"
-                          }`}
-                        >
-                          <div>
-                            <MarkdownRenderer content={summary.response} />
+
+                        {/* Bot Response */}
+                        <div className="flex w-full justify-start">
+                          <div className="flex max-w-[95%] md:max-w-[85%] gap-4 items-start">
+                            <div className="shrink-0 w-8 h-8 rounded-full bg-[#0A0F20] flex items-center justify-center overflow-hidden shadow-sm border border-gray-100 p-1">
+                              <Image
+                                src="/logo(X).png"
+                                alt="AI"
+                                width={32}
+                                height={32}
+                                className="w-full h-full object-contain"
+                              />
+                            </div>
+
+                            <div className="flex flex-col flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1.5">
+                                  <span className="font-semibold text-sm text-gray-900">XREF.AI</span>
+                                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] text-white">
+                                  Bot
+                                  </span>
+                              </div>
+
+                              <div className="bg-white border border-gray-100 rounded-2xl rounded-tl-sm px-6 py-5 shadow-sm text-gray-800 relative group">
+                                
+                                {/* Content */}
+                                {summary.words === "image" ? (
+                                  <div className="space-y-4">
+                                    <div className="relative rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+                                      <Image
+                                        src={summary.response}
+                                        alt="Generated Image"
+                                        width={512}
+                                        height={512}
+                                        className="w-full h-auto object-cover"
+                                        unoptimized
+                                      />
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => copyImageToClipboard(summary.response)}
+                                        className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
+                                      >
+                                        <Copy size={14} /> Copy URL
+                                      </button>
+                                      <button
+                                        onClick={() => downloadImage(summary.response)}
+                                        className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
+                                      >
+                                        <Download size={14} /> Download
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className={`prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:p-0 transition-all duration-300 ${expandedItems[index] ? '' : 'max-h-60 overflow-y-hidden relative'}`}>
+                                    <MarkdownRenderer content={summary.response} />
+                                    {!expandedItems[index] && (
+                                      <div className="absolute bottom-0 left-0 w-full h-20 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
+                                    )}
+                                  </div>
+                                )}
+                                
+                                {/* Action Buttons (Copy, etc) */}
+                                {summary.words !== "image" && (
+                                  <div className="mt-4 flex justify-start pt-3 border-t border-gray-50">
+                                    <button
+                                      onClick={() => handleCopy(summary.response, index)}
+                                      className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-900 bg-gray-50 px-2 py-1 rounded-md border border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer"
+                                    >
+                                      {copiedIndex === index ? (
+                                        <>
+                                          <Check size={14} className="text-green-600" />
+                                          <span className="text-green-600">Copied</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Copy size={14} />
+                                          <span>Copy</span>
+                                        </>
+                                      )}
+                                    </button>
+                                  </div>
+                                )}
+
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
+                      
+                      {/* Show More / Less Button if condensed */}
+                      {!expandedItems[index] && (
+                          <button 
+                          onClick={() => toggleExpand(index)}
+                          className="w-full py-3 text-xs font-medium text-gray-500 hover:text-[#2563EB] hover:bg-gray-50 transition-colors border-t border-gray-100 flex items-center justify-center gap-1"
+                          >
+                          Show full conversation <ChevronDown size={14} />
+                          </button>
+                      )}
                     </div>
-                  )}
+                  ))}
+              
+              {!loading && orderedSummaries.length === 0 && (
+                  <div className="text-center py-12 text-gray-400 bg-white rounded-2xl border border-gray-100 border-dashed">
+                      <p>No history found.</p>
+                  </div>
+              )}
+
+              {lastKey && (
+                <div className="flex justify-center pt-4 pb-8">
+                  <button
+                    onClick={() => postsNextBatch(lastKey)}
+                    disabled={loadingMore}
+                    className="text-sm font-medium text-[#192449] hover:text-blue-700 bg-white border border-gray-200 hover:bg-gray-50 px-6 py-3 rounded-full transition-all shadow-sm flex items-center gap-2 disabled:opacity-50 cursor-pointer hover:shadow-md"
+                  >
+                    {loadingMore && <Loader2 size={14} className="animate-spin" />}
+                    {loadingMore ? "Loading older history..." : "Load older history"}
+                  </button>
                 </div>
-              ))}
+              )}
+            </div>
+          )}
         </div>
-        {lastKey && (
-          <div className="text-center">
-            <button
-              onClick={() => postsNextBatch(lastKey)}
-              className="mt-4 w-44 text-white px-3 py-2 custom-write bottom bg-[#192449] opacity-100! hover:bg-[#83A873] rounded-3xl! font-bold transition-transform duration-300 ease-in-out"
-            >
-              Load More
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

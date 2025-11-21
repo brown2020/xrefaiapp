@@ -7,8 +7,13 @@ export default function Footer() {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Don't show footer on chat pages to maximize vertical space
-  if (pathname?.startsWith("/chat")) {
+  // Don't show footer on functional pages (chat, history, tools, account) to maximize vertical space
+  if (
+    pathname?.startsWith("/chat") ||
+    pathname?.startsWith("/history") ||
+    pathname?.startsWith("/tools") ||
+    pathname?.startsWith("/account")
+  ) {
     return null;
   }
 
