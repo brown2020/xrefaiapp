@@ -1,9 +1,10 @@
 import Image from "next/image";
 import { useState } from "react";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
-import { copyToClipboard } from "@/utils/copyToClipboard";
+import { copyToClipboard } from "@/utils/clipboard";
 import { ChatType } from "@/types/ChatType";
 import { Check, Copy, User } from "lucide-react";
+import { BotAvatar, BotHeader } from "@/components/ui/BotMessage";
 
 interface ChatMessageProps {
   message: ChatType;
@@ -19,9 +20,11 @@ export default function ChatMessage({
   const [isCopied, setIsCopied] = useState(false);
 
   const handleCopy = async () => {
-    await copyToClipboard(message.response);
-    setIsCopied(true);
-    setTimeout(() => setIsCopied(false), 2000);
+    const success = await copyToClipboard(message.response, "Response copied!");
+    if (success) {
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    }
   };
 
   if (isUser) {
@@ -59,23 +62,10 @@ export default function ChatMessage({
   return (
     <div className="flex w-full justify-start mb-6">
       <div className="flex max-w-[95%] md:max-w-[85%] gap-4 items-start">
-        <div className="shrink-0 w-10 h-10 rounded-full bg-[#0A0F20] flex items-center justify-center overflow-hidden shadow-sm border border-gray-100 p-1">
-          <Image
-            src="/logo(X).png"
-            alt="AI"
-            width={32}
-            height={32}
-            className="w-full h-full object-contain"
-          />
-        </div>
+        <BotAvatar />
 
         <div className="flex flex-col flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="font-semibold text-sm text-gray-900">XREF.AI</span>
-            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] text-white">
-              Bot
-            </span>
-          </div>
+          <BotHeader />
 
           <div className="bg-white border border-gray-100 rounded-2xl rounded-tl-sm px-6 py-5 shadow-sm text-gray-800 relative group">
             <div className="prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:p-0">

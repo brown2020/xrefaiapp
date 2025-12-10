@@ -17,7 +17,7 @@ import { LockIcon, MailIcon, XIcon } from "lucide-react";
 import { PulseLoader } from "react-spinners";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { auth } from "@/firebase/firebaseClient";
-import { toast } from "react-toastify";
+import toast from "react-hot-toast";
 
 import googleLogo from "@/app/assets/google.svg";
 import Image from "next/image";
@@ -112,8 +112,9 @@ export default function AuthComponent() {
 
         if (errorCode === "auth/email-already-in-use") {
           // Email exists but we tried to create an account
-          toast.info(
-            `An account with this email already exists. Please sign in with your password.`
+          toast(
+            `An account with this email already exists. Please sign in with your password.`,
+            { icon: "ℹ️" }
           );
           const passwordInput = document.getElementById(
             "password"
@@ -243,8 +244,8 @@ export default function AuthComponent() {
               </div>
               <div>{`If you don't see the message, check your spam folder. Mark it "not spam" or move it to your inbox.`}</div>
               <div>
-                Click the sign-in link in the message to complete the
-                sign-in process.
+                Click the sign-in link in the message to complete the sign-in
+                process.
               </div>
               <div>
                 Waiting for you to click the sign-in link.{" "}
@@ -261,9 +262,7 @@ export default function AuthComponent() {
           </div>
         ) : (
           <form
-            onSubmit={
-              isEmailLinkLogin ? handleSubmit : handlePasswordSignup
-            }
+            onSubmit={isEmailLinkLogin ? handleSubmit : handlePasswordSignup}
             ref={formRef}
             className="flex flex-col gap-2"
           >
@@ -339,9 +338,7 @@ export default function AuthComponent() {
                   <LockIcon size={20} />
                   <span>
                     Sign{" "}
-                    {email.includes("@") && email.split("@")[1]
-                      ? "In"
-                      : "Up"}{" "}
+                    {email.includes("@") && email.split("@")[1] ? "In" : "Up"}{" "}
                     with Password
                   </span>
                 </div>

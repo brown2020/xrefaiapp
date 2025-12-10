@@ -30,7 +30,7 @@ export function useChatMessages(uid: string) {
     }
 
     const q = query(
-      collection(db, "profiles", uid, "xrefchat"),
+      collection(db, "users", uid, "chats"),
       orderBy("timestamp", "desc"),
       limit(MAX_LOAD)
     );
@@ -82,7 +82,7 @@ export function useChatMessages(uid: string) {
 
     setLoadingMore(true);
     const q = query(
-      collection(db, "profiles", uid, "xrefchat"),
+      collection(db, "users", uid, "chats"),
       orderBy("timestamp", "desc"),
       startAfter(lastKey),
       limit(MAX_LOAD)

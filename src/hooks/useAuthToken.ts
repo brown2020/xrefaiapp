@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getIdToken } from "firebase/auth";
 import { deleteCookie, setCookie } from "cookies-next";
 import { debounce } from "lodash";
@@ -19,14 +19,16 @@ const useAuthToken = (cookieName = "authToken") => {
     null
   );
 
-  const refreshAuthToken = async () => {
+  const refreshAuthToken = useCallback(async () => {
     try {
       if (!auth.currentUser) throw new Error("No user found");
       const idTokenResult = await getIdToken(auth.currentUser, true);
 
+      const isSecure = process.env.NODE_ENV === "production" && window.location.protocol === "https:";
       setCookie(cookieName, idTokenResult, {
-        secure: process.env.NODE_ENV === "production",
+        secure: isSecure,
         sameSite: "lax",
+        path: "/",
       });
       if (!window.ReactNativeWebView) {
         window.localStorage.setItem(lastTokenRefresh, Date.now().toString());
@@ -39,9 +41,9 @@ const useAuthToken = (cookieName = "authToken") => {
       }
       deleteCookie(cookieName);
     }
-  };
+  }, [cookieName, lastTokenRefresh]);
 
-  const scheduleTokenRefresh = () => {
+  const scheduleTokenRefresh = useCallback(() => {
     if (activityTimeout) {
       clearTimeout(activityTimeout);
     }
@@ -49,15 +51,15 @@ const useAuthToken = (cookieName = "authToken") => {
       const timeoutId = setTimeout(refreshAuthToken, refreshInterval);
       setActivityTimeout(timeoutId);
     }
-  };
-
-  const handleStorageChange = debounce((e: StorageEvent) => {
-    if (e.key === lastTokenRefresh) {
-      scheduleTokenRefresh();
-    }
-  }, 1000);
+  }, [activityTimeout, refreshAuthToken, refreshInterval]);
 
   useEffect(() => {
+    const handleStorageChange = debounce((e: StorageEvent) => {
+      if (e.key === lastTokenRefresh) {
+        scheduleTokenRefresh();
+      }
+    }, 1000);
+
     if (!window.ReactNativeWebView) {
       window.addEventListener("storage", handleStorageChange);
     }
@@ -69,7 +71,7 @@ const useAuthToken = (cookieName = "authToken") => {
       }
       handleStorageChange.cancel();
     };
-  }, [activityTimeout, handleStorageChange]);
+  }, [activityTimeout, scheduleTokenRefresh, lastTokenRefresh]);
 
   useEffect(() => {
     if (user?.uid) {
@@ -84,11 +86,13 @@ const useAuthToken = (cookieName = "authToken") => {
       };
       setAuthDetails(authDetails);
       void syncAuthProfile(authDetails);
+      // Ensure cookie is set whenever user is detected/updated
+      void refreshAuthToken();
     } else {
       clearAuthDetails();
       deleteCookie(cookieName);
     }
-  }, [clearAuthDetails, cookieName, setAuthDetails, syncAuthProfile, user]);
+  }, [clearAuthDetails, cookieName, setAuthDetails, syncAuthProfile, user, refreshAuthToken]);
 
   return { uid: user?.uid, loading, error };
 };

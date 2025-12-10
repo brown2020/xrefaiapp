@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { addDoc, collection, Timestamp } from "firebase/firestore";
 import { db } from "@/firebase/firebaseClient";
-import { generateResponseWithMemory } from "@/actions/generateResponseWithMemory";
-import { readStreamableValue } from '@ai-sdk/rsc';
+import { generateResponseWithMemory } from "@/actions/generateAIResponse";
+import { readStreamableValue } from "@ai-sdk/rsc";
 import { ChatType } from "@/types/ChatType";
 import {
   checkRestrictedWords,
@@ -19,6 +19,7 @@ export function useChatGeneration(
   scrollToBottom: () => void
 ) {
   const [newPrompt, setNewPrompt] = useState<string>("");
+  const [pendingPrompt, setPendingPrompt] = useState<string>(""); // Track the message being processed
   const [streamedResponse, setStreamedResponse] = useState<string>("");
   const [loadingResponse, setLoadingResponse] = useState(false);
 
@@ -27,7 +28,6 @@ export function useChatGeneration(
     const context: ChatType[] = [];
     let wordCount = 0;
 
-    // Traverse chatlist from newest to oldest to accumulate past interactions
     for (let i = 0; i < chatlist.length; i++) {
       const chat = chatlist[i];
       const promptWords = chat.prompt.split(" ").length;
@@ -46,7 +46,6 @@ export function useChatGeneration(
 
   const debouncedScrollToBottom = debounce(scrollToBottom, 100);
 
-  // Handle sending a new prompt
   const handleSendPrompt = async () => {
     if (!newPrompt.trim()) return;
     if (isIOSReactNativeWebView() && checkRestrictedWords(newPrompt)) {
@@ -54,26 +53,32 @@ export function useChatGeneration(
       return;
     }
 
+    // Store the prompt being sent so it can be displayed immediately
+    const promptToSend = newPrompt.trim();
+    setPendingPrompt(promptToSend);
+    setNewPrompt(""); // Clear input immediately for better UX
     setLoadingResponse(true);
     setStreamedResponse("");
 
     const systemPrompt =
       "The user will ask you questions. Respond in a helpful way.";
+    const context = getContextWithMemory(chatlist);
 
-    const context: ChatType[] = getContextWithMemory(chatlist);
-
+    // Add current prompt to context
     context.push({
-      id: `${new Date().getTime()}`,
-      prompt: newPrompt,
+      id: `${Date.now()}`,
+      prompt: promptToSend,
       response: "",
       seconds: Math.floor(Date.now() / 1000),
     });
+
+    // Scroll to show the user's message immediately
+    setTimeout(scrollToBottom, 50);
 
     try {
       const result = await generateResponseWithMemory(systemPrompt, context);
       let finishedSummary = "";
 
-      // Handle streaming response with async iterator
       for await (const content of readStreamableValue(result)) {
         if (content) {
           finishedSummary = content.trim();
@@ -82,22 +87,22 @@ export function useChatGeneration(
         }
       }
 
-      // Once the response is complete, save it to Firestore
-      await saveChat(newPrompt, finishedSummary);
+      await saveChat(promptToSend, finishedSummary);
 
       onResponseSaved();
       setLoadingResponse(false);
-      setNewPrompt("");
+      setPendingPrompt(""); // Clear pending prompt after save
     } catch (error) {
       console.error("Error generating response:", error);
       setLoadingResponse(false);
+      setPendingPrompt(""); // Clear on error too
     }
   };
 
-  // Save the prompt and response to Firestore
+  // Save the prompt and response to Firestore (standardized path: users/{uid}/chats)
   const saveChat = async (prompt: string, response: string) => {
     if (uid) {
-      await addDoc(collection(db, "profiles", uid, "xrefchat"), {
+      await addDoc(collection(db, "users", uid, "chats"), {
         prompt,
         response,
         timestamp: Timestamp.now(),
@@ -108,6 +113,7 @@ export function useChatGeneration(
   return {
     newPrompt,
     setNewPrompt,
+    pendingPrompt,
     streamedResponse,
     loadingResponse,
     handleSendPrompt,

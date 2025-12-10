@@ -1,12 +1,13 @@
 "use client";
 
 import { useAuthStore } from "@/zustand/useAuthStore";
-import { isSignInWithEmailLink, signInWithEmailLink } from "firebase/auth";
+import { isSignInWithEmailLink, signInWithEmailLink, getIdToken } from "firebase/auth";
 import { auth } from "@/firebase/firebaseClient";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { FirebaseError } from "firebase/app";
 import useProfileStore from "@/zustand/useProfileStore";
+import { setCookie } from "cookies-next";
 
 export default function LoginFinishPage() {
   const router = useRouter();
@@ -47,6 +48,17 @@ export default function LoginFinishPage() {
         if (!uid || !authEmail) {
           throw new Error("No user found");
         }
+
+        // Explicitly set cookie before redirect to avoid race condition with proxy
+        const token = await getIdToken(user, true);
+        const cookieName = process.env.NEXT_PUBLIC_COOKIE_NAME || "xrefAuthToken";
+        const isSecure = process.env.NODE_ENV === "production" && window.location.protocol === "https:";
+        
+        setCookie(cookieName, token, {
+          secure: isSecure,
+          sameSite: "lax",
+          path: "/",
+        });
 
         console.log(
           "User signed in successfully:",

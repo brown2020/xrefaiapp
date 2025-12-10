@@ -9,7 +9,7 @@ import { useChatGeneration } from "@/hooks/useChatGeneration";
 import ChatMessage from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
 import StreamingResponse from "@/components/StreamingResponse";
-import { Loader2 } from "lucide-react";
+import { LoadingSpinner, InlineSpinner } from "@/components/ui/LoadingSpinner";
 
 export default function Chat() {
   const uid = useAuthStore((s) => s.uid);
@@ -35,6 +35,7 @@ export default function Chat() {
   const {
     newPrompt,
     setNewPrompt,
+    pendingPrompt,
     streamedResponse,
     loadingResponse,
     handleSendPrompt,
@@ -44,10 +45,7 @@ export default function Chat() {
     <div className="flex flex-col h-[calc(100dvh-80px)] relative bg-gray-50/30 w-full">
       {loading ? (
         <div className="flex flex-1 items-center justify-center h-full">
-          <div className="flex flex-col items-center gap-3 text-gray-500">
-            <Loader2 size={32} className="animate-spin text-[#192449]" />
-            <p className="font-medium">Loading your conversation...</p>
-          </div>
+          <LoadingSpinner size="lg" text="Loading your conversation..." />
         </div>
       ) : (
         <>
@@ -66,9 +64,7 @@ export default function Chat() {
                       disabled={loadingMore}
                       className="text-xs font-medium text-[#192449] hover:text-blue-700 bg-white border border-gray-200 hover:bg-gray-50 px-4 py-2 rounded-full transition-all shadow-sm flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                     >
-                      {loadingMore && (
-                        <Loader2 size={12} className="animate-spin" />
-                      )}
+                      {loadingMore && <InlineSpinner size="sm" />}
                       {loadingMore
                         ? "Loading older messages..."
                         : "Load older messages"}
@@ -96,8 +92,21 @@ export default function Chat() {
                       </div>
                     ))}
 
-                  {loadingResponse && (
+                  {/* Show pending user message and streaming response */}
+                  {loadingResponse && pendingPrompt && (
                     <div className="flex flex-col">
+                      {/* User's pending message */}
+                      <ChatMessage
+                        message={{
+                          id: "pending",
+                          prompt: pendingPrompt,
+                          response: "",
+                          seconds: Math.floor(Date.now() / 1000),
+                        }}
+                        profilePhoto={profile.photoUrl}
+                        isUser={true}
+                      />
+                      {/* AI streaming response */}
                       <StreamingResponse content={streamedResponse} />
                     </div>
                   )}
