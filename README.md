@@ -1,248 +1,418 @@
-# Xref.ai: A Next.js 15 AI-Powered Application for Text, Image, and Product Design
+# Xref.ai
 
-Welcome to **Xref.ai**, a cutting-edge application built using **Next.js 15** with **TypeScript**, **Tailwind CSS**, and **Firebase**. Xref.ai leverages powerful **AI capabilities** to provide features like text summarization, image generation, product design, and even scraping web content for creating summaries.
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss)](https://tailwindcss.com/)
+[![Firebase](https://img.shields.io/badge/Firebase-12-FFCA28?logo=firebase)](https://firebase.google.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Table of Contents
+An AI-powered content generation platform built with **Next.js 16**, **React 19**, and **Firebase**. Xref.ai helps you create original content for blog posts, essays, marketing copy, product descriptions, and more using advanced AI capabilities.
 
-- [Key Features](#key-features)
-- [Technology Stack](#technology-stack)
-- [Installation](#installation)
-- [Environment Variables](#environment-variables)
-- [Features](#features)
-  - [Text Summarization with Web Scraping](#text-summarization-with-web-scraping)
-  - [Image Generation](#image-generation)
-  - [Designer Prompt](#designer-prompt)
-  - [Chat Interface](#chat-interface)
-- [API Routes](#api-routes)
-  - [Web Scraping Proxy API](#web-scraping-proxy-api)
-- [Server Actions](#server-actions)
-  - [What are Server Actions in Next.js 15?](#what-are-server-actions-in-nextjs-15)
-  - [generateImage](#generateimage)
-  - [generateResponse](#generateresponse)
-  - [generateResponseWithMemory](#generateresponsewithmemory)
-  - [Stripe Payment Actions](#stripe-payment-actions)
-- [License](#license)
+## 🚀 Features
 
-## Key Features
+- **💬 AI Chat** — Real-time conversational AI with streaming responses and conversation memory
+- **📝 Text Summarization** — Summarize any topic or scrape websites for content summarization
+- **✨ Freestyle Writing** — Generate creative content from custom prompts
+- **📖 Text Simplification** — Simplify complex text to different reading levels (1st Grade to PhD)
+- **🎨 Image Generation** — Create AI-generated images from text descriptions
+- **🎯 Designer Tool** — Mix creative elements (colors, artists, styles) to generate unique visual designs
+- **📜 History** — View and manage all your past generations
+- **💳 Payments** — Stripe integration for premium features and credits
 
-1. **Text Summarization**: Summarize topics or scrape websites for content to summarize.
-2. **Text Simplification**: Simplify complex paragraphs into more straightforward text.
-3. **Freestyle Prompt**: Provide a custom prompt for creative, freeform AI responses.
-4. **Image Generation**: Create AI-generated images based on user prompts.
-5. **Product Design**: Combine various design elements (e.g., colors, painters, ice creams) to generate unique visual prompts.
-6. **Website Scraping for Summarization**: Enter a URL to scrape its content for summarization, providing focused summaries of web content.
-7. **Real-time Chat**: A chatbot interface that streams AI responses with memory of previous conversations.
-8. **Payment Integration**: Payments handled through **Stripe** for premium services.
+## 📋 Table of Contents
 
-## Technology Stack
+- [Tech Stack](#-tech-stack)
+- [Prerequisites](#-prerequisites)
+- [Installation](#-installation)
+- [Environment Variables](#-environment-variables)
+- [Project Structure](#-project-structure)
+- [Features Deep Dive](#-features-deep-dive)
+- [Architecture](#-architecture)
+- [API Reference](#-api-reference)
+- [Contributing](#-contributing)
+- [License](#-license)
 
-- **Next.js 15**: The primary framework for server-side rendering, client-side routing, and API routes.
-- **TypeScript**: For strong typing and better maintainability.
-- **Tailwind CSS**: Utility-first CSS framework for rapid UI development.
-- **Firebase**: Used for authentication, Firestore for database storage, and Cloud Storage for images.
-- **Stripe**: To handle payments and subscriptions.
-- **React Select**: Used for interactive dropdowns in the designer tool.
-- **AI SDKs**: Integration with OpenAI and Fireworks API for generating text and images.
+## 🛠 Tech Stack
 
-## Installation
+### Core Framework
 
-1. Clone the repository:
+| Package                                       | Version | Purpose                                                        |
+| --------------------------------------------- | ------- | -------------------------------------------------------------- |
+| [Next.js](https://nextjs.org/)                | 16.x    | React framework with App Router, Server Actions, and Turbopack |
+| [React](https://react.dev/)                   | 19.x    | UI library with latest features                                |
+| [TypeScript](https://www.typescriptlang.org/) | 5.x     | Type safety and developer experience                           |
+
+### AI & Machine Learning
+
+| Package                                                  | Version | Purpose                                      |
+| -------------------------------------------------------- | ------- | -------------------------------------------- |
+| [Vercel AI SDK](https://sdk.vercel.ai/)                  | 5.x     | Streaming AI responses and model integration |
+| [@ai-sdk/openai](https://sdk.vercel.ai/providers/openai) | 2.x     | OpenAI provider for text generation          |
+| [@ai-sdk/rsc](https://sdk.vercel.ai/docs/ai-sdk-rsc)     | 1.x     | React Server Components streaming            |
+
+### Backend & Database
+
+| Package                                                        | Version | Purpose                                           |
+| -------------------------------------------------------------- | ------- | ------------------------------------------------- |
+| [Firebase](https://firebase.google.com/)                       | 12.x    | Authentication, Firestore database, Cloud Storage |
+| [Firebase Admin](https://firebase.google.com/docs/admin/setup) | 13.x    | Server-side Firebase operations                   |
+| [Stripe](https://stripe.com/)                                  | 20.x    | Payment processing                                |
+
+### UI & Styling
+
+| Package                                                      | Version | Purpose                             |
+| ------------------------------------------------------------ | ------- | ----------------------------------- |
+| [Tailwind CSS](https://tailwindcss.com/)                     | 4.x     | Utility-first CSS framework         |
+| [Lucide React](https://lucide.dev/)                          | 0.559.x | Beautiful icon library              |
+| [React Select](https://react-select.com/)                    | 5.x     | Advanced select/dropdown components |
+| [React Markdown](https://github.com/remarkjs/react-markdown) | 10.x    | Render markdown content             |
+| [React Hot Toast](https://react-hot-toast.com/)              | 2.x     | Toast notifications                 |
+
+### State Management & Utilities
+
+| Package                                  | Version | Purpose                       |
+| ---------------------------------------- | ------- | ----------------------------- |
+| [Zustand](https://zustand-demo.pmnd.rs/) | 5.x     | Lightweight state management  |
+| [Axios](https://axios-http.com/)         | 1.x     | HTTP client for API requests  |
+| [Cheerio](https://cheerio.js.org/)       | 1.x     | HTML parsing for web scraping |
+| [Lodash](https://lodash.com/)            | 4.x     | Utility functions             |
+
+### Additional Libraries
+
+| Package                 | Purpose                           |
+| ----------------------- | --------------------------------- |
+| react-scroll-to-bottom  | Auto-scrolling chat container     |
+| react-textarea-autosize | Auto-expanding textareas          |
+| react-simple-typewriter | Typewriter effect animations      |
+| react-cookie-consent    | GDPR cookie consent banner        |
+| react-firebase-hooks    | Firebase React hooks              |
+| remark-gfm              | GitHub Flavored Markdown support  |
+| sharp                   | Image processing and optimization |
+| cookies-next            | Cookie management for Next.js     |
+
+## 📦 Prerequisites
+
+Before you begin, ensure you have:
+
+- **Node.js** 18.x or higher
+- **npm** 9.x or higher (or yarn/pnpm)
+- A **Firebase** project with:
+  - Authentication enabled (Email/Password and/or Google)
+  - Firestore Database
+  - Cloud Storage
+- An **OpenAI** API key
+- A **Fireworks AI** API key (for image generation)
+- A **Stripe** account (for payments)
+
+## 🔧 Installation
+
+1. **Clone the repository**
 
    ```bash
    git clone https://github.com/brown2020/xrefaiapp.git
-   ```
-
-2. Navigate into the project directory:
-
-   ```bash
    cd xrefaiapp
    ```
 
-3. Install the dependencies:
+2. **Install dependencies**
 
    ```bash
    npm install
    ```
 
-4. Set up environment variables:
-
-   Create a `.env` file by copying the `.env.example`:
+3. **Set up environment variables**
 
    ```bash
-   cp .env.example .env
+   cp .env.example .env.local
    ```
 
-5. Fill in the required fields in the `.env` file with your Firebase, OpenAI, Stripe, and other keys.
+   Fill in your credentials (see [Environment Variables](#-environment-variables))
 
-6. Start the development server:
+4. **Run the development server**
 
    ```bash
    npm run dev
    ```
 
-## Environment Variables
+5. **Open in browser**
 
-Ensure the following environment variables are set correctly in your `.env` file:
+   Navigate to [http://localhost:3000](http://localhost:3000)
 
-```plaintext
-# Firebase Configuration
-NEXT_PUBLIC_FIREBASE_APIKEY=your_api_key
-NEXT_PUBLIC_FIREBASE_AUTHDOMAIN=your_auth_domain
+## 🔐 Environment Variables
+
+Create a `.env.local` file in the root directory with the following variables:
+
+```env
+# Firebase Client Configuration
+NEXT_PUBLIC_FIREBASE_APIKEY=your_firebase_api_key
+NEXT_PUBLIC_FIREBASE_AUTHDOMAIN=your_project.firebaseapp.com
 NEXT_PUBLIC_FIREBASE_PROJECTID=your_project_id
-NEXT_PUBLIC_FIREBASE_STORAGEBUCKET=your_storage_bucket
-NEXT_PUBLIC_FIREBASE_MESSAGINGSENDERID=your_messaging_sender_id
+NEXT_PUBLIC_FIREBASE_STORAGEBUCKET=your_project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGINGSENDERID=your_sender_id
 NEXT_PUBLIC_FIREBASE_APPID=your_app_id
-NEXT_PUBLIC_FIREBASE_MEASUREMENTID=your_measurement_id
+NEXT_PUBLIC_FIREBASE_MEASUREMENTID=G-XXXXXXXXXX
 
-# OpenAI API Key
-OPENAI_API_KEY=your_openai_api_key
-OPENAI_ORG_ID=your_openai_org_id
+# Firebase Admin (Server-side)
+FIREBASE_ADMIN_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your_project.iam.gserviceaccount.com
+FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 
-# Fireworks API Key for Image Generation
+# OpenAI
+OPENAI_API_KEY=sk-...
+OPENAI_ORG_ID=org-...  # Optional
+
+# Fireworks AI (Image Generation)
 FIREWORKS_API_KEY=your_fireworks_api_key
 
-# Stripe Keys for Payment Processing
-NEXT_PUBLIC_STRIPE_KEY=your_stripe_key
-STRIPE_SECRET_KEY=your_stripe_secret_key
-NEXT_PUBLIC_STRIPE_PRODUCT_NAME=your_stripe_product_name
+# Stripe
+NEXT_PUBLIC_STRIPE_KEY=pk_...
+STRIPE_SECRET_KEY=sk_...
+NEXT_PUBLIC_STRIPE_PRODUCT_NAME=Xref.ai Credits
 ```
 
-## Features
+### Getting API Keys
 
-### Text Summarization with Web Scraping
+| Service      | Where to Get                                                                |
+| ------------ | --------------------------------------------------------------------------- |
+| Firebase     | [Firebase Console](https://console.firebase.google.com/) → Project Settings |
+| OpenAI       | [OpenAI Platform](https://platform.openai.com/api-keys)                     |
+| Fireworks AI | [Fireworks Console](https://fireworks.ai/)                                  |
+| Stripe       | [Stripe Dashboard](https://dashboard.stripe.com/apikeys)                    |
 
-Xref.ai allows users to summarize topics or even scrape web content to generate accurate summaries. This is done using the **SummarizeTopic** tool, which can:
+## 📁 Project Structure
 
-- Accept a user-provided topic or URL.
-- Scrape the provided URL for text content.
-- Generate a summary using OpenAI's text generation model.
-
-#### Example Usage:
-
-1. Enter a topic or a website URL.
-2. The tool scrapes the website’s content using the `/proxy` API route and then summarizes it.
-3. The summary can be copied to the clipboard or saved to Firebase for future reference.
-
-### Image Generation
-
-The **ImagePrompt** tool lets users generate images based on text prompts using the Fireworks API. The images are stored securely in Firebase Storage and can be retrieved with a signed URL.
-
-#### Example Usage:
-
-1. Enter a description, such as "A futuristic city at sunset."
-2. The app generates the image, saves it, and displays it to the user.
-
-### Designer Prompt
-
-The **DesignerPrompt** tool allows users to mix various creative elements (colors, painters, ice creams, etc.) to generate a visual prompt that the AI will turn into an image.
-
-#### Example Usage:
-
-1. Select design elements (such as "blue" as a color and "Vincent van Gogh" as an artist).
-2. Enter a freestyle prompt to further guide the AI’s design.
-3. The generated design is displayed and saved for future use.
-
-### Chat Interface
-
-The **Chat** component allows users to interact with an AI chatbot, which maintains memory of past conversations to generate contextually relevant responses. The chat history is stored in Firebase, and users can load previous messages.
-
-#### Example Usage:
-
-1. Enter a question or a conversation prompt.
-2. The AI responds based on the context of the current and past conversations.
-
-## API Routes
-
-### Web Scraping Proxy API
-
-The `/proxy` API route is responsible for scraping web content. It fetches the content from a given URL and sends it back to the client. The scraped content is used to generate summaries or provide additional context for the AI model.
-
-#### `/api/proxy`
-
-- **Method**: `GET`
-- **Query Parameter**: `url` (The website URL to scrape)
-- **Response**: Raw HTML content from the specified website.
-
-Example:
-
-```bash
-GET /api/proxy?url=https://example.com
+```
+xrefaiapp/
+├── public/                 # Static assets
+│   └── .well-known/        # App associations (iOS/Android deep links)
+├── src/
+│   ├── actions/            # Server Actions
+│   │   ├── generateAIResponse.ts    # Unified AI text generation
+│   │   ├── generateImage.ts         # AI image generation
+│   │   ├── paymentActions.ts        # Stripe payment handling
+│   │   └── suggestTags.ts           # AI tag suggestions
+│   │
+│   ├── app/                # Next.js App Router pages
+│   │   ├── api/proxy/      # Web scraping proxy endpoint
+│   │   ├── chat/           # AI chat interface
+│   │   ├── tools/          # AI writing tools
+│   │   ├── history/        # Generation history
+│   │   ├── account/        # User account management
+│   │   └── ...             # Other pages
+│   │
+│   ├── components/         # React components
+│   │   ├── ui/             # Reusable UI components
+│   │   ├── icons/          # SVG icon components
+│   │   ├── DesignerPrompt/ # Designer tool components
+│   │   └── ...             # Feature components
+│   │
+│   ├── hooks/              # Custom React hooks
+│   │   ├── useChatGeneration.ts   # Chat AI logic
+│   │   ├── useChatMessages.ts     # Chat history management
+│   │   ├── useHistorySaver.ts     # Save to Firestore
+│   │   └── ...
+│   │
+│   ├── firebase/           # Firebase configuration
+│   │   ├── firebaseClient.ts      # Client-side SDK
+│   │   └── firebaseAdmin.ts       # Admin SDK (server)
+│   │
+│   ├── zustand/            # State management stores
+│   │   ├── useAuthStore.ts        # Authentication state
+│   │   ├── useProfileStore.ts     # User profile state
+│   │   └── usePaymentsStore.ts    # Payment/credits state
+│   │
+│   ├── data/               # Static data (painters, colors, etc.)
+│   ├── types/              # TypeScript type definitions
+│   └── utils/              # Utility functions
+│
+├── .env.example            # Environment variables template
+├── next.config.mjs         # Next.js configuration
+├── tailwind.config.ts      # Tailwind CSS configuration
+└── tsconfig.json           # TypeScript configuration
 ```
 
-```ts
-import { NextRequest, NextResponse } from "next/server";
-import axios from "axios";
+## 🎯 Features Deep Dive
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const url = searchParams.get("url");
+### AI Chat (`/chat`)
 
-  if (!url) {
-    return NextResponse.json(
-      { error: "URL parameter is required." },
-      { status: 400 }
-    );
-  }
+A full-featured chat interface with:
 
-  try {
-    const response = await axios.get(url);
-    return new NextResponse(response.data, { status: 200 });
-  } catch (error) {
-    console.error("Error fetching the URL:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch the content." },
-      { status: 500 }
-    );
-  }
+- **Streaming responses** — See AI responses as they're generated
+- **Conversation memory** — AI remembers context from previous messages
+- **Persistent history** — Conversations saved to Firestore
+- **Load more** — Pagination for older messages
+
+### Tools (`/tools`)
+
+Six AI-powered writing tools:
+
+| Tool                  | Description                                         |
+| --------------------- | --------------------------------------------------- |
+| **Summarize Website** | Enter a URL to scrape and summarize web content     |
+| **Summarize Text**    | Paste text to get a concise summary                 |
+| **Freestyle Writing** | Generate creative content from any prompt           |
+| **Simplify Writing**  | Convert complex text to simpler reading levels      |
+| **Generate Image**    | Create AI images from text descriptions             |
+| **Designer Tool**     | Combine creative elements for unique visual designs |
+
+### History (`/history`)
+
+- View all past generations (text and images)
+- Search through history
+- Copy or download previous outputs
+- Expandable conversation view
+
+### Account Management (`/account`)
+
+- View profile information
+- Manage credits and payments
+- Delete account option
+
+## 🏗 Architecture
+
+### Server Actions
+
+Xref.ai uses Next.js Server Actions for secure server-side operations:
+
+```typescript
+// Example: generateAIResponse.ts
+"use server";
+
+import { streamText } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { createStreamableValue } from "@ai-sdk/rsc";
+
+export async function generateResponse(
+  systemPrompt: string,
+  userPrompt: string
+) {
+  const stream = createStreamableValue("");
+
+  (async () => {
+    const { textStream } = streamText({
+      model: openai("gpt-4.1"),
+      system: systemPrompt,
+      prompt: userPrompt,
+    });
+
+    for await (const text of textStream) {
+      stream.update(text);
+    }
+    stream.done();
+  })();
+
+  return stream.value;
 }
 ```
 
-## Server Actions
+### State Management (Zustand)
 
-### What are Server Actions in Next.js 15?
+Lightweight, modular stores:
 
-Server Actions in **Next.js 15** allow you to run asynchronous tasks directly on the server. These actions can be used in components and invoked from both the client and server, streamlining the process of interacting with the server-side logic. This removes the need to define separate API routes for every server-side interaction, making the application more efficient and simplifying the overall architecture.
+- **useAuthStore** — User authentication state
+- **useProfileStore** — User profile and preferences
+- **usePaymentsStore** — Credits and payment status
 
-#### Key Benefits:
+### Firestore Data Model
 
-- **Secure**: Server actions are executed entirely on the server, keeping sensitive data safe from client exposure.
-- **Efficient**: No need for extra API routes or boilerplate; actions are invoked directly from the client-side components.
-- **Integrated**: They work seamlessly with Next.js’s App Router, integrating server-side logic into your components.
+```
+users/
+  └── {uid}/
+      ├── profile          # User profile document
+      ├── summaries/       # Text generation history
+      │   └── {docId}
+      └── chats/           # Chat conversation history
+          └── {docId}
+```
+
+## 📡 API Reference
+
+### Web Scraping Proxy
+
+```http
+GET /api/proxy?url={encoded_url}
+```
+
+Fetches and returns HTML content from the specified URL for summarization.
+
+**Parameters:**
+
+- `url` (required): URL-encoded website address
+
+**Response:** Raw HTML content
+
+### Server Actions
+
+| Action                       | Purpose                            | Input                           |
+| ---------------------------- | ---------------------------------- | ------------------------------- |
+| `generateResponse`           | Generate text from prompt          | `systemPrompt`, `userPrompt`    |
+| `generateResponseWithMemory` | Generate with conversation context | `systemPrompt`, `chatHistory[]` |
+| `generateImage`              | Create AI image                    | `prompt`                        |
+| `suggestTags`                | Get tag suggestions                | `freestyle`, `tags[]`           |
+| `createPaymentIntent`        | Start Stripe payment               | `amount`                        |
+| `validatePaymentIntent`      | Verify payment                     | `paymentIntentId`               |
+
+## 🤝 Contributing
+
+We welcome contributions! Here's how to get started:
+
+1. **Fork the repository**
+
+2. **Create a feature branch**
+
+   ```bash
+   git checkout -b feature/amazing-feature
+   ```
+
+3. **Make your changes**
+
+   - Follow the existing code style
+   - Add TypeScript types for new code
+   - Test your changes locally
+
+4. **Commit your changes**
+
+   ```bash
+   git commit -m "Add amazing feature"
+   ```
+
+5. **Push to your fork**
+
+   ```bash
+   git push origin feature/amazing-feature
+   ```
+
+6. **Open a Pull Request**
+
+### Development Guidelines
+
+- Use **TypeScript** for all new code
+- Follow **functional components** with hooks
+- Use **Tailwind CSS** for styling
+- Implement **Server Actions** for server-side logic (not API routes)
+- Use **Zustand** for global state management
+- Keep components **modular and reusable**
+
+### Available Scripts
+
+```bash
+npm run dev      # Start development server (Turbopack)
+npm run build    # Build for production
+npm run start    # Start production server
+npm run lint     # Run ESLint
+```
+
+## 📄 License
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+
+## 📞 Support
+
+- **GitHub Issues**: [Report a bug](https://github.com/brown2020/xrefaiapp/issues)
+- **Email**: [info@ignitechannel.com](mailto:info@ignitechannel.com)
+- **Website**: [xref.ai](https://xref.ai)
 
 ---
 
-### `generateImage`
-
-The `generateImage` server action generates an image using the Fireworks API and saves it to Firebase. The action returns a signed URL to access the image.
-
-- **Input**: User prompt for the image.
-- **Output**: Generated image saved to Firebase and URL returned.
-
-### `generateResponse`
-
-This server action sends user prompts to OpenAI's GPT model for generating responses (e.g., summaries, simplified text). The response is streamed back to the client in real-time.
-
-- **Input**: User's input and system prompt.
-- **Output**: Text response from OpenAI.
-
-### `generateResponseWithMemory`
-
-This action works similarly to `generateResponse` but includes the chat history. It sends previous conversation entries to the AI model to maintain context.
-
-- **Input**: A list of user prompts and AI responses (chat history).
-- **Output**: AI response based on the current context and past interactions.
-
-### Stripe Payment Actions
-
-- **`createPaymentIntent`**: Handles the creation of payment intents via Stripe for purchases or subscriptions.
-- **`validatePaymentIntent`**: Validates the payment intent by checking the status and processing the outcome.
-
-## License
-
-This
-
-project is licensed under the **MIT License**.
-
----
-
-For more information, please visit the project repository at [xrefaiapp on GitHub](https://github.com/brown2020/xrefaiapp) or contact us at [info@ignitechannel.com](mailto:info@ignitechannel.com).
+<p align="center">
+  Built with ❤️ by <a href="https://github.com/brown2020">brown2020</a>
+</p>
