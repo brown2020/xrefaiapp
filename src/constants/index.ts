@@ -2,6 +2,16 @@
  * Application-wide constants
  */
 
+// Re-export route configuration
+export {
+  ROUTES,
+  PROTECTED_ROUTES,
+  PUBLIC_ROUTES,
+  FOOTER_HIDDEN_ROUTES,
+  NAV_MENU_ITEMS,
+  FOOTER_MENU_ITEMS,
+} from "./routes";
+
 // Chat and conversation limits
 export const MAX_WORDS_IN_CONTEXT = 5000;
 export const MAX_CHAT_LOAD = 30;

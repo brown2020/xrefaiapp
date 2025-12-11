@@ -3,13 +3,11 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Twitter, Facebook, Instagram } from "lucide-react";
-
-const menuItemsLeft = [
-  { label: "About", href: "/about" },
-  { label: "Terms", href: "/terms" },
-  { label: "Privacy", href: "/privacy" },
-  { label: "Support", href: "/support" },
-];
+import {
+  FOOTER_MENU_ITEMS,
+  FOOTER_HIDDEN_ROUTES,
+  ROUTES,
+} from "@/constants/routes";
 
 function FooterLink({ label, href }: { label: string; href: string }) {
   return (
@@ -45,8 +43,7 @@ export default function Footer() {
   const pathname = usePathname();
 
   // Don't show footer on functional pages to maximize vertical space
-  const hiddenPaths = ["/chat", "/history", "/tools", "/account"];
-  if (hiddenPaths.some((path) => pathname?.startsWith(path))) {
+  if (FOOTER_HIDDEN_ROUTES.some((path) => pathname?.startsWith(path))) {
     return null;
   }
 
@@ -55,7 +52,7 @@ export default function Footer() {
       <div className="container flex flex-col sm:flex-row items-center justify-between px-5 py-5 mx-auto z-10 text-gray-500 gap-4 sm:gap-0">
         {/* Left Menu */}
         <nav className="flex gap-4 sm:gap-6 order-2 sm:order-1 lg:w-[33%]">
-          {menuItemsLeft.map((item) => (
+          {FOOTER_MENU_ITEMS.map((item) => (
             <FooterLink key={item.href} label={item.label} href={item.href} />
           ))}
         </nav>
@@ -76,7 +73,7 @@ export default function Footer() {
         {/* Right Menu and Copyright */}
         <div className="flex lg:justify-end gap-2 order-3 lg:order-3 lg:w-[33%] text-[#041D34]">
           <span>&copy; {new Date().getFullYear()}</span>
-          <FooterLink label="XREF.AI" href="/" />
+          <FooterLink label="XREF.AI" href={ROUTES.home} />
         </div>
       </div>
     </footer>

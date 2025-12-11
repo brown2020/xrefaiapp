@@ -4,10 +4,7 @@ import { db } from "@/firebase/firebaseClient";
 import { generateResponseWithMemory } from "@/actions/generateAIResponse";
 import { readStreamableValue } from "@ai-sdk/rsc";
 import { ChatType } from "@/types/ChatType";
-import {
-  checkRestrictedWords,
-  isIOSReactNativeWebView,
-} from "@/utils/platform";
+import { validateContentWithAlert } from "@/utils/contentGuard";
 import { debounce } from "lodash";
 import { MAX_WORDS_IN_CONTEXT } from "@/constants";
 
@@ -47,8 +44,7 @@ export function useChatGeneration(
 
   const handleSendPrompt = async () => {
     if (!newPrompt.trim()) return;
-    if (isIOSReactNativeWebView() && checkRestrictedWords(newPrompt)) {
-      alert("Your description contains restricted words and cannot be used.");
+    if (!validateContentWithAlert(newPrompt)) {
       return;
     }
 

@@ -6,6 +6,7 @@ import { isIOSReactNativeWebView } from "@/utils/platform";
 import { usePaymentsStore } from "@/zustand/usePaymentsStore";
 import { inputClassName, labelClassName } from "@/components/ui/FormInput";
 import { ChevronDown } from "lucide-react";
+import { ROUTES } from "@/constants/routes";
 
 export default function ProfileComponent() {
   const profile = useProfileStore((state) => state.profile);
@@ -89,7 +90,7 @@ export default function ProfileComponent() {
 
   const handleBuyClick = useCallback(() => {
     if (showCreditsSection) {
-      window.location.href = "/payment-attempt";
+      window.location.href = ROUTES.paymentAttempt;
     } else {
       window.ReactNativeWebView?.postMessage("INIT_IAP");
     }

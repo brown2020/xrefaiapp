@@ -4,10 +4,7 @@ import { useState } from "react";
 import { generateResponse } from "@/actions/generateAIResponse";
 import { readStreamableValue } from "@ai-sdk/rsc";
 import toast from "react-hot-toast";
-import {
-  checkRestrictedWords,
-  isIOSReactNativeWebView,
-} from "@/utils/platform";
+import { validateContentWithAlert } from "@/utils/contentGuard";
 import { useHistorySaver } from "@/hooks/useHistorySaver";
 import { useScrollToResult } from "@/hooks/useScrollToResult";
 import { inputClassName, labelClassName } from "@/components/ui/FormInput";
@@ -54,8 +51,7 @@ export default function BasePrompt({
   const getResponse = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (isIOSReactNativeWebView() && checkRestrictedWords(inputValue)) {
-      alert("Your content contains restricted words and cannot be used.");
+    if (!validateContentWithAlert(inputValue)) {
       return;
     }
 

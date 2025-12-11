@@ -2,10 +2,7 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { getImagePrompt } from "@/utils/getImagePrompt";
 import { generateImage } from "@/actions/generateImage";
-import {
-  checkRestrictedWords,
-  isIOSReactNativeWebView,
-} from "@/utils/platform";
+import { validateContentWithAlert } from "@/utils/contentGuard";
 import { PromptDataType } from "@/types/PromptDataType";
 import { useHistorySaver } from "@/hooks/useHistorySaver";
 
@@ -17,8 +14,7 @@ export function useImageGeneration(uid: string | null) {
   const [thinking, setThinking] = useState<boolean>(false);
 
   const handleSubmit = async (promptData: PromptDataType, topic: string) => {
-    if (isIOSReactNativeWebView() && checkRestrictedWords(topic)) {
-      alert("Your description contains restricted words and cannot be used.");
+    if (!validateContentWithAlert(topic)) {
       return;
     }
 

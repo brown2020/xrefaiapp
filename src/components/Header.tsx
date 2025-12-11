@@ -4,6 +4,7 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Menu, X, MessageSquare, Grid2X2, History, User } from "lucide-react";
+import { NAV_MENU_ITEMS, ROUTES } from "@/constants/routes";
 
 type MenuItem = {
   label: string;
@@ -11,12 +12,20 @@ type MenuItem = {
   icon: React.ComponentType<{ className?: string }>;
 };
 
-const menuItems: MenuItem[] = [
-  { label: "Chat", href: "/chat", icon: MessageSquare },
-  { label: "Tools", href: "/tools", icon: Grid2X2 },
-  { label: "History", href: "/history", icon: History },
-  { label: "Account", href: "/account", icon: User },
-];
+const MENU_ICONS: Record<
+  string,
+  React.ComponentType<{ className?: string }>
+> = {
+  [ROUTES.chat]: MessageSquare,
+  [ROUTES.tools]: Grid2X2,
+  [ROUTES.history]: History,
+  [ROUTES.account]: User,
+};
+
+const menuItems: MenuItem[] = NAV_MENU_ITEMS.map((item) => ({
+  ...item,
+  icon: MENU_ICONS[item.href] || MessageSquare,
+}));
 
 export default function Header() {
   const [showMenu, setShowMenu] = useState(false);

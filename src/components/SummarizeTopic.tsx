@@ -3,14 +3,10 @@
 import { useState } from "react";
 import { generateResponse } from "@/actions/generateAIResponse";
 import { readStreamableValue } from "@ai-sdk/rsc";
-import axios from "axios";
-import { load } from "cheerio";
 import toast from "react-hot-toast";
-import {
-  checkRestrictedWords,
-  isIOSReactNativeWebView,
-} from "@/utils/platform";
+import { validateContentWithAlert } from "@/utils/contentGuard";
 import { useHistorySaver } from "@/hooks/useHistorySaver";
+import { useWebsiteScraper } from "@/hooks/useWebsiteScraper";
 import { useScrollToResult } from "@/hooks/useScrollToResult";
 import { inputClassName, labelClassName } from "@/components/ui/FormInput";
 import { SubmitButton } from "@/components/ui/SubmitButton";
@@ -20,61 +16,24 @@ import { MIN_WORD_COUNT, MAX_WORD_COUNT } from "@/constants";
 
 export default function SummarizeTopic() {
   const { saveHistory, uid } = useHistorySaver();
+  const { scrapeWebsite, progress, setProgress, resetProgress } =
+    useWebsiteScraper();
 
-  const [summary, setSummary] = useState<string>("");
-  const [flagged, setFlagged] = useState<string>("");
-  const [active, setActive] = useState<boolean>(true);
-  const [thinking, setThinking] = useState<boolean>(false);
+  const [summary, setSummary] = useState("");
+  const [flagged, setFlagged] = useState("");
+  const [active, setActive] = useState(true);
+  const [thinking, setThinking] = useState(false);
 
-  const [topic, setTopic] = useState<string>("");
-  const [site1, setSite1] = useState<string>("");
-  const [words, setWords] = useState<string>("30");
-  const [progress, setProgress] = useState<number>(0);
+  const [topic, setTopic] = useState("");
+  const [siteUrl, setSiteUrl] = useState("");
+  const [words, setWords] = useState("30");
 
   useScrollToResult(summary, flagged);
 
-  const normalizeUrl = (value: string) => {
-    if (!value) return "";
-    try {
-      const parsed = new URL(value);
-      if (parsed.protocol === "http:") {
-        parsed.protocol = "https:";
-      }
-      return parsed.toString();
-    } catch {
-      return `https://${value.replace(/^https?:\/\//i, "")}`;
-    }
-  };
-
-  const scrapeWebsite = async (rawUrl: string) => {
-    try {
-      const url = normalizeUrl(rawUrl);
-      if (!url) {
-        toast.error("Website URL is invalid");
-        return "";
-      }
-      setProgress(20);
-
-      const response = await axios.get("/api/proxy", { params: { url } });
-      setProgress(50);
-
-      const html = response.data;
-      const $ = load(html);
-      const scrapedContent = $("body").text().replace(/\s+/g, " ").trim();
-
-      return scrapedContent;
-    } catch (err) {
-      console.error("Error scraping website:", err);
-      toast.error("Failed to scrape website");
-      return "";
-    }
-  };
-
-  const getResponse = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (isIOSReactNativeWebView() && checkRestrictedWords(topic)) {
-      alert("Your description contains restricted words and cannot be used.");
+    if (!validateContentWithAlert(topic)) {
       return;
     }
 
@@ -82,7 +41,7 @@ export default function SummarizeTopic() {
     setSummary("");
     setFlagged("");
     setThinking(true);
-    setProgress(0);
+    resetProgress();
 
     let wordnum = Number(words || "30");
     if (wordnum < MIN_WORD_COUNT) wordnum = MIN_WORD_COUNT;
@@ -91,10 +50,10 @@ export default function SummarizeTopic() {
     let newPrompt = "Summarize this topic";
     let scrapedContent = "";
 
-    if (site1) {
-      scrapedContent = await scrapeWebsite(site1);
+    if (siteUrl) {
+      scrapedContent = await scrapeWebsite(siteUrl);
       if (scrapedContent) {
-        newPrompt += ` based on the content from the website ${site1}`;
+        newPrompt += ` based on the content from the website ${siteUrl}`;
         newPrompt += ` in approximately ${wordnum} words: ${scrapedContent}`;
       } else {
         newPrompt += ` in approximately ${wordnum} words: ${topic}`;
@@ -125,7 +84,7 @@ export default function SummarizeTopic() {
         await saveHistory({
           prompt: newPrompt,
           response: finishedSummary,
-          topic: topic || site1,
+          topic: topic || siteUrl,
           words,
           xrefs: [],
         });
@@ -147,7 +106,7 @@ export default function SummarizeTopic() {
 
   return (
     <div className="form-wrapper">
-      <form onSubmit={getResponse}>
+      <form onSubmit={handleSubmit}>
         <label htmlFor="site1-field" className={labelClassName}>
           Website reference
           <input
@@ -156,7 +115,7 @@ export default function SummarizeTopic() {
             id="site1-field"
             maxLength={120}
             placeholder="Website URL to use as a reference."
-            onChange={(e) => setSite1(e.target.value)}
+            onChange={(e) => setSiteUrl(e.target.value)}
             required
           />
         </label>
@@ -191,7 +150,7 @@ export default function SummarizeTopic() {
 
           <SubmitButton
             isLoading={thinking}
-            disabled={!active || !site1.trim()}
+            disabled={!active || !siteUrl.trim()}
             loadingText="Summarizing"
           >
             Summarize Website

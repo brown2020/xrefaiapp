@@ -1,11 +1,9 @@
 import Image from "next/image";
-import { useState } from "react";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
-import { copyToClipboard } from "@/utils/clipboard";
 import { ChatType } from "@/types/ChatType";
-import { Check, Copy, User } from "lucide-react";
+import { User } from "lucide-react";
 import { BotAvatar, BotHeader } from "@/components/ui/BotMessage";
-import { COPY_FEEDBACK_DURATION } from "@/constants";
+import { CopyButton } from "@/components/ui/CopyButton";
 
 interface ChatMessageProps {
   message: ChatType;
@@ -18,16 +16,6 @@ export default function ChatMessage({
   profilePhoto,
   isUser,
 }: ChatMessageProps) {
-  const [isCopied, setIsCopied] = useState(false);
-
-  const handleCopy = async () => {
-    const success = await copyToClipboard(message.response, "Response copied!");
-    if (success) {
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), COPY_FEEDBACK_DURATION);
-    }
-  };
-
   if (isUser) {
     return (
       <div className="flex w-full justify-end mb-6">
@@ -74,22 +62,10 @@ export default function ChatMessage({
             </div>
 
             <div className="absolute -bottom-8 left-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-              <button
-                onClick={handleCopy}
-                className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-900 bg-gray-50 px-2 py-1 rounded-md border border-gray-200 transition-colors cursor-pointer"
-              >
-                {isCopied ? (
-                  <>
-                    <Check size={14} className="text-green-600" />
-                    <span className="text-green-600">Copied</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy size={14} />
-                    <span>Copy</span>
-                  </>
-                )}
-              </button>
+              <CopyButton
+                text={message.response}
+                successMessage="Response copied!"
+              />
             </div>
           </div>
         </div>

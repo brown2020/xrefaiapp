@@ -5,10 +5,7 @@ import { generateImage } from "@/actions/generateImage";
 import toast from "react-hot-toast";
 import Image from "next/image";
 import { copyImageToClipboard, downloadImage } from "@/utils/clipboard";
-import {
-  checkRestrictedWords,
-  isIOSReactNativeWebView,
-} from "@/utils/platform";
+import { validateContentWithAlert } from "@/utils/contentGuard";
 import { StyledSelect } from "@/components/DesignerPrompt/StyledSelect";
 import { painters } from "@/data/painters";
 import { useHistorySaver } from "@/hooks/useHistorySaver";
@@ -39,8 +36,7 @@ export default function ImagePrompt() {
       finalTopic = `${topic}. In the style of ${selectedPainter}`;
     }
 
-    if (isIOSReactNativeWebView() && checkRestrictedWords(finalTopic)) {
-      alert("Your description contains restricted words and cannot be used.");
+    if (!validateContentWithAlert(finalTopic)) {
       return;
     }
 

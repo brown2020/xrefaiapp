@@ -1,36 +1,56 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Toaster } from "react-hot-toast";
 import CookieConsent from "react-cookie-consent";
+import { useRouter, usePathname } from "next/navigation";
 
 import useAuthToken from "@/hooks/useAuthToken";
 import { useInitializeStores } from "@/zustand/useInitializeStores";
 import { useClientSetup } from "@/hooks/useClientSetup";
 import ErrorBoundary from "./ErrorBoundary";
-import { usePathname, useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { PROTECTED_ROUTES, ROUTES } from "@/constants/routes";
 
+/**
+ * Client-side provider that handles:
+ * - Auth token management
+ * - Store initialization
+ * - Loading states
+ * - Cookie consent
+ * - Toast notifications
+ * - Redirect on logout from protected routes
+ *
+ * Note: Initial route protection is handled by proxy.ts at the edge level.
+ * This component handles redirect when user logs out while on a protected route.
+ */
 export function ClientProvider({ children }: { children: React.ReactNode }) {
   const { loading, uid } = useAuthToken(process.env.NEXT_PUBLIC_COOKIE_NAME!);
   const router = useRouter();
   const pathname = usePathname();
+  const wasAuthenticated = useRef(false);
+
   useInitializeStores();
   const { isClient, isWebView } = useClientSetup();
 
+  // Track authentication state and redirect on logout from protected routes
   useEffect(() => {
-    if (
-      !loading &&
-      !uid &&
-      pathname != "/" &&
-      !pathname.includes("images/") &&
-      !pathname.includes("/about") &&
-      !pathname.includes("/terms") &&
-      !pathname.includes("/privacy")
-    ) {
-      router.push("/");
+    if (loading) return;
+
+    // Check if user just logged out (was authenticated, now isn't)
+    if (wasAuthenticated.current && !uid) {
+      const isOnProtectedRoute = PROTECTED_ROUTES.some((route) =>
+        pathname?.startsWith(route)
+      );
+
+      if (isOnProtectedRoute) {
+        router.push(ROUTES.home);
+      }
     }
-  }, [loading, pathname, router, uid]);
+
+    // Update the ref for next comparison
+    wasAuthenticated.current = !!uid;
+  }, [loading, uid, pathname, router]);
 
   if (loading)
     return (

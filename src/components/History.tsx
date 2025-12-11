@@ -6,23 +6,18 @@ import {
   Search,
   Calendar,
   Copy,
-  Check,
   Download,
 } from "lucide-react";
 import { useState, useCallback } from "react";
 
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { UserHistoryType } from "@/types/UserHistoryType";
-import {
-  copyToClipboard,
-  copyImageToClipboard,
-  downloadImage,
-} from "@/utils/clipboard";
+import { copyImageToClipboard, downloadImage } from "@/utils/clipboard";
 import Image from "next/image";
 import MarkdownRenderer from "./MarkdownRenderer";
 import { LoadingSpinner, InlineSpinner } from "@/components/ui/LoadingSpinner";
+import { CopyButton } from "@/components/ui/CopyButton";
 import { useFirestorePagination } from "@/hooks/useFirestorePagination";
-import { COPY_FEEDBACK_DURATION } from "@/constants";
 
 export default function History() {
   const uid = useAuthStore((state) => state.uid);
@@ -32,7 +27,6 @@ export default function History() {
   const [expandedItems, setExpandedItems] = useState<{
     [key: number]: boolean;
   }>({});
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   // Transform function for Firestore documents
   const transformHistoryDoc = useCallback(
@@ -69,14 +63,6 @@ export default function History() {
       ...prev,
       [index]: !prev[index],
     }));
-  };
-
-  const handleCopy = async (text: string, index: number) => {
-    const success = await copyToClipboard(text);
-    if (success) {
-      setCopiedIndex(index);
-      setTimeout(() => setCopiedIndex(null), COPY_FEEDBACK_DURATION);
-    }
   };
 
   if (!uid)
@@ -239,29 +225,7 @@ export default function History() {
 
                               {summary.words !== "image" && (
                                 <div className="mt-4 flex justify-start pt-3 border-t border-gray-50">
-                                  <button
-                                    onClick={() =>
-                                      handleCopy(summary.response, index)
-                                    }
-                                    className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-900 bg-gray-50 px-2 py-1 rounded-md border border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer"
-                                  >
-                                    {copiedIndex === index ? (
-                                      <>
-                                        <Check
-                                          size={14}
-                                          className="text-green-600"
-                                        />
-                                        <span className="text-green-600">
-                                          Copied
-                                        </span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Copy size={14} />
-                                        <span>Copy</span>
-                                      </>
-                                    )}
-                                  </button>
+                                  <CopyButton text={summary.response} />
                                 </div>
                               )}
                             </div>

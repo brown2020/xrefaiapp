@@ -8,6 +8,7 @@ import { signOut } from "firebase/auth";
 import { auth } from "@/firebase/firebaseClient";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { ROUTES } from "@/constants/routes";
 
 export default function DeleteAccount() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -28,7 +29,7 @@ export default function DeleteAccount() {
       await signOut(auth);
       clearAuthDetails();
       toast.success("Account deleted successfully.");
-      router.replace("/");
+      router.replace(ROUTES.home);
     } catch (error) {
       setLoadingDelete(false);
       console.error("Error on deletion of account:", error);
@@ -37,13 +38,11 @@ export default function DeleteAccount() {
 
   return (
     <div className="flex flex-col container mt-4 mx-auto gap-4">
-
       <div className="w-full flex justify-end">
         <button
           onClick={handleDeleteClick}
           className="font-bold bg-[#FF5356] hover:bg-[#c0373a] rounded-3xl text-white w-56 block px-3 py-2"
         >
-
           {loadingDelete ? "Deleting..." : "Delete Account"}
         </button>
         <DeleteConfirmModal
