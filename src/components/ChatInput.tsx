@@ -1,5 +1,6 @@
 import TextareaAutosize from "react-textarea-autosize";
-import { Send, Loader2 } from "lucide-react";
+import { Send } from "lucide-react";
+import { InlineSpinner } from "@/components/ui/LoadingSpinner";
 
 interface ChatInputProps {
   value: string;
@@ -49,7 +50,7 @@ export default function ChatInput({
               aria-label="Send message"
             >
               {isLoading ? (
-                <Loader2 size={18} className="animate-spin" />
+                <InlineSpinner size="sm" />
               ) : (
                 <Send size={18} className={value.trim() ? "ml-0.5" : ""} />
               )}

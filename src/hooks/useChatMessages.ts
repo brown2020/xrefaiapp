@@ -1,127 +1,66 @@
-import { useState, useEffect } from "react";
-import {
-  collection,
-  onSnapshot,
-  orderBy,
-  query,
-  limit,
-  getDocs,
-  startAfter,
-  Timestamp,
-} from "firebase/firestore";
-import { db } from "@/firebase/firebaseClient";
+import { useState, useCallback, useMemo } from "react";
+import { QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
 import { ChatType } from "@/types/ChatType";
 import { MAX_CHAT_LOAD } from "@/constants";
+import { useFirestoreRealtime } from "./useFirestoreRealtime";
 
+/**
+ * Hook for managing chat messages with real-time updates
+ * Built on top of useFirestoreRealtime for consistency
+ */
 export function useChatMessages(uid: string) {
-  const [chatlist, setChatlist] = useState<ChatType[]>([]);
-  const [lastKey, setLastKey] = useState<Timestamp | undefined>(undefined);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [responseSaved, setResponseSaved] = useState(false);
 
-  // Initial load of chat messages from Firebase
-  useEffect(() => {
-    if (!uid) {
-      setChatlist([]);
-      setLoading(false);
-      return;
+  // Transform Firestore document to ChatType
+  const transformChat = useCallback(
+    (doc: QueryDocumentSnapshot<DocumentData>): ChatType => {
+      const data = doc.data();
+      return {
+        id: data?.id || doc.id,
+        prompt: data?.prompt,
+        response: data?.response,
+        seconds: data?.timestamp?.seconds || 0,
+      };
+    },
+    []
+  );
+
+  // Handle data changes (reset responseSaved flag)
+  const handleDataChange = useCallback(() => {
+    if (responseSaved) {
+      setResponseSaved(false);
     }
+  }, [responseSaved]);
 
-    const q = query(
-      collection(db, "users", uid, "chats"),
-      orderBy("timestamp", "desc"),
-      limit(MAX_CHAT_LOAD)
-    );
+  const {
+    items: chatlist,
+    loading,
+    loadingMore,
+    hasMore,
+    loadMore,
+  } = useFirestoreRealtime<ChatType>({
+    uid: uid || null,
+    collectionName: "chats",
+    orderByField: "timestamp",
+    orderDirection: "desc",
+    pageSize: MAX_CHAT_LOAD,
+    transform: transformChat,
+    onDataChange: handleDataChange,
+  });
 
-    const unsub = onSnapshot(
-      q,
-      (querySnapshot) => {
-        const chats: ChatType[] = [];
-        let newLastKey: Timestamp | undefined = undefined;
-
-        querySnapshot.forEach((doc) => {
-          if (doc.exists()) {
-            const data = doc.data();
-            chats.push({
-              id: data?.id || doc.id,
-              prompt: data?.prompt,
-              response: data?.response,
-              seconds: data?.timestamp.seconds,
-            });
-
-            if (chats.length === MAX_CHAT_LOAD) {
-              newLastKey = data?.timestamp || undefined;
-            }
-          }
-        });
-
-        setChatlist(chats);
-        setLoading(false);
-        setLastKey(newLastKey);
-
-        if (responseSaved) {
-          setResponseSaved(false);
-        }
-      },
-      (error) => {
-        // Ignore permission errors that happen during sign-out
-        if (error.code !== "permission-denied") {
-          console.error("Error fetching chat messages:", error);
-        }
-      }
-    );
-
-    return () => unsub();
-  }, [uid, responseSaved]);
-
-  // Load more messages (pagination)
-  const loadMoreChats = async () => {
-    if (!uid || !lastKey) return;
-
-    setLoadingMore(true);
-    const q = query(
-      collection(db, "users", uid, "chats"),
-      orderBy("timestamp", "desc"),
-      startAfter(lastKey),
-      limit(MAX_CHAT_LOAD)
-    );
-
-    const querySnapshot = await getDocs(q);
-    const newChats: ChatType[] = [];
-    let newLastKey: Timestamp | undefined = undefined;
-
-    querySnapshot.forEach((doc) => {
-      if (doc.exists()) {
-        const data = doc.data();
-        newChats.push({
-          id: data?.id || doc.id,
-          prompt: data?.prompt,
-          response: data?.response,
-          seconds: data?.timestamp.seconds,
-        });
-
-        if (newChats.length === MAX_CHAT_LOAD) {
-          newLastKey = data?.timestamp || undefined;
-        }
-      }
-    });
-
-    setChatlist((prevChats) => [...prevChats, ...newChats]);
-    setLastKey(newLastKey);
-    setLoadingMore(false);
-  };
-
-  const markResponseSaved = () => {
+  const markResponseSaved = useCallback(() => {
     setResponseSaved(true);
-  };
+  }, []);
+
+  // Memoize hasMore based on list length for backward compatibility
+  const lastKey = useMemo(() => (hasMore ? true : undefined), [hasMore]);
 
   return {
     chatlist,
     loading,
     loadingMore,
     lastKey,
-    loadMoreChats,
+    loadMoreChats: loadMore,
     markResponseSaved,
   };
 }

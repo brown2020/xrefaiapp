@@ -63,15 +63,13 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ErrorBoundary>
-      <div className="flex flex-col h-full">
-        {children}
-        {isClient && !isWebView && (
-          <CookieConsent>
-            This app uses cookies to enhance the user experience.
-          </CookieConsent>
-        )}
-        {isClient && <Toaster position="bottom-center" />}
-      </div>
+      {children}
+      {isClient && !isWebView && (
+        <CookieConsent>
+          This app uses cookies to enhance the user experience.
+        </CookieConsent>
+      )}
+      {isClient && <Toaster position="bottom-center" />}
     </ErrorBoundary>
   );
 }

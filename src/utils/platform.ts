@@ -1,17 +1,30 @@
-// utils/platform.ts
-export function isIOSReactNativeWebView(): boolean {
-  if (typeof window === "undefined") {
-    return false; // Ensure this is only run client-side
-  }
+/**
+ * Platform detection utilities
+ */
 
-  // Check if we are in a React Native WebView
-  const isReactNativeWebView = typeof window.ReactNativeWebView !== "undefined";
+const isBrowser = () => typeof window !== "undefined";
 
-  // Return trueif in a React Native WebView
-  return isReactNativeWebView;
+/**
+ * Check if running in a React Native WebView
+ */
+export function isReactNativeWebView(): boolean {
+  if (!isBrowser()) return false;
+  return typeof window.ReactNativeWebView !== "undefined";
 }
 
-const restrictedWordsPatterns = [
+/**
+ * Check if running in iOS React Native WebView
+ * @deprecated Use isReactNativeWebView() - the naming was misleading
+ */
+export function isIOSReactNativeWebView(): boolean {
+  return isReactNativeWebView();
+}
+
+/**
+ * Restricted word patterns for content moderation
+ * Used to prevent inappropriate content in image generation
+ */
+const RESTRICTED_WORD_PATTERNS: RegExp[] = [
   /\bnude\b/i,
   /\bnaked\b/i,
   /\bsexual\b/i,
@@ -35,7 +48,6 @@ const restrictedWordsPatterns = [
   /\binappropriate\b/i,
   /\bobscene\b/i,
   /\blewd\b/i,
-  /\bvagina\b/i,
   /\bkinky\b/i,
   /\bfetish\b/i,
   /\baroused\b/i,
@@ -66,6 +78,7 @@ const restrictedWordsPatterns = [
   /\blatex\b/i,
   /\bbdsm\b/i,
   /\bbondage\b/i,
+  // Leetspeak variants
   /n[@a]ked/i,
   /p[0o]rn/i,
   /s[e3]x/i,
@@ -73,6 +86,11 @@ const restrictedWordsPatterns = [
   /n[i1]pple/i,
 ];
 
-export const checkRestrictedWords = (imagePrompt: string): boolean => {
-  return restrictedWordsPatterns.some((pattern) => pattern.test(imagePrompt));
-};
+/**
+ * Check if content contains restricted words
+ * @param content - The text content to check
+ * @returns true if restricted content is found
+ */
+export function checkRestrictedWords(content: string): boolean {
+  return RESTRICTED_WORD_PATTERNS.some((pattern) => pattern.test(content));
+}

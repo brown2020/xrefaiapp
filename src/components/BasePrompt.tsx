@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { validateContentWithAlert } from "@/utils/contentGuard";
 import { useHistorySaver } from "@/hooks/useHistorySaver";
 import { useScrollToResult } from "@/hooks/useScrollToResult";
+import { useGenerationState } from "@/hooks/useGenerationState";
 import { inputClassName, labelClassName } from "@/components/ui/FormInput";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ProgressBar } from "@/components/ui/ProgressBar";
@@ -37,14 +38,20 @@ export default function BasePrompt({
   children,
 }: BasePromptProps) {
   const { saveHistory, uid } = useHistorySaver();
+  const {
+    summary,
+    flagged,
+    active,
+    thinking,
+    progress,
+    startGeneration,
+    completeWithSuccess,
+    completeWithError,
+    setProgress,
+  } = useGenerationState();
 
   const [inputValue, setInputValue] = useState("");
-  const [summary, setSummary] = useState<string>("");
-  const [flagged, setFlagged] = useState<string>("");
-  const [active, setActive] = useState<boolean>(true);
-  const [thinking, setThinking] = useState<boolean>(false);
-  const [words, setWords] = useState<string>("30");
-  const [progress, setProgress] = useState<number>(0);
+  const [words, setWords] = useState("30");
 
   useScrollToResult(summary, flagged);
 
@@ -55,11 +62,7 @@ export default function BasePrompt({
       return;
     }
 
-    setActive(false);
-    setSummary("");
-    setFlagged("");
-    setThinking(true);
-    setProgress(0);
+    startGeneration();
 
     let wordnum = Number(words || "30");
     if (wordnum < MIN_WORD_COUNT) wordnum = MIN_WORD_COUNT;
@@ -75,14 +78,13 @@ export default function BasePrompt({
       for await (const content of readStreamableValue(result)) {
         if (content) {
           finishedSummary = content.trim();
-          setSummary(finishedSummary);
           chunkCount++;
           const currentProgress = 20 + (chunkCount / wordnum) * 80;
           setProgress(Math.min(currentProgress, 95));
         }
       }
 
-      setThinking(false);
+      completeWithSuccess(finishedSummary);
 
       if (uid) {
         const topicDisplay =
@@ -100,15 +102,11 @@ export default function BasePrompt({
 
       toast.success(`${title} generated successfully`);
     } catch (error) {
-      setThinking(false);
-      setFlagged(
+      completeWithError(
         "No suggestions found. Servers might be overloaded right now."
       );
       console.error("Error generating response:", error);
       toast.error(`Failed to generate ${title.toLowerCase()}`);
-    } finally {
-      setProgress(100);
-      setActive(true);
     }
   };
 

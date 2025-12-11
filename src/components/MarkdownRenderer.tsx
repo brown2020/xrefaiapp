@@ -1,7 +1,6 @@
-// components/MarkdownRenderer.tsx
 "use client";
 
-import React from "react";
+import { memo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -9,12 +8,14 @@ interface MarkdownRendererProps {
   content: string;
 }
 
-const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
-  return (
-    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-      {content}
-    </ReactMarkdown>
-  );
-};
+/**
+ * Memoized Markdown renderer to prevent unnecessary re-renders
+ * Uses remark-gfm for GitHub Flavored Markdown support
+ */
+const MarkdownRenderer = memo(function MarkdownRenderer({
+  content,
+}: MarkdownRendererProps) {
+  return <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>;
+});
 
 export default MarkdownRenderer;

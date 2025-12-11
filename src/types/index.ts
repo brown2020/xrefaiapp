@@ -10,6 +10,12 @@ export interface BaseMessage {
   response: string;
 }
 
+// Common Firestore document transform type
+export type FirestoreDocTransform<T> = (doc: {
+  data: () => Record<string, unknown>;
+  id: string;
+}) => T;
+
 // Re-export specific types
 export type { ChatType } from "./ChatType";
 export type { UserHistoryType } from "./UserHistoryType";

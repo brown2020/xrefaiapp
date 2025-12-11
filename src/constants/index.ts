@@ -40,3 +40,12 @@ export const GRADE_LEVELS = [
   "College",
   "PhD",
 ];
+
+// Common error messages
+export const ERROR_MESSAGES = {
+  serverOverloaded:
+    "No suggestions found. Servers might be overloaded right now.",
+  imageGeneration:
+    "I can't do that. I can't do real people or anything that violates the terms of service. Please try changing the prompt.",
+  genericError: "An error occurred. Please try again.",
+} as const;

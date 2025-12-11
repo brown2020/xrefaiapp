@@ -8,6 +8,7 @@ import { validateContentWithAlert } from "@/utils/contentGuard";
 import { useHistorySaver } from "@/hooks/useHistorySaver";
 import { useWebsiteScraper } from "@/hooks/useWebsiteScraper";
 import { useScrollToResult } from "@/hooks/useScrollToResult";
+import { useGenerationState } from "@/hooks/useGenerationState";
 import { inputClassName, labelClassName } from "@/components/ui/FormInput";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ProgressBar } from "@/components/ui/ProgressBar";
@@ -16,13 +17,22 @@ import { MIN_WORD_COUNT, MAX_WORD_COUNT } from "@/constants";
 
 export default function SummarizeTopic() {
   const { saveHistory, uid } = useHistorySaver();
-  const { scrapeWebsite, progress, setProgress, resetProgress } =
-    useWebsiteScraper();
-
-  const [summary, setSummary] = useState("");
-  const [flagged, setFlagged] = useState("");
-  const [active, setActive] = useState(true);
-  const [thinking, setThinking] = useState(false);
+  const {
+    scrapeWebsite,
+    progress: scrapeProgress,
+    resetProgress,
+  } = useWebsiteScraper();
+  const {
+    summary,
+    flagged,
+    active,
+    thinking,
+    progress,
+    startGeneration,
+    completeWithSuccess,
+    completeWithError,
+    setProgress,
+  } = useGenerationState();
 
   const [topic, setTopic] = useState("");
   const [siteUrl, setSiteUrl] = useState("");
@@ -33,14 +43,11 @@ export default function SummarizeTopic() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!validateContentWithAlert(topic)) {
+    if (!validateContentWithAlert(topic || siteUrl)) {
       return;
     }
 
-    setActive(false);
-    setSummary("");
-    setFlagged("");
-    setThinking(true);
+    startGeneration();
     resetProgress();
 
     let wordnum = Number(words || "30");
@@ -52,6 +59,7 @@ export default function SummarizeTopic() {
 
     if (siteUrl) {
       scrapedContent = await scrapeWebsite(siteUrl);
+      setProgress(scrapeProgress);
       if (scrapedContent) {
         newPrompt += ` based on the content from the website ${siteUrl}`;
         newPrompt += ` in approximately ${wordnum} words: ${scrapedContent}`;
@@ -72,13 +80,12 @@ export default function SummarizeTopic() {
       for await (const content of readStreamableValue(result)) {
         if (content) {
           finishedSummary = content.trim();
-          setSummary(finishedSummary);
           chunkCount++;
           setProgress(70 + (chunkCount / wordnum) * 30);
         }
       }
 
-      setThinking(false);
+      completeWithSuccess(finishedSummary);
 
       if (uid) {
         await saveHistory({
@@ -92,15 +99,11 @@ export default function SummarizeTopic() {
 
       toast.success("Summary generated successfully");
     } catch (error) {
-      setThinking(false);
-      setFlagged(
+      completeWithError(
         "No suggestions found. Servers might be overloaded right now."
       );
       console.error("Error generating response:", error);
       toast.error("Failed to generate summary");
-    } finally {
-      setProgress(100);
-      setActive(true);
     }
   };
 

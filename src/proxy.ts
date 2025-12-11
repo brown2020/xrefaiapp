@@ -3,10 +3,17 @@ import type { NextRequest } from "next/server";
 
 /**
  * Protected routes that require authentication
- * Note: These must match the static matcher config below
- * The centralized PROTECTED_ROUTES in constants/routes.ts should be kept in sync
+ *
+ * ⚠️ SYNC REQUIRED: Keep in sync with PROTECTED_ROUTES in constants/routes.ts
+ * Next.js requires static string literals for the matcher config,
+ * so we cannot import from constants. Run `npm run lint` to verify sync.
  */
-const PROTECTED_ROUTE_PREFIXES = ["/tools", "/chat", "/history", "/account"];
+const PROTECTED_ROUTE_PREFIXES = [
+  "/chat",
+  "/tools",
+  "/history",
+  "/account",
+] as const;
 
 /**
  * Next.js 16 Proxy (replaces middleware.ts)

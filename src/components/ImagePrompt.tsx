@@ -10,50 +10,51 @@ import { StyledSelect } from "@/components/DesignerPrompt/StyledSelect";
 import { painters } from "@/data/painters";
 import { useHistorySaver } from "@/hooks/useHistorySaver";
 import { useScrollToResult } from "@/hooks/useScrollToResult";
+import { useGenerationState } from "@/hooks/useGenerationState";
 import { Copy, Download } from "lucide-react";
 import { inputClassName, labelClassName } from "@/components/ui/FormInput";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ResponseDisplay } from "@/components/ui/ResponseDisplay";
 
+const IMAGE_ERROR_MESSAGE =
+  "I can't do that. I can't do real people or anything that violates the terms of service. Please try changing the prompt.";
+
 export default function ImagePrompt() {
   const { saveHistory, uid } = useHistorySaver();
+  const {
+    summary,
+    flagged,
+    active,
+    thinking,
+    startGeneration,
+    completeWithSuccess,
+    completeWithError,
+  } = useGenerationState();
 
-  const [summary, setSummary] = useState<string>("");
-  const [flagged, setFlagged] = useState<string>("");
-  const [active, setActive] = useState<boolean>(true);
-  const [thinking, setThinking] = useState<boolean>(false);
-
-  const [topic, setTopic] = useState<string>("");
-  const [selectedPainter, setSelectedPainter] = useState<string>("");
+  const [topic, setTopic] = useState("");
+  const [selectedPainter, setSelectedPainter] = useState("");
 
   useScrollToResult(summary, flagged);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    let finalTopic = topic;
-    if (selectedPainter) {
-      finalTopic = `${topic}. In the style of ${selectedPainter}`;
-    }
+    const finalTopic = selectedPainter
+      ? `${topic}. In the style of ${selectedPainter}`
+      : topic;
 
     if (!validateContentWithAlert(finalTopic)) {
       return;
     }
 
-    setActive(false);
-    setSummary("");
-    setFlagged("");
-    setThinking(true);
-
+    startGeneration();
     const toastId = toast.loading("Working on the design...");
 
     const result = await generateImage(finalTopic, uid || "");
 
-    setThinking(false);
-
     if (result.imageUrl && uid) {
       try {
-        setSummary(result.imageUrl);
+        completeWithSuccess(result.imageUrl);
         await saveHistory({
           prompt: finalTopic,
           response: result.imageUrl,
@@ -64,21 +65,16 @@ export default function ImagePrompt() {
 
         toast.dismiss(toastId);
         toast.success("Image generated successfully!");
-        setActive(true);
       } catch (error) {
         console.error("Error while saving history:", error);
         toast.dismiss(toastId);
         toast.error("Error generating design...");
-        setActive(true);
+        completeWithError("Error saving to history");
       }
     } else {
-      setFlagged(
-        "I can't do that. I can't do real people or anything that violates the terms of service. Please try changing the prompt."
-      );
-
+      completeWithError(IMAGE_ERROR_MESSAGE);
       toast.dismiss(toastId);
       toast.error("Issue with design...");
-      setActive(true);
     }
   };
 
