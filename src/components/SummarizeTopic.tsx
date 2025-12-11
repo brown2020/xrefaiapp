@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { copyToClipboard } from "@/utils/clipboard";
 import { generateResponse } from "@/actions/generateAIResponse";
 import { readStreamableValue } from "@ai-sdk/rsc";
 import axios from "axios";
@@ -16,6 +15,7 @@ import { useScrollToResult } from "@/hooks/useScrollToResult";
 import { inputClassName, labelClassName } from "@/components/ui/FormInput";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ProgressBar } from "@/components/ui/ProgressBar";
+import { ResponseDisplay } from "@/components/ui/ResponseDisplay";
 import { MIN_WORD_COUNT, MAX_WORD_COUNT } from "@/constants";
 
 export default function SummarizeTopic() {
@@ -198,25 +198,7 @@ export default function SummarizeTopic() {
           </SubmitButton>
         </div>
 
-        {Boolean(flagged) && (
-          <h3
-            id="flagged"
-            className="p-3 bg-red-100 text-red-800 my-3 rounded-md"
-          >
-            {flagged}
-          </h3>
-        )}
-
-        {!Boolean(flagged) && Boolean(summary) && (
-          <div id="response">
-            <h3
-              className="cursor-pointer response bg-[#E7EAEF] text-[#0B3C68]"
-              onClick={() => copyToClipboard(summary)}
-            >
-              {summary}
-            </h3>
-          </div>
-        )}
+        <ResponseDisplay flagged={flagged} summary={summary} />
       </form>
     </div>
   );

@@ -16,6 +16,7 @@ import { useScrollToResult } from "@/hooks/useScrollToResult";
 import { Copy, Download } from "lucide-react";
 import { inputClassName, labelClassName } from "@/components/ui/FormInput";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { ResponseDisplay } from "@/components/ui/ResponseDisplay";
 
 export default function ImagePrompt() {
   const { saveHistory, uid } = useHistorySaver();
@@ -118,47 +119,36 @@ export default function ImagePrompt() {
           Let&apos;s Visualize!
         </SubmitButton>
 
-        {Boolean(flagged) && (
-          <h3
-            id="flagged"
-            className="p-3 bg-red-100 text-red-800 my-3 rounded-md"
-          >
-            {flagged}
-          </h3>
-        )}
-
-        {!Boolean(flagged) && Boolean(summary) && (
-          <div id="response" className="mt-6">
-            <div className="bg-[#E7EAEF] p-4 rounded-lg">
-              <Image
-                src={summary}
-                alt="Generated Image"
-                width={512}
-                height={512}
-                className="object-contain w-full cursor-pointer rounded-lg"
-                unoptimized
-              />
-              <div className="flex gap-4 mt-4">
-                <button
-                  type="button"
-                  onClick={() => copyImageToClipboard(summary)}
-                  className="flex items-center gap-2 p-2 border border-[#A3AEC0] rounded-lg text-gray-600 hover:bg-[#83A873] hover:text-white transition-colors"
-                >
-                  <Copy size={16} />
-                  <span className="text-sm">Copy URL</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => downloadImage(summary)}
-                  className="flex items-center gap-2 p-2 border border-[#A3AEC0] rounded-lg text-gray-600 hover:bg-[#83A873] hover:text-white transition-colors"
-                >
-                  <Download size={16} />
-                  <span className="text-sm">Download</span>
-                </button>
-              </div>
+        <ResponseDisplay flagged={flagged} summary={summary}>
+          <div className="mt-6 bg-[#E7EAEF] p-4 rounded-lg">
+            <Image
+              src={summary}
+              alt="Generated Image"
+              width={512}
+              height={512}
+              className="object-contain w-full cursor-pointer rounded-lg"
+              unoptimized
+            />
+            <div className="flex gap-4 mt-4">
+              <button
+                type="button"
+                onClick={() => copyImageToClipboard(summary)}
+                className="flex items-center gap-2 p-2 border border-[#A3AEC0] rounded-lg text-gray-600 hover:bg-[#83A873] hover:text-white transition-colors"
+              >
+                <Copy size={16} />
+                <span className="text-sm">Copy URL</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => downloadImage(summary)}
+                className="flex items-center gap-2 p-2 border border-[#A3AEC0] rounded-lg text-gray-600 hover:bg-[#83A873] hover:text-white transition-colors"
+              >
+                <Download size={16} />
+                <span className="text-sm">Download</span>
+              </button>
             </div>
           </div>
-        )}
+        </ResponseDisplay>
       </form>
     </div>
   );

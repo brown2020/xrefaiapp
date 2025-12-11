@@ -11,7 +11,6 @@ import { useHistorySaver } from "@/hooks/useHistorySaver";
 
 export function useImageGeneration(uid: string | null) {
   const { saveHistory } = useHistorySaver();
-  const [prompt, setPrompt] = useState("");
   const [summary, setSummary] = useState<string>("");
   const [flagged, setFlagged] = useState<string>("");
   const [active, setActive] = useState<boolean>(true);
@@ -33,7 +32,6 @@ export function useImageGeneration(uid: string | null) {
 
     const result = await generateImage(generatedPrompt, uid || "");
 
-    setPrompt(generatedPrompt);
     setThinking(false);
 
     if (result.imageUrl && uid) {
@@ -68,7 +66,6 @@ export function useImageGeneration(uid: string | null) {
   };
 
   return {
-    prompt,
     summary,
     flagged,
     active,

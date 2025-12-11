@@ -8,6 +8,7 @@ import { colors } from "@/data/colors";
 import { painters } from "@/data/painters";
 import { items } from "@/data/items";
 import { inputClassName } from "@/components/ui/FormInput";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 
 interface DesignerFormProps {
   onSubmit: (promptData: PromptDataType, topic: string) => void;
@@ -17,10 +18,8 @@ interface DesignerFormProps {
 const initialPrompt: PromptDataType = {
   iceCreams: [],
   candies: [],
-  flavors: [],
   spices: [],
   colors: [],
-  sneakers: [],
   painters: [],
   items: [],
 };
@@ -104,17 +103,13 @@ export function DesignerForm({ onSubmit, active }: DesignerFormProps) {
         />
       </div>
 
-      <button
-        type="submit"
+      <SubmitButton
+        isLoading={false}
         disabled={!active || !topic.trim()}
-        className={`w-full mt-6 py-3 px-6 rounded-lg font-semibold transition-colors ${
-          active && topic.trim()
-            ? "bg-[#192449] text-white hover:bg-[#263566]"
-            : "bg-gray-300 text-gray-500 cursor-not-allowed"
-        }`}
+        className="mt-6"
       >
         Generate Design
-      </button>
+      </SubmitButton>
     </form>
   );
 }
