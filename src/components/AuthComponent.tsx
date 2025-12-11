@@ -14,7 +14,6 @@ import {
 
 import Link from "next/link";
 import { LockIcon, MailIcon, XIcon } from "lucide-react";
-import { PulseLoader } from "react-spinners";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { auth } from "@/firebase/firebaseClient";
 import toast from "react-hot-toast";
@@ -22,6 +21,7 @@ import toast from "react-hot-toast";
 import googleLogo from "@/app/assets/google.svg";
 import Image from "next/image";
 import { isIOSReactNativeWebView } from "@/utils/platform";
+import { InlineSpinner } from "@/components/ui/LoadingSpinner";
 
 export default function AuthComponent() {
   const setAuthDetails = useAuthStore((s) => s.setAuthDetails);
@@ -247,12 +247,9 @@ export default function AuthComponent() {
                 Click the sign-in link in the message to complete the sign-in
                 process.
               </div>
-              <div>
-                Waiting for you to click the sign-in link.{" "}
-                <span>
-                  {" "}
-                  <PulseLoader color="#000000" size={6} />
-                </span>
+              <div className="flex items-center gap-2">
+                <span>Waiting for you to click the sign-in link.</span>
+                <InlineSpinner size="sm" />
               </div>
             </div>
 

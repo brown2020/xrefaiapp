@@ -98,3 +98,4 @@ export async function downloadImage(imageUrl: string | URL): Promise<void> {
     toast.error("Failed to download image");
   }
 }
+

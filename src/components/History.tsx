@@ -63,9 +63,8 @@ export default function History() {
     }
   };
 
-  const orderedSummaries = summaries
-    .slice()
-    .sort((a, b) => b.timestamp.seconds - a.timestamp.seconds);
+  // Data is already sorted by timestamp desc from Firestore query
+  const orderedSummaries = summaries;
 
   useEffect(() => {
     const getData = async () => {

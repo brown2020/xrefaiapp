@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { PulseLoader } from "react-spinners";
 import { generateImage } from "@/actions/generateImage";
 import toast from "react-hot-toast";
 import Image from "next/image";
@@ -15,6 +14,7 @@ import { painters } from "@/data/painters";
 import { useHistorySaver } from "@/hooks/useHistorySaver";
 import { useScrollToResult } from "@/hooks/useScrollToResult";
 import { Copy, Download } from "lucide-react";
+import { InlineSpinner } from "@/components/ui/LoadingSpinner";
 
 export default function ImagePrompt() {
   const { saveHistory, uid } = useHistorySaver();
@@ -120,7 +120,7 @@ export default function ImagePrompt() {
           {thinking ? (
             <div className="flex items-center gap-2">
               <span>Visualizing</span>
-              <PulseLoader color="#fff" size={6} />
+              <InlineSpinner size="sm" />
             </div>
           ) : (
             "Let's Visualize!"

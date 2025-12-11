@@ -29,3 +29,4 @@ export function LoadingSpinner({
 export function InlineSpinner({ size = "sm" }: { size?: "sm" | "md" }) {
   return <Loader2 size={sizes[size]} className="animate-spin" />;
 }
+

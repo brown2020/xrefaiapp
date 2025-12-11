@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { PulseLoader } from "react-spinners";
 import { copyToClipboard } from "@/utils/clipboard";
 import { generateResponse } from "@/actions/generateAIResponse";
 import { readStreamableValue } from "@ai-sdk/rsc";
@@ -14,6 +13,7 @@ import {
 } from "@/utils/platform";
 import { useHistorySaver } from "@/hooks/useHistorySaver";
 import { useScrollToResult } from "@/hooks/useScrollToResult";
+import { InlineSpinner } from "@/components/ui/LoadingSpinner";
 
 export default function SummarizeTopic() {
   const { saveHistory, uid } = useHistorySaver();
@@ -204,7 +204,7 @@ export default function SummarizeTopic() {
             {thinking ? (
               <div className="flex items-center gap-2">
                 <span>Summarizing</span>
-                <PulseLoader color="#fff" size={6} />
+                <InlineSpinner size="sm" />
               </div>
             ) : (
               "Summarize Website"
