@@ -7,7 +7,8 @@ import { resizeImage } from "@/utils/resizeImage";
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
 import { doc } from "firebase/firestore";
 import Image from "next/image";
-import { ClipLoader } from "react-spinners";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { inputClassName, labelClassName } from "@/components/ui/FormInput";
 
 export default function AuthDataDisplay() {
   const uid = useAuthStore((s) => s.uid);
@@ -149,7 +150,7 @@ export default function AuthDataDisplay() {
                     )}
                     {loading && (
                       <div className="absolute inset-0 flex items-center justify-center bg-gray-700/50 rounded-md">
-                        <ClipLoader color="#4A90E2" />
+                        <LoadingSpinner size="md" />
                       </div>
                     )}
 
@@ -166,9 +167,7 @@ export default function AuthDataDisplay() {
                 {/* <!-- Form Inputs --> */}
                 <div className="grow space-y-3">
                   <div>
-                    <label className="text-base text-[#041D34] mb-1 font-semibold">
-                      First Name
-                    </label>
+                    <label className={labelClassName}>First Name</label>
                     <input
                       type="text"
                       id="first-name"
@@ -179,14 +178,12 @@ export default function AuthDataDisplay() {
                           firstName: e.target.value,
                         })
                       }
-                      className="mt-2 w-full border border-[#ECECEC] bg-[#F5F5F5] text-[#0B3C68] rounded-md px-3 py-3 placeholder:text-[#BBBEC9]"
+                      className={inputClassName}
                       placeholder="Enter your First Name"
                     />
                   </div>
                   <div>
-                    <label className="text-base text-[#041D34] mb-1 font-semibold">
-                      Last Name
-                    </label>
+                    <label className={labelClassName}>Last Name</label>
                     <input
                       type="text"
                       id="last-name"
@@ -197,7 +194,7 @@ export default function AuthDataDisplay() {
                           lastName: e.target.value,
                         })
                       }
-                      className="mt-2 w-full border border-[#ECECEC] bg-[#F5F5F5] text-[#0B3C68] rounded-md px-3 py-3 placeholder:text-[#BBBEC9]"
+                      className={inputClassName}
                       placeholder="Enter your Last Name"
                     />
                   </div>

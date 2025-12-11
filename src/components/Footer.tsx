@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { Twitter, Facebook, Instagram } from "lucide-react";
 
 const menuItemsLeft = [
   { label: "About", href: "/about" },
@@ -21,7 +22,13 @@ function FooterLink({ label, href }: { label: string; href: string }) {
   );
 }
 
-function SocialIcon({ href, icon }: { href: string; icon: string }) {
+function SocialIcon({
+  href,
+  icon: Icon,
+}: {
+  href: string;
+  icon: React.ComponentType<{ size?: number }>;
+}) {
   return (
     <Link
       href={href}
@@ -29,7 +36,7 @@ function SocialIcon({ href, icon }: { href: string; icon: string }) {
       rel="noopener noreferrer"
       className="flex items-center justify-center w-8 h-8 bg-[#141D3D] text-white hover:bg-[#83A873] hover:text-[#ffffff] rounded-full transition-colors"
     >
-      <i className={icon}></i>
+      <Icon size={14} />
     </Link>
   );
 }
@@ -55,14 +62,14 @@ export default function Footer() {
 
         {/* Social Media Icons */}
         <div className="flex lg:justify-center gap-3 order-1 lg:order-2 lg:w-[33%]">
-          <SocialIcon href="https://x.com/xrefdotai" icon="fa-brands fa-x" />
+          <SocialIcon href="https://x.com/xrefdotai" icon={Twitter} />
           <SocialIcon
             href="https://www.facebook.com/xrefdotai"
-            icon="fa-brands fa-facebook-f"
+            icon={Facebook}
           />
           <SocialIcon
             href="https://www.instagram.com/xrefdotai"
-            icon="fa-brands fa-instagram"
+            icon={Instagram}
           />
         </div>
 

@@ -14,7 +14,8 @@ import { painters } from "@/data/painters";
 import { useHistorySaver } from "@/hooks/useHistorySaver";
 import { useScrollToResult } from "@/hooks/useScrollToResult";
 import { Copy, Download } from "lucide-react";
-import { InlineSpinner } from "@/components/ui/LoadingSpinner";
+import { inputClassName, labelClassName } from "@/components/ui/FormInput";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 
 export default function ImagePrompt() {
   const { saveHistory, uid } = useHistorySaver();
@@ -97,10 +98,10 @@ export default function ImagePrompt() {
           />
         </div>
 
-        <label htmlFor="topic-field" className="text-[#041D34] font-semibold">
+        <label htmlFor="topic-field" className={labelClassName}>
           Prompt
           <textarea
-            className="bg-[#F5F5F5] text-[#0B3C68] mt-1 border border-[#ECECEC] font-normal placeholder:text-[#BBBEC9] w-full p-3 rounded-md outline-none"
+            className={inputClassName}
             id="topic-field"
             rows={4}
             placeholder="Enter a freestyle prompt with any information or ideas you want to visualize"
@@ -108,24 +109,14 @@ export default function ImagePrompt() {
           />
         </label>
 
-        <button
-          className={`w-full mt-6 py-3 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center ${
-            active
-              ? "bg-[#192449] text-white hover:bg-[#263566]"
-              : "bg-gray-200 text-gray-400 cursor-not-allowed"
-          }`}
-          type="submit"
+        <SubmitButton
+          isLoading={thinking}
           disabled={!active || !topic.trim()}
+          loadingText="Visualizing"
+          className="mt-6"
         >
-          {thinking ? (
-            <div className="flex items-center gap-2">
-              <span>Visualizing</span>
-              <InlineSpinner size="sm" />
-            </div>
-          ) : (
-            "Let's Visualize!"
-          )}
-        </button>
+          Let&apos;s Visualize!
+        </SubmitButton>
 
         {Boolean(flagged) && (
           <h3

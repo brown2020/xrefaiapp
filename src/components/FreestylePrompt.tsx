@@ -2,6 +2,7 @@
 
 import BasePrompt from "./BasePrompt";
 import TextareaAutosize from "react-textarea-autosize";
+import { inputClassName, labelClassName } from "@/components/ui/FormInput";
 
 export default function FreestylePrompt() {
   return (
@@ -15,10 +16,10 @@ export default function FreestylePrompt() {
       loadingText="Writing"
     >
       {({ inputValue, setInputValue }) => (
-        <label htmlFor="topic-field" className="text-[#041D34] font-semibold">
+        <label htmlFor="topic-field" className={labelClassName}>
           Prompt
           <TextareaAutosize
-            className="bg-[#F5F5F5] text-[#0B3C68] mt-1 border border-[#ECECEC] font-normal placeholder:text-[#BBBEC9] focus:bg-[#F5F5F5] w-full p-3 rounded-md outline-none resize-none"
+            className={`${inputClassName} resize-none`}
             id="topic-field"
             minRows={4}
             placeholder="Enter your freestyle prompt."

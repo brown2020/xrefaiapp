@@ -9,20 +9,9 @@ import {
   Check,
   Download,
 } from "lucide-react";
-import {
-  collection,
-  getDocs,
-  limit,
-  orderBy,
-  query,
-  startAfter,
-  Timestamp,
-} from "firebase/firestore";
-import { useEffect, useState, useRef } from "react";
+import { useState, useCallback } from "react";
 
 import { useAuthStore } from "@/zustand/useAuthStore";
-import { db } from "@/firebase/firebaseClient";
-import toast from "react-hot-toast";
 import { UserHistoryType } from "@/types/UserHistoryType";
 import {
   copyToClipboard,
@@ -32,21 +21,48 @@ import {
 import Image from "next/image";
 import MarkdownRenderer from "./MarkdownRenderer";
 import { LoadingSpinner, InlineSpinner } from "@/components/ui/LoadingSpinner";
+import { useFirestorePagination } from "@/hooks/useFirestorePagination";
+import { COPY_FEEDBACK_DURATION } from "@/constants";
 
 export default function History() {
   const uid = useAuthStore((state) => state.uid);
-  const [summaries, setSummaries] = useState<UserHistoryType[]>([]);
   const [search, setSearch] = useState<string>("");
-  const [lastKey, setLastKey] = useState<Timestamp | undefined>(undefined);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   // Track collapsed/expanded state for each history item
   const [expandedItems, setExpandedItems] = useState<{
     [key: number]: boolean;
   }>({});
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+  // Transform function for Firestore documents
+  const transformHistoryDoc = useCallback(
+    (doc: { data: () => Record<string, unknown> }): UserHistoryType => {
+      const d = doc.data();
+      return {
+        id: d.id as string,
+        prompt: d.prompt as string,
+        response: d.response as string,
+        timestamp: d.timestamp as UserHistoryType["timestamp"],
+        topic: d.topic as string,
+        words: d.words as string,
+        xrefs: d.xrefs as string[],
+      };
+    },
+    []
+  );
+
+  const {
+    items: summaries,
+    loading,
+    loadingMore,
+    hasMore,
+    loadMore,
+  } = useFirestorePagination<UserHistoryType>({
+    uid,
+    collectionName: "summaries",
+    pageSize: 20,
+    transform: transformHistoryDoc,
+  });
 
   const toggleExpand = (index: number) => {
     setExpandedItems((prev) => ({
@@ -59,87 +75,7 @@ export default function History() {
     const success = await copyToClipboard(text);
     if (success) {
       setCopiedIndex(index);
-      setTimeout(() => setCopiedIndex(null), 2000);
-    }
-  };
-
-  // Data is already sorted by timestamp desc from Firestore query
-  const orderedSummaries = summaries;
-
-  useEffect(() => {
-    const getData = async () => {
-      if (uid) {
-        setLoading(true);
-        try {
-          const c = collection(db, "users", uid, "summaries");
-          const q = query(c, orderBy("timestamp", "desc"), limit(20));
-          const querySnapshot = await getDocs(q);
-
-          const s: UserHistoryType[] = [];
-          let lastKey: Timestamp | undefined = undefined;
-          querySnapshot.forEach((doc) => {
-            const d = doc.data();
-            s.push({
-              id: d.id,
-              prompt: d.prompt,
-              response: d.response,
-              timestamp: d.timestamp,
-              topic: d.topic,
-              words: d.words,
-              xrefs: d.xrefs,
-            });
-            lastKey = doc.data().timestamp;
-          });
-
-          setSummaries(s);
-          setLastKey(lastKey);
-        } catch (error) {
-          console.error("Error fetching history:", error);
-          toast.error("Failed to load history");
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-    getData();
-  }, [uid]);
-
-  const postsNextBatch = async (key: Timestamp) => {
-    if (uid) {
-      setLoadingMore(true);
-      try {
-        const c = collection(db, "users", uid, "summaries");
-        const q = query(
-          c,
-          orderBy("timestamp", "desc"),
-          startAfter(key),
-          limit(20)
-        );
-        const querySnapshot = await getDocs(q);
-        const s: UserHistoryType[] = [...summaries];
-        let newLastKey: Timestamp | undefined;
-        querySnapshot.forEach((doc) => {
-          const d = doc.data();
-          s.push({
-            id: d.id,
-            prompt: d.prompt,
-            response: d.response,
-            timestamp: d.timestamp,
-            topic: d.topic,
-            words: d.words,
-            xrefs: d.xrefs,
-          });
-          newLastKey = doc.data().timestamp;
-        });
-
-        setSummaries(s);
-        setLastKey(newLastKey);
-      } catch (error) {
-        console.error("Error fetching more history:", error);
-        toast.error("Failed to load more items");
-      } finally {
-        setLoadingMore(false);
-      }
+      setTimeout(() => setCopiedIndex(null), COPY_FEEDBACK_DURATION);
     }
   };
 
@@ -183,7 +119,7 @@ export default function History() {
             </div>
           ) : (
             <div className="flex flex-col space-y-6">
-              {orderedSummaries
+              {summaries
                 .filter((summary) =>
                   (summary.response + " " + summary.prompt)
                     .toUpperCase()
@@ -345,16 +281,16 @@ export default function History() {
                   </div>
                 ))}
 
-              {!loading && orderedSummaries.length === 0 && (
+              {!loading && summaries.length === 0 && (
                 <div className="text-center py-12 text-gray-400 bg-white rounded-2xl border border-gray-100 border-dashed">
                   <p>No history found.</p>
                 </div>
               )}
 
-              {lastKey && (
+              {hasMore && (
                 <div className="flex justify-center pt-4 pb-8">
                   <button
-                    onClick={() => postsNextBatch(lastKey)}
+                    onClick={loadMore}
                     disabled={loadingMore}
                     className="text-sm font-medium text-[#192449] hover:text-blue-700 bg-white border border-gray-200 hover:bg-gray-50 px-6 py-3 rounded-full transition-all shadow-sm flex items-center gap-2 disabled:opacity-50 cursor-pointer hover:shadow-md"
                   >

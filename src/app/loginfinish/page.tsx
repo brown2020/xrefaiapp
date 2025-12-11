@@ -1,7 +1,11 @@
 "use client";
 
 import { useAuthStore } from "@/zustand/useAuthStore";
-import { isSignInWithEmailLink, signInWithEmailLink, getIdToken } from "firebase/auth";
+import {
+  isSignInWithEmailLink,
+  signInWithEmailLink,
+  getIdToken,
+} from "firebase/auth";
 import { auth } from "@/firebase/firebaseClient";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -24,7 +28,6 @@ export default function LoginFinishPage() {
         let email = window.localStorage.getItem("xrefEmail");
         const name = window.localStorage.getItem("xrefName") || "";
 
-        console.log("User signed in successfully:", email, name);
         if (!email) {
           email = window.prompt("Please confirm your email");
           if (!email) {
@@ -43,29 +46,23 @@ export default function LoginFinishPage() {
         const uid = user?.uid;
         const selectedName = name || user?.displayName || "";
 
-        console.log("User auth data:", authEmail, uid, selectedName);
-
         if (!uid || !authEmail) {
           throw new Error("No user found");
         }
 
         // Explicitly set cookie before redirect to avoid race condition with proxy
         const token = await getIdToken(user, true);
-        const cookieName = process.env.NEXT_PUBLIC_COOKIE_NAME || "xrefAuthToken";
-        const isSecure = process.env.NODE_ENV === "production" && window.location.protocol === "https:";
-        
+        const cookieName =
+          process.env.NEXT_PUBLIC_COOKIE_NAME || "xrefAuthToken";
+        const isSecure =
+          process.env.NODE_ENV === "production" &&
+          window.location.protocol === "https:";
+
         setCookie(cookieName, token, {
           secure: isSecure,
           sameSite: "lax",
           path: "/",
         });
-
-        console.log(
-          "User signed in successfully:",
-          authEmail,
-          uid,
-          selectedName
-        );
 
         setAuthDetails({
           uid,
@@ -81,7 +78,6 @@ export default function LoginFinishPage() {
           errorMessage = error.message;
         }
 
-        console.log("ERROR", errorMessage);
         alert(errorMessage);
       } finally {
         window.localStorage.removeItem("xrefEmail");

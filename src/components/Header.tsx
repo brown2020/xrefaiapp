@@ -1,76 +1,64 @@
 "use client";
 
 import { useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import { Menu, X } from "lucide-react";
-import {
-  ChatIcon,
-  ToolsIcon,
-  HistoryIcon,
-  AccountIcon,
-} from "@/components/icons/NavIcons";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
+import { Menu, X, MessageSquare, Grid2X2, History, User } from "lucide-react";
 
 type MenuItem = {
   label: string;
-  link: string;
+  href: string;
   icon: React.ComponentType<{ className?: string }>;
 };
 
 const menuItems: MenuItem[] = [
-  { label: "Chat", link: "/chat", icon: ChatIcon },
-  { label: "Tools", link: "/tools", icon: ToolsIcon },
-  { label: "History", link: "/history", icon: HistoryIcon },
-  { label: "Account", link: "/account", icon: AccountIcon },
+  { label: "Chat", href: "/chat", icon: MessageSquare },
+  { label: "Tools", href: "/tools", icon: Grid2X2 },
+  { label: "History", href: "/history", icon: History },
+  { label: "Account", href: "/account", icon: User },
 ];
 
 export default function Header() {
   const [showMenu, setShowMenu] = useState(false);
   const pathname = usePathname();
-  const router = useRouter();
 
-  const handleNavigation = (link: string) => {
-    setShowMenu(false);
-    router.push(link);
-  };
-
+  const closeMenu = () => setShowMenu(false);
   const toggleMenu = () => setShowMenu((prev) => !prev);
 
   return (
     <div className="container mx-auto bg-[#ffffff] sticky top-0 z-[20] text-gray-700 px-4 py-4">
       <div className="flex items-center justify-between text-sm">
         {/* Logo */}
-        <div
-          onClick={() => handleNavigation("/")}
-          className="flex items-center justify-center"
-        >
+        <Link href="/" className="flex items-center justify-center">
           <span className="px-3 py-2 text-white bg-orange-500 rounded-md cursor-pointer text-lg font-bold">
             XREF.AI
           </span>
-        </div>
+        </Link>
 
         {/* Menu icon for small screens */}
-        <div
+        <button
           className="ml-auto flex items-center justify-center h-full sm:hidden transition ease-in-out"
           onClick={toggleMenu}
+          aria-label="Toggle menu"
         >
           <Menu className="w-6 h-6 cursor-pointer text-[#041D34] rounded-full" />
-        </div>
+        </button>
 
         {/* Desktop Menu */}
-        <div className="hidden sm:flex space-x-4">
+        <nav className="hidden sm:flex space-x-4">
           {menuItems.map((item) => (
-            <div
-              key={item.link}
-              onClick={() => handleNavigation(item.link)}
-              className={`cursor-pointer px-3 py-2 navbar-link font-semibold flex items-center gap-2 text-base ${
-                pathname === item.link ? "active" : "text-[#041D34]"
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`px-3 py-2 navbar-link font-semibold flex items-center gap-2 text-base ${
+                pathname === item.href ? "active" : "text-[#041D34]"
               }`}
             >
               <item.icon className="w-4 h-4" />
               {item.label}
-            </div>
+            </Link>
           ))}
-        </div>
+        </nav>
       </div>
 
       {/* Mobile Menu */}
@@ -78,37 +66,41 @@ export default function Header() {
         <div className="relative flex w-full h-full sm:hidden">
           <div
             className="fixed top-0 right-0 z-40 w-full h-screen bg-black/50"
-            onClick={() => setShowMenu(false)}
+            onClick={closeMenu}
           />
           <div className="fixed top-0 right-0 z-40 w-full h-screen max-w-[250px] bg-[#ffffff] transition ease-in-out">
             {/* Mobile Header */}
             <div className="flex items-center justify-between p-4">
-              <span
-                onClick={() => handleNavigation("/")}
-                className="px-3 py-2 text-white bg-orange-500 rounded-md cursor-pointer text-lg font-bold"
+              <Link href="/" onClick={closeMenu}>
+                <span className="px-3 py-2 text-white bg-orange-500 rounded-md cursor-pointer text-lg font-bold">
+                  XREF.AI
+                </span>
+              </Link>
+              <button
+                onClick={toggleMenu}
+                className="p-2"
+                aria-label="Close menu"
               >
-                XREF.AI
-              </span>
-              <button onClick={toggleMenu} className="p-2">
                 <X className="w-5 h-5 text-[#041D34] cursor-pointer" />
               </button>
             </div>
 
             {/* Mobile Menu Items */}
-            <div className="flex flex-col">
+            <nav className="flex flex-col">
               {menuItems.map((item) => (
-                <div
-                  key={item.link}
-                  onClick={() => handleNavigation(item.link)}
-                  className={`transition-all whitespace-nowrap flex h-14 gap-2 w-full items-center justify-start p-4 navbar-link font-semibold cursor-pointer md:py-2 ${
-                    pathname === item.link ? "active" : ""
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={closeMenu}
+                  className={`transition-all whitespace-nowrap flex h-14 gap-2 w-full items-center justify-start p-4 navbar-link font-semibold md:py-2 ${
+                    pathname === item.href ? "active" : ""
                   }`}
                 >
                   <item.icon className="w-4 h-4" />
                   <span>{item.label}</span>
-                </div>
+                </Link>
               ))}
-            </div>
+            </nav>
           </div>
         </div>
       )}

@@ -74,10 +74,5 @@ export function useImageGeneration(uid: string | null) {
     active,
     thinking,
     handleSubmit,
-    setPrompt,
-    setSummary,
-    setFlagged,
-    setActive,
-    setThinking,
   };
 }

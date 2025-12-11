@@ -5,6 +5,7 @@ import { copyToClipboard } from "@/utils/clipboard";
 import { ChatType } from "@/types/ChatType";
 import { Check, Copy, User } from "lucide-react";
 import { BotAvatar, BotHeader } from "@/components/ui/BotMessage";
+import { COPY_FEEDBACK_DURATION } from "@/constants";
 
 interface ChatMessageProps {
   message: ChatType;
@@ -23,7 +24,7 @@ export default function ChatMessage({
     const success = await copyToClipboard(message.response, "Response copied!");
     if (success) {
       setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
+      setTimeout(() => setIsCopied(false), COPY_FEEDBACK_DURATION);
     }
   };
 

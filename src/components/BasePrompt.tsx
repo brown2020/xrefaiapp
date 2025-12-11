@@ -11,7 +11,10 @@ import {
 } from "@/utils/platform";
 import { useHistorySaver } from "@/hooks/useHistorySaver";
 import { useScrollToResult } from "@/hooks/useScrollToResult";
-import { InlineSpinner } from "@/components/ui/LoadingSpinner";
+import { inputClassName, labelClassName } from "@/components/ui/FormInput";
+import { SubmitButton } from "@/components/ui/SubmitButton";
+import { ProgressBar } from "@/components/ui/ProgressBar";
+import { MIN_WORD_COUNT, MAX_WORD_COUNT } from "@/constants";
 
 export interface BasePromptProps {
   title: string;
@@ -63,8 +66,8 @@ export default function BasePrompt({
     setProgress(0);
 
     let wordnum = Number(words || "30");
-    if (wordnum < 3) wordnum = 3;
-    if (wordnum > 800) wordnum = 800;
+    if (wordnum < MIN_WORD_COUNT) wordnum = MIN_WORD_COUNT;
+    if (wordnum > MAX_WORD_COUNT) wordnum = MAX_WORD_COUNT;
 
     const newPrompt = promptBuilder(inputValue, wordnum);
     let finishedSummary = "";
@@ -119,10 +122,11 @@ export default function BasePrompt({
         {children({ inputValue, setInputValue, active })}
 
         {showWordCount && (
-          <label htmlFor="words-field" className="text-[#041D34] font-semibold">
-            Approximate number of words (Between 3 and 800)
+          <label htmlFor="words-field" className={labelClassName}>
+            Approximate number of words (Between {MIN_WORD_COUNT} and{" "}
+            {MAX_WORD_COUNT})
             <input
-              className="bg-[#F5F5F5] text-[#0B3C68] mt-1 border border-[#ECECEC] font-normal placeholder:text-[#BBBEC9] focus:bg-[#F5F5F5] w-full p-3 rounded-md outline-none"
+              className={inputClassName}
               defaultValue="30"
               type="number"
               id="words-field"
@@ -133,33 +137,15 @@ export default function BasePrompt({
         )}
 
         <div className="mt-6">
-          {thinking && (
-            <div className="w-full mb-4 bg-gray-100 h-2 rounded-full overflow-hidden">
-              <div
-                className="bg-[#48B461] h-full transition-all duration-500 ease-out"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          )}
+          {thinking && <ProgressBar progress={progress} />}
 
-          <button
-            className={`w-full py-3 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center ${
-              active && inputValue.trim()
-                ? "bg-[#192449] text-white hover:bg-[#263566]"
-                : "bg-gray-200 text-gray-400 cursor-not-allowed"
-            }`}
-            type="submit"
+          <SubmitButton
+            isLoading={thinking}
             disabled={!active || !inputValue.trim()}
+            loadingText={loadingText}
           >
-            {thinking ? (
-              <div className="flex items-center gap-2">
-                <span>{loadingText}</span>
-                <InlineSpinner size="sm" />
-              </div>
-            ) : (
-              buttonText
-            )}
-          </button>
+            {buttonText}
+          </SubmitButton>
         </div>
 
         {Boolean(flagged) && (

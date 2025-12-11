@@ -5,7 +5,6 @@ export type PromptDataType = {
   iceCreams: string[];
   sneakers: string[];
   spices: string[];
-  toppings: string[];
   painters: string[];
   items: string[];
 };

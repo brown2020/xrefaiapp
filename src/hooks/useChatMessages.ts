@@ -11,8 +11,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/firebase/firebaseClient";
 import { ChatType } from "@/types/ChatType";
-
-const MAX_LOAD = 30;
+import { MAX_CHAT_LOAD } from "@/constants";
 
 export function useChatMessages(uid: string) {
   const [chatlist, setChatlist] = useState<ChatType[]>([]);
@@ -32,7 +31,7 @@ export function useChatMessages(uid: string) {
     const q = query(
       collection(db, "users", uid, "chats"),
       orderBy("timestamp", "desc"),
-      limit(MAX_LOAD)
+      limit(MAX_CHAT_LOAD)
     );
 
     const unsub = onSnapshot(
@@ -51,7 +50,7 @@ export function useChatMessages(uid: string) {
               seconds: data?.timestamp.seconds,
             });
 
-            if (chats.length === MAX_LOAD) {
+            if (chats.length === MAX_CHAT_LOAD) {
               newLastKey = data?.timestamp || undefined;
             }
           }
@@ -85,7 +84,7 @@ export function useChatMessages(uid: string) {
       collection(db, "users", uid, "chats"),
       orderBy("timestamp", "desc"),
       startAfter(lastKey),
-      limit(MAX_LOAD)
+      limit(MAX_CHAT_LOAD)
     );
 
     const querySnapshot = await getDocs(q);
@@ -102,7 +101,7 @@ export function useChatMessages(uid: string) {
           seconds: data?.timestamp.seconds,
         });
 
-        if (newChats.length === MAX_LOAD) {
+        if (newChats.length === MAX_CHAT_LOAD) {
           newLastKey = data?.timestamp || undefined;
         }
       }

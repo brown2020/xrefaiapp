@@ -9,8 +9,7 @@ import {
   isIOSReactNativeWebView,
 } from "@/utils/platform";
 import { debounce } from "lodash";
-
-const MAX_WORDS_IN_CONTEXT = 5000;
+import { MAX_WORDS_IN_CONTEXT } from "@/constants";
 
 export function useChatGeneration(
   uid: string,

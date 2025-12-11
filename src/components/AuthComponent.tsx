@@ -13,7 +13,7 @@ import {
 } from "firebase/auth";
 
 import Link from "next/link";
-import { LockIcon, MailIcon, XIcon } from "lucide-react";
+import { LockIcon, MailIcon, XIcon, ArrowRight } from "lucide-react";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { auth } from "@/firebase/firebaseClient";
 import toast from "react-hot-toast";
@@ -389,10 +389,10 @@ export default function AuthComponent() {
       {!uid && (
         <button
           onClick={showModal}
-          className="bg-[#02C173] hover:bg-[#009d5b] hover:opacity-100 btn-blue mt-0 w-auto"
+          className="bg-[#02C173] hover:bg-[#009d5b] hover:opacity-100 btn-blue mt-0 w-auto flex items-center gap-2"
         >
-          Sign In to Enable Your Account{" "}
-          <i className="fa-solid fa-arrow-right"></i>
+          Sign In to Enable Your Account
+          <ArrowRight size={16} />
         </button>
       )}
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useMemo } from "react";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import ScrollToBottom from "react-scroll-to-bottom";
 import useProfileStore from "@/zustand/useProfileStore";
@@ -41,6 +41,12 @@ export default function Chat() {
     handleSendPrompt,
   } = useChatGeneration(uid, chatlist, markResponseSaved, scrollToBottom);
 
+  // Memoize reversed chat list to avoid recalculating on every render
+  const reversedChatlist = useMemo(
+    () => chatlist.slice().reverse(),
+    [chatlist]
+  );
+
   return (
     <div className="flex flex-col h-[calc(100dvh-80px)] relative bg-gray-50/30 w-full">
       {loading ? (
@@ -74,23 +80,20 @@ export default function Chat() {
 
                 {/* Chat List */}
                 <div className="flex flex-col space-y-2">
-                  {chatlist
-                    .slice()
-                    .reverse()
-                    .map((chat, index) => (
-                      <div key={index} className="flex flex-col">
-                        <ChatMessage
-                          message={chat}
-                          profilePhoto={profile.photoUrl}
-                          isUser={true}
-                        />
-                        <ChatMessage
-                          message={chat}
-                          profilePhoto={profile.photoUrl}
-                          isUser={false}
-                        />
-                      </div>
-                    ))}
+                  {reversedChatlist.map((chat, index) => (
+                    <div key={index} className="flex flex-col">
+                      <ChatMessage
+                        message={chat}
+                        profilePhoto={profile.photoUrl}
+                        isUser={true}
+                      />
+                      <ChatMessage
+                        message={chat}
+                        profilePhoto={profile.photoUrl}
+                        isUser={false}
+                      />
+                    </div>
+                  ))}
 
                   {/* Show pending user message and streaming response */}
                   {loadingResponse && pendingPrompt && (

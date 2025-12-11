@@ -9,7 +9,7 @@ import {
 import { useEffect, useState } from "react";
 import { createPaymentIntent } from "@/actions/paymentActions";
 import convertToSubcurrency from "@/utils/convertToSubcurrency";
-import { ClipLoader } from "react-spinners";
+import { LoadingSpinner, InlineSpinner } from "@/components/ui/LoadingSpinner";
 
 type Props = { amount: number };
 
@@ -88,10 +88,7 @@ export default function PaymentCheckoutPage({ amount }: Props) {
   if (!clientSecret) {
     return (
       <div className="flex items-center justify-center h-screen w-full bg-[#F0F6FF]">
-        <div className="text-center">
-          <ClipLoader color="#4A90E2" size={40} />
-          <p className="mt-4 text-[#0B3C68]">Initializing payment...</p>
-        </div>
+        <LoadingSpinner size="lg" text="Initializing payment..." />
       </div>
     );
   }
@@ -131,8 +128,8 @@ export default function PaymentCheckoutPage({ amount }: Props) {
               className="w-full py-3 px-4 bg-[#192449] text-white font-semibold rounded-xl hover:bg-[#83A873] transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
-                <span className="flex items-center justify-center">
-                  <ClipLoader color="#ffffff" size={20} className="mr-2" />
+                <span className="flex items-center justify-center gap-2">
+                  <InlineSpinner size="sm" />
                   Processing...
                 </span>
               ) : (

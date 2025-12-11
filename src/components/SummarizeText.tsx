@@ -2,6 +2,7 @@
 
 import BasePrompt from "./BasePrompt";
 import TextareaAutosize from "react-textarea-autosize";
+import { inputClassName, labelClassName } from "@/components/ui/FormInput";
 
 export default function SummarizeText() {
   return (
@@ -15,10 +16,10 @@ export default function SummarizeText() {
       loadingText="Summarizing"
     >
       {({ inputValue, setInputValue }) => (
-        <label htmlFor="text-field" className="text-[#041D34] font-semibold">
+        <label htmlFor="text-field" className={labelClassName}>
           Text to Summarize
           <TextareaAutosize
-            className="bg-[#F5F5F5] text-[#0B3C68] mt-1 border border-[#ECECEC] font-normal placeholder:text-[#BBBEC9] focus:bg-[#F5F5F5] w-full p-3 rounded-md outline-none resize-none"
+            className={`${inputClassName} resize-none`}
             id="text-field"
             minRows={4}
             placeholder="Paste the text you want to summarize here."

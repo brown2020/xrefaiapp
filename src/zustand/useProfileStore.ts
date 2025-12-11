@@ -96,11 +96,10 @@ const useProfileStore = create<ProfileState>((set, get) => ({
           authEmailVerified,
           authFirstName,
           authLastName,
-          authPhotoUrl,
+          authPhotoUrl
         );
-        console.log("No profile found. Creating new profile document.");
 
-        await setDoc(userRef, newProfile); // Save the new profile to Firestore
+        await setDoc(userRef, newProfile);
         set({ profile: newProfile });
       }
     } catch (error) {
@@ -135,13 +134,8 @@ const useProfileStore = create<ProfileState>((set, get) => ({
 
     try {
       const userRef = doc(db, `users/${uid}/profile/userData`);
-      // Delete the user profile data from Firestore
       await deleteDoc(userRef);
-
-      //Delete the user from Firebase Authentication
       await deleteUser(currentUser);
-
-      console.log("Account deleted successfully");
     } catch (error) {
       handleProfileError("deleting account", error);
     }
@@ -189,7 +183,7 @@ function createNewProfile(
   authEmailVerified?: boolean,
   firstName?: string,
   lastName?: string,
-  headerUrl?: string,
+  headerUrl?: string
 ): ProfileType {
   return {
     email: authEmail || "",
