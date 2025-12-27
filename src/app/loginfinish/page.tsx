@@ -12,6 +12,7 @@ import { useEffect } from "react";
 import { FirebaseError } from "firebase/app";
 import useProfileStore from "@/zustand/useProfileStore";
 import { setCookie } from "cookies-next";
+import { getAuthCookieName } from "@/utils/getAuthCookieName";
 
 export default function LoginFinishPage() {
   const router = useRouter();
@@ -52,8 +53,7 @@ export default function LoginFinishPage() {
 
         // Explicitly set cookie before redirect to avoid race condition with proxy
         const token = await getIdToken(user, true);
-        const cookieName =
-          process.env.NEXT_PUBLIC_COOKIE_NAME || "xrefAuthToken";
+        const cookieName = getAuthCookieName();
         const isSecure =
           process.env.NODE_ENV === "production" &&
           window.location.protocol === "https:";

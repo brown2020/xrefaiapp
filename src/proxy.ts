@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getAuthCookieName } from "@/utils/getAuthCookieName";
 
 /**
  * Protected routes that require authentication
@@ -23,14 +24,14 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Check if the current path starts with any of the protected routes
-  const isProtectedRoute = PROTECTED_ROUTE_PREFIXES.some((route) =>
-    pathname.startsWith(route)
+  const isProtectedRoute = PROTECTED_ROUTE_PREFIXES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
 
   if (isProtectedRoute) {
     // Get the auth token from cookies
-    const cookieName = process.env.NEXT_PUBLIC_COOKIE_NAME || "xrefAuthToken";
-    const token = request.cookies.get(cookieName);
+    const cookieName = getAuthCookieName();
+    const token = request.cookies.get(cookieName)?.value;
 
     // If no token is found, redirect to home page
     if (!token) {

@@ -11,6 +11,7 @@ import { useClientSetup } from "@/hooks/useClientSetup";
 import ErrorBoundary from "./ErrorBoundary";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { PROTECTED_ROUTES, ROUTES } from "@/constants/routes";
+import { getAuthCookieName } from "@/utils/getAuthCookieName";
 
 /**
  * Client-side provider that handles:
@@ -25,7 +26,7 @@ import { PROTECTED_ROUTES, ROUTES } from "@/constants/routes";
  * This component handles redirect when user logs out while on a protected route.
  */
 export function ClientProvider({ children }: { children: React.ReactNode }) {
-  const { loading, uid } = useAuthToken(process.env.NEXT_PUBLIC_COOKIE_NAME!);
+  const { loading, uid } = useAuthToken(getAuthCookieName());
   const router = useRouter();
   const pathname = usePathname();
   const wasAuthenticated = useRef(false);
@@ -39,8 +40,8 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
 
     // Check if user just logged out (was authenticated, now isn't)
     if (wasAuthenticated.current && !uid) {
-      const isOnProtectedRoute = PROTECTED_ROUTES.some((route) =>
-        pathname?.startsWith(route)
+      const isOnProtectedRoute = PROTECTED_ROUTES.some(
+        (route) => pathname === route || pathname?.startsWith(`${route}/`)
       );
 
       if (isOnProtectedRoute) {

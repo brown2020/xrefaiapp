@@ -2,32 +2,70 @@ import { NextRequest, NextResponse } from "next/server";
 import dns from "dns/promises";
 import net from "net";
 
-const PRIVATE_CIDRS = [
+/**
+ * Non-public IPv4 ranges (private, local, reserved, etc.).
+ * This is used to prevent SSRF into internal networks via the proxy endpoint.
+ */
+const NON_PUBLIC_IPV4_CIDRS = [
+  { subnet: "0.0.0.0", mask: 8 }, // "this" network
   { subnet: "127.0.0.0", mask: 8 },
   { subnet: "10.0.0.0", mask: 8 },
+  { subnet: "100.64.0.0", mask: 10 }, // CGNAT
   { subnet: "172.16.0.0", mask: 12 },
   { subnet: "192.168.0.0", mask: 16 },
   { subnet: "169.254.0.0", mask: 16 }, // link-local
+  { subnet: "192.0.0.0", mask: 24 }, // IETF Protocol Assignments
+  { subnet: "198.18.0.0", mask: 15 }, // benchmark testing
+  { subnet: "224.0.0.0", mask: 4 }, // multicast
+  { subnet: "240.0.0.0", mask: 4 }, // reserved
 ];
 
-const isPrivateIPv4 = (address: string) => {
+const ipv4ToUint32 = (ip: string) =>
+  ip
+    .split(".")
+    .reduce((acc, octet) => ((acc << 8) + Number(octet)) >>> 0, 0);
+
+const isNonPublicIPv4 = (address: string) => {
   if (!net.isIPv4(address)) return false;
 
-  const toLong = (ip: string) =>
-    ip.split(".").reduce((acc, octet) => (acc << 8) + Number(octet), 0);
-
-  const addr = toLong(address);
-  return PRIVATE_CIDRS.some(({ subnet, mask }) => {
-    const subnetLong = toLong(subnet);
-    const maskBits = -1 << (32 - mask);
+  const addr = ipv4ToUint32(address);
+  return NON_PUBLIC_IPV4_CIDRS.some(({ subnet, mask }) => {
+    const subnetLong = ipv4ToUint32(subnet);
+    const maskBits = (0xffffffff << (32 - mask)) >>> 0;
     return (addr & maskBits) === (subnetLong & maskBits);
   });
 };
 
+const isNonPublicIPv6 = (address: string) => {
+  if (!net.isIPv6(address)) return false;
+
+  const normalized = address.toLowerCase();
+
+  // Loopback / unspecified
+  if (normalized === "::1" || normalized === "::") return true;
+
+  // Unique local: fc00::/7
+  if (normalized.startsWith("fc") || normalized.startsWith("fd")) return true;
+
+  // Link-local: fe80::/10 (fe8*, fe9*, fea*, feb*)
+  if (/^fe[89ab]/.test(normalized)) return true;
+
+  // IPv4-mapped IPv6 (e.g. ::ffff:127.0.0.1)
+  if (normalized.startsWith("::ffff:")) {
+    const maybeIpv4 = normalized.slice("::ffff:".length);
+    if (net.isIPv4(maybeIpv4)) return isNonPublicIPv4(maybeIpv4);
+  }
+
+  return false;
+};
+
+const isNonPublicIp = (address: string) =>
+  isNonPublicIPv4(address) || isNonPublicIPv6(address);
+
 const resolvePublicIp = async (hostname: string) => {
   const records = await dns.lookup(hostname, { all: true });
   const publicRecord = records.find(
-    ({ address }) => net.isIP(address) && !isPrivateIPv4(address)
+    ({ address }) => net.isIP(address) && !isNonPublicIp(address)
   );
 
   if (!publicRecord) {

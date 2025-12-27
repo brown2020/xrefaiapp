@@ -5,8 +5,9 @@ import { debounce } from "lodash";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { auth } from "@/firebase/firebaseClient";
+import { getAuthCookieName } from "@/utils/getAuthCookieName";
 
-const useAuthToken = (cookieName = "authToken") => {
+const useAuthToken = (cookieName = getAuthCookieName()) => {
   const [user, loading, error] = useAuthState(auth);
   const setAuthDetails = useAuthStore((state) => state.setAuthDetails);
   const clearAuthDetails = useAuthStore((state) => state.clearAuthDetails);
@@ -15,16 +16,18 @@ const useAuthToken = (cookieName = "authToken") => {
   const refreshInterval = 50 * 60 * 1000; // 50 minutes
   const lastTokenRefresh = `lastTokenRefresh_${cookieName}`;
 
-  const [activityTimeout, setActivityTimeout] = useState<NodeJS.Timeout | null>(
-    null
-  );
+  const [activityTimeout, setActivityTimeout] = useState<ReturnType<
+    typeof setTimeout
+  > | null>(null);
 
   const refreshAuthToken = useCallback(async () => {
     try {
       if (!auth.currentUser) throw new Error("No user found");
       const idTokenResult = await getIdToken(auth.currentUser, true);
 
-      const isSecure = process.env.NODE_ENV === "production" && window.location.protocol === "https:";
+      const isSecure =
+        process.env.NODE_ENV === "production" &&
+        window.location.protocol === "https:";
       setCookie(cookieName, idTokenResult, {
         secure: isSecure,
         sameSite: "lax",
@@ -92,7 +95,14 @@ const useAuthToken = (cookieName = "authToken") => {
       clearAuthDetails();
       deleteCookie(cookieName);
     }
-  }, [clearAuthDetails, cookieName, setAuthDetails, syncAuthProfile, user, refreshAuthToken]);
+  }, [
+    clearAuthDetails,
+    cookieName,
+    setAuthDetails,
+    syncAuthProfile,
+    user,
+    refreshAuthToken,
+  ]);
 
   return { uid: user?.uid, loading, error };
 };
