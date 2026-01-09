@@ -4,7 +4,7 @@ import { db } from "@/firebase/firebaseClient";
 import { generateResponseWithMemory } from "@/actions/generateAIResponse";
 import { readStreamableValue } from "@ai-sdk/rsc";
 import { ChatType } from "@/types/ChatType";
-import { validateContentWithAlert } from "@/utils/contentGuard";
+import { validateContentWithToast } from "@/utils/contentGuard";
 import { debounce } from "lodash";
 import { MAX_WORDS_IN_CONTEXT } from "@/constants";
 import useProfileStore from "@/zustand/useProfileStore";
@@ -46,7 +46,7 @@ export function useChatGeneration(
 
   const handleSendPrompt = async () => {
     if (!newPrompt.trim()) return;
-    if (!validateContentWithAlert(newPrompt)) {
+    if (!validateContentWithToast(newPrompt)) {
       return;
     }
 

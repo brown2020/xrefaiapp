@@ -5,7 +5,7 @@ import { generateImage } from "@/actions/generateImage";
 import toast from "react-hot-toast";
 import Image from "next/image";
 import { copyImageToClipboard, downloadImage } from "@/utils/clipboard";
-import { validateContentWithAlert } from "@/utils/contentGuard";
+import { validateContentWithToast } from "@/utils/contentGuard";
 import { StyledSelect } from "@/components/DesignerPrompt/StyledSelect";
 import { painters } from "@/data/painters";
 import { useHistorySaver } from "@/hooks/useHistorySaver";
@@ -43,7 +43,7 @@ export default function ImagePrompt() {
       ? `${topic}. In the style of ${selectedPainter}`
       : topic;
 
-    if (!validateContentWithAlert(finalTopic)) {
+    if (!validateContentWithToast(finalTopic)) {
       return;
     }
 

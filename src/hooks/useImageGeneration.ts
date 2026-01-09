@@ -1,7 +1,7 @@
 import toast from "react-hot-toast";
 import { getImagePrompt } from "@/utils/getImagePrompt";
 import { generateImage } from "@/actions/generateImage";
-import { validateContentWithAlert } from "@/utils/contentGuard";
+import { validateContentWithToast } from "@/utils/contentGuard";
 import { PromptDataType } from "@/types/PromptDataType";
 import { useHistorySaver } from "@/hooks/useHistorySaver";
 import { useGenerationState } from "@/hooks/useGenerationState";
@@ -22,7 +22,7 @@ export function useImageGeneration(uid: string | null) {
   } = useGenerationState();
 
   const handleSubmit = async (promptData: PromptDataType, topic: string) => {
-    if (!validateContentWithAlert(topic)) {
+    if (!validateContentWithToast(topic)) {
       return;
     }
 

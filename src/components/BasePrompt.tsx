@@ -4,7 +4,7 @@ import { useState } from "react";
 import { generateResponse } from "@/actions/generateAIResponse";
 import { readStreamableValue } from "@ai-sdk/rsc";
 import toast from "react-hot-toast";
-import { validateContentWithAlert } from "@/utils/contentGuard";
+import { validateContentWithToast } from "@/utils/contentGuard";
 import { useHistorySaver } from "@/hooks/useHistorySaver";
 import { useScrollToResult } from "@/hooks/useScrollToResult";
 import { useGenerationState } from "@/hooks/useGenerationState";
@@ -60,7 +60,7 @@ export default function BasePrompt({
   const getResponse = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!validateContentWithAlert(inputValue)) {
+    if (!validateContentWithToast(inputValue)) {
       return;
     }
 

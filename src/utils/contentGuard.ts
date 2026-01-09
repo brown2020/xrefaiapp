@@ -1,3 +1,4 @@
+import toast from "react-hot-toast";
 import { checkRestrictedWords, isIOSReactNativeWebView } from "./platform";
 
 interface ValidationResult {
@@ -21,16 +22,24 @@ export function validateContent(content: string): ValidationResult {
 }
 
 /**
- * Validates content and shows alert if invalid
+ * Validates content and shows non-blocking feedback if invalid.
  * Returns true if content is valid, false otherwise
  * @param content - The content to validate
  * @returns boolean indicating if content is valid
  */
-export function validateContentWithAlert(content: string): boolean {
+export function validateContentWithToast(content: string): boolean {
   const result = validateContent(content);
   if (!result.valid && result.error) {
-    alert(result.error);
+    toast.error(result.error);
     return false;
   }
   return true;
+}
+
+/**
+ * Backwards-compatible alias (kept to avoid churn).
+ * Prefer `validateContentWithToast`.
+ */
+export function validateContentWithAlert(content: string): boolean {
+  return validateContentWithToast(content);
 }

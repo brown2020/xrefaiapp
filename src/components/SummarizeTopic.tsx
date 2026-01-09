@@ -4,7 +4,7 @@ import { useState } from "react";
 import { generateResponse } from "@/actions/generateAIResponse";
 import { readStreamableValue } from "@ai-sdk/rsc";
 import toast from "react-hot-toast";
-import { validateContentWithAlert } from "@/utils/contentGuard";
+import { validateContentWithToast } from "@/utils/contentGuard";
 import { useHistorySaver } from "@/hooks/useHistorySaver";
 import { useWebsiteScraper } from "@/hooks/useWebsiteScraper";
 import { useScrollToResult } from "@/hooks/useScrollToResult";
@@ -45,7 +45,7 @@ export default function SummarizeTopic() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!validateContentWithAlert(topic || siteUrl)) {
+    if (!validateContentWithToast(topic || siteUrl)) {
       return;
     }
 
