@@ -7,6 +7,7 @@ import { ChatType } from "@/types/ChatType";
 import { validateContentWithAlert } from "@/utils/contentGuard";
 import { debounce } from "lodash";
 import { MAX_WORDS_IN_CONTEXT } from "@/constants";
+import useProfileStore from "@/zustand/useProfileStore";
 
 export function useChatGeneration(
   uid: string,
@@ -14,6 +15,7 @@ export function useChatGeneration(
   onResponseSaved: () => void,
   scrollToBottom: () => void
 ) {
+  const profile = useProfileStore((s) => s.profile);
   const [newPrompt, setNewPrompt] = useState<string>("");
   const [pendingPrompt, setPendingPrompt] = useState<string>(""); // Track the message being processed
   const [streamedResponse, setStreamedResponse] = useState<string>("");
@@ -71,7 +73,14 @@ export function useChatGeneration(
     setTimeout(scrollToBottom, 50);
 
     try {
-      const result = await generateResponseWithMemory(systemPrompt, context);
+      const result = await generateResponseWithMemory(systemPrompt, context, {
+        modelKey: profile.text_model,
+        useCredits: profile.useCredits,
+        openaiApiKey: profile.openai_api_key,
+        anthropicApiKey: profile.anthropic_api_key,
+        xaiApiKey: profile.xai_api_key,
+        googleApiKey: profile.google_api_key,
+      });
       let finishedSummary = "";
 
       for await (const content of readStreamableValue(result)) {

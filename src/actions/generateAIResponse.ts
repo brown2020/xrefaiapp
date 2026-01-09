@@ -2,18 +2,31 @@
 
 import { createStreamableValue } from "@ai-sdk/rsc";
 import { ModelMessage, streamText } from "ai";
-import { openai } from "@ai-sdk/openai";
+import type { AiModelKey } from "@/ai/models";
+import { getTextModel } from "@/ai/getTextModel";
 
 interface SimpleMessage {
   type: "simple";
   systemPrompt: string;
   userPrompt: string;
+  modelKey?: AiModelKey;
+  useCredits?: boolean;
+  openaiApiKey?: string;
+  anthropicApiKey?: string;
+  xaiApiKey?: string;
+  googleApiKey?: string;
 }
 
 interface ConversationMessage {
   type: "conversation";
   systemPrompt: string;
   messages: Array<{ role: "user" | "assistant"; content: string }>;
+  modelKey?: AiModelKey;
+  useCredits?: boolean;
+  openaiApiKey?: string;
+  anthropicApiKey?: string;
+  xaiApiKey?: string;
+  googleApiKey?: string;
 }
 
 type MessageInput = SimpleMessage | ConversationMessage;
@@ -22,7 +35,14 @@ type MessageInput = SimpleMessage | ConversationMessage;
  * Unified AI response generator supporting both simple prompts and conversations
  */
 export async function generateAIResponse(input: MessageInput) {
-  const model = openai("gpt-4.1");
+  const model = getTextModel({
+    modelKey: input.modelKey,
+    useCredits: input.useCredits,
+    openaiApiKey: input.openaiApiKey,
+    anthropicApiKey: input.anthropicApiKey,
+    xaiApiKey: input.xaiApiKey,
+    googleApiKey: input.googleApiKey,
+  });
 
   const messages: ModelMessage[] =
     input.type === "simple"
@@ -48,12 +68,21 @@ export async function generateAIResponse(input: MessageInput) {
  */
 export async function generateResponse(
   systemPrompt: string,
-  userPrompt: string
+  userPrompt: string,
+  options?: {
+    modelKey?: AiModelKey;
+    useCredits?: boolean;
+    openaiApiKey?: string;
+    anthropicApiKey?: string;
+    xaiApiKey?: string;
+    googleApiKey?: string;
+  }
 ) {
   return generateAIResponse({
     type: "simple",
     systemPrompt,
     userPrompt,
+    ...options,
   });
 }
 
@@ -62,7 +91,15 @@ export async function generateResponse(
  */
 export async function generateResponseWithMemory(
   systemPrompt: string,
-  chatHistory: Array<{ prompt: string; response: string }>
+  chatHistory: Array<{ prompt: string; response: string }>,
+  options?: {
+    modelKey?: AiModelKey;
+    useCredits?: boolean;
+    openaiApiKey?: string;
+    anthropicApiKey?: string;
+    xaiApiKey?: string;
+    googleApiKey?: string;
+  }
 ) {
   const messages: Array<{ role: "user" | "assistant"; content: string }> = [];
 
@@ -79,6 +116,7 @@ export async function generateResponseWithMemory(
     type: "conversation",
     systemPrompt,
     messages,
+    ...options,
   });
 }
 

@@ -4,6 +4,8 @@ import { useAuthStore } from "./useAuthStore";
 import { db } from "@/firebase/firebaseClient";
 import { deleteUser, getAuth } from "firebase/auth";
 import toast from "react-hot-toast";
+import { resolveAiModelKey } from "@/ai/models";
+import type { AiModelKey } from "@/ai/models";
 
 export interface ProfileType {
   email: string;
@@ -14,10 +16,18 @@ export interface ProfileType {
   credits: number;
   fireworks_api_key: string;
   openai_api_key: string;
+  anthropic_api_key: string;
+  xai_api_key: string;
+  google_api_key: string;
   stability_api_key: string;
   selectedAvatar: string;
   selectedTalkingPhoto: string;
   useCredits: boolean;
+  /**
+   * Persisted model selection key for text/chat.
+   * Server resolves this against a whitelist.
+   */
+  text_model: AiModelKey;
   firstName?: string;
   lastName?: string;
   headerUrl?: string;
@@ -33,10 +43,14 @@ const defaultProfile: ProfileType = {
   credits: 1000, // Only used if not set in Firestore
   fireworks_api_key: "",
   openai_api_key: "",
+  anthropic_api_key: "",
+  xai_api_key: "",
+  google_api_key: "",
   stability_api_key: "",
   selectedAvatar: "",
   selectedTalkingPhoto: "",
   useCredits: true,
+  text_model: "openai:gpt-5.2",
 };
 
 interface ProfileState {
@@ -83,6 +97,7 @@ const useProfileStore = create<ProfileState>((set, get) => ({
           firstName: firestoreProfile.firstName || authFirstName || "",
           lastName: firestoreProfile.lastName || authLastName || "",
           headerUrl: firestoreProfile.headerUrl || "",
+          text_model: resolveAiModelKey(firestoreProfile.text_model),
         };
 
         // Set the merged profile in local state without overwriting Firestore
@@ -197,10 +212,14 @@ function createNewProfile(
     credits: 1000, // Default credits for new users
     fireworks_api_key: "",
     openai_api_key: "",
+    anthropic_api_key: "",
+    xai_api_key: "",
+    google_api_key: "",
     stability_api_key: "",
     selectedAvatar: "",
     selectedTalkingPhoto: "",
     useCredits: true,
+    text_model: "openai:gpt-5.2",
   };
 }
 

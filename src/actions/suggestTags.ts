@@ -1,14 +1,19 @@
 "use server";
 
 import { generateText } from "ai";
-import { openai, createOpenAI } from "@ai-sdk/openai";
+import type { AiModelKey } from "@/ai/models";
+import { getTextModel } from "@/ai/getTextModel";
 
 export const suggestTags = async (
   freestyle: string,
   tags: string[],
   openAPIKey: string,
   useCredits: boolean,
-  credits: number
+  credits: number,
+  modelKey?: AiModelKey,
+  anthropicApiKey?: string,
+  xaiApiKey?: string,
+  googleApiKey?: string
 ): Promise<string | { error: string }> => {
   try {
     if (useCredits && credits < 1) {
@@ -17,10 +22,14 @@ export const suggestTags = async (
       );
     }
 
-    // Use the appropriate model based on whether using credits or custom key
-    const model = useCredits
-      ? openai("gpt-4.1")
-      : createOpenAI({ apiKey: openAPIKey })("gpt-4.1");
+    const model = getTextModel({
+      modelKey,
+      useCredits,
+      openaiApiKey: openAPIKey,
+      anthropicApiKey,
+      xaiApiKey,
+      googleApiKey,
+    });
 
     const { text } = await generateText({
       model,

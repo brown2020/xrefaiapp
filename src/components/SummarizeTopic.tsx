@@ -14,8 +14,10 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { ResponseDisplay } from "@/components/ui/ResponseDisplay";
 import { MIN_WORD_COUNT, MAX_WORD_COUNT } from "@/constants";
+import useProfileStore from "@/zustand/useProfileStore";
 
 export default function SummarizeTopic() {
+  const profile = useProfileStore((s) => s.profile);
   const { saveHistory, uid } = useHistorySaver();
   const {
     scrapeWebsite,
@@ -74,7 +76,14 @@ export default function SummarizeTopic() {
     let finishedSummary = "";
 
     try {
-      const result = await generateResponse(systemPrompt, newPrompt);
+      const result = await generateResponse(systemPrompt, newPrompt, {
+        modelKey: profile.text_model,
+        useCredits: profile.useCredits,
+        openaiApiKey: profile.openai_api_key,
+        anthropicApiKey: profile.anthropic_api_key,
+        xaiApiKey: profile.xai_api_key,
+        googleApiKey: profile.google_api_key,
+      });
       let chunkCount = 0;
 
       for await (const content of readStreamableValue(result)) {
