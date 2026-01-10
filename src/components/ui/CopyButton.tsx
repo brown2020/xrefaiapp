@@ -37,7 +37,7 @@ export function CopyButton({
   return (
     <button
       onClick={handleCopy}
-      className={`flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-900 bg-gray-50 px-2 py-1 rounded-md border border-gray-200 transition-colors cursor-pointer ${className}`}
+      className={`flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted px-2 py-1 rounded-md border border-border transition-colors cursor-pointer ${className}`}
     >
       {isCopied ? (
         <>

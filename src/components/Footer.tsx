@@ -13,7 +13,7 @@ function FooterLink({ label, href }: { label: string; href: string }) {
   return (
     <Link
       href={href}
-      className="text-[#041D34] hover:text-[#83A873] navbar-link transition-colors"
+      className="text-foreground hover:text-accent navbar-link transition-colors"
     >
       {label}
     </Link>
@@ -32,7 +32,7 @@ function SocialIcon({
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center justify-center w-8 h-8 bg-[#141D3D] text-white hover:bg-[#83A873] hover:text-[#ffffff] rounded-full transition-colors"
+      className="flex items-center justify-center w-8 h-8 bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground rounded-full transition-colors"
     >
       <Icon size={14} />
     </Link>
@@ -48,8 +48,8 @@ export default function Footer() {
   }
 
   return (
-    <footer className="bg-[#F5F5F5]">
-      <div className="container flex flex-col sm:flex-row items-center justify-between px-5 py-5 mx-auto z-10 text-gray-500 gap-4 sm:gap-0">
+    <footer className="bg-muted border-t border-border">
+      <div className="container flex flex-col sm:flex-row items-center justify-between px-5 py-5 mx-auto z-10 text-muted-foreground gap-4 sm:gap-0">
         {/* Left Menu */}
         <nav className="flex gap-4 sm:gap-6 order-2 sm:order-1 lg:w-[33%]">
           {FOOTER_MENU_ITEMS.map((item) => (
@@ -71,7 +71,7 @@ export default function Footer() {
         </div>
 
         {/* Right Menu and Copyright */}
-        <div className="flex lg:justify-end gap-2 order-3 lg:order-3 lg:w-[33%] text-[#041D34]">
+        <div className="flex lg:justify-end gap-2 order-3 lg:order-3 lg:w-[33%] text-foreground">
           <span>&copy; {new Date().getFullYear()}</span>
           <FooterLink label="XREF.AI" href={ROUTES.home} />
         </div>

@@ -25,11 +25,11 @@ export default function ChatInput({
   };
 
   return (
-    <div className="w-full bg-white/80 backdrop-blur-lg border-t border-gray-100 p-4 md:p-6 pb-8 md:pb-8">
+    <div className="w-full bg-background/80 backdrop-blur-lg border-t border-border p-4 md:p-6 pb-8 md:pb-8">
       <div className="max-w-4xl mx-auto relative">
-        <div className="relative flex items-end gap-2 bg-gray-50 border border-gray-200 rounded-2xl shadow-sm focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all overflow-hidden">
+        <div className="relative flex items-end gap-2 bg-muted border border-border rounded-2xl shadow-sm focus-within:ring-2 focus-within:ring-ring/20 focus-within:border-ring transition-all overflow-hidden">
           <TextareaAutosize
-            className="w-full py-3.5 pl-4 pr-12 bg-transparent text-gray-900 placeholder:text-gray-400 resize-none focus:outline-hidden text-base leading-relaxed max-h-[200px]"
+            className="w-full py-3.5 pl-4 pr-12 bg-transparent text-foreground placeholder:text-muted-foreground resize-none focus:outline-hidden text-base leading-relaxed max-h-[200px]"
             placeholder="Ask me anything..."
             minRows={1}
             maxRows={8}
@@ -44,8 +44,8 @@ export default function ChatInput({
               disabled={isLoading || !value.trim()}
               className={`p-2 rounded-xl flex items-center justify-center transition-all duration-200 cursor-pointer ${
                 value.trim() && !isLoading
-                  ? "bg-[#192449] text-white hover:bg-[#2d407f] shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  ? "bg-primary text-primary-foreground hover:opacity-90 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                  : "bg-muted text-muted-foreground cursor-not-allowed"
               }`}
               aria-label="Send message"
             >
@@ -57,7 +57,7 @@ export default function ChatInput({
             </button>
           </div>
         </div>
-        <p className="text-center text-xs text-gray-400 mt-2">
+        <p className="text-center text-xs text-muted-foreground mt-2">
           AI can make mistakes. Consider checking important information.
         </p>
       </div>

@@ -10,6 +10,8 @@ import ChatMessage from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
 import StreamingResponse from "@/components/StreamingResponse";
 import { LoadingSpinner, InlineSpinner } from "@/components/ui/LoadingSpinner";
+import Link from "next/link";
+import { ROUTES } from "@/constants/routes";
 
 export default function Chat() {
   const uid = useAuthStore((s) => s.uid);
@@ -48,7 +50,7 @@ export default function Chat() {
   );
 
   return (
-    <div className="flex flex-col h-full relative bg-gray-50/30 w-full">
+    <div className="flex flex-col h-full relative bg-muted/30 w-full">
       {loading ? (
         <div className="flex flex-1 items-center justify-center h-full">
           <LoadingSpinner size="lg" text="Loading your conversation..." />
@@ -80,6 +82,59 @@ export default function Chat() {
 
                 {/* Chat List */}
                 <div className="flex flex-col space-y-2">
+                  {!loadingResponse && reversedChatlist.length === 0 && (
+                    <div className="py-10">
+                      <div className="max-w-2xl mx-auto bg-card text-card-foreground border border-border rounded-2xl shadow-sm p-6">
+                        <h2 className="text-lg font-bold text-foreground">
+                          Start a conversation
+                        </h2>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Ask a question or paste content you want help with.
+                        </p>
+
+                        <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {[
+                            "Summarize this article for me in 5 bullet points.",
+                            "Rewrite this paragraph to be clearer and more concise.",
+                            "Give me 10 blog post ideas about sustainable travel.",
+                            "Turn these notes into a professional email.",
+                          ].map((example) => (
+                            <button
+                              key={example}
+                              type="button"
+                              onClick={() => setNewPrompt(example)}
+                              className="text-left p-3 rounded-xl bg-muted border border-border hover:opacity-90 transition-opacity"
+                            >
+                              <div className="text-xs font-medium text-muted-foreground">
+                                Try this
+                              </div>
+                              <div className="text-sm text-foreground mt-1">
+                                {example}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="mt-6 flex flex-col sm:flex-row gap-3 sm:justify-end">
+                          <Link
+                            href={ROUTES.tools}
+                            className="inline-flex items-center justify-center px-5 py-2.5 bg-card text-foreground rounded-xl border border-border hover:opacity-90 transition-opacity"
+                          >
+                            Explore tools
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setNewPrompt("Help me write a blog post outline about:")
+                            }
+                            className="inline-flex items-center justify-center px-5 py-2.5 bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition-opacity"
+                          >
+                            Get started
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   {reversedChatlist.map((chat) => (
                     <div key={chat.id} className="flex flex-col">
                       <ChatMessage

@@ -3,6 +3,13 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { ClientProvider } from "@/components/ClientProvider";
+import { Plus_Jakarta_Sans } from "next/font/google";
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-sans",
+});
 
 export const metadata: Metadata = {
   title: "Xref.ai",
@@ -22,12 +29,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="h-full">
-      <body className="h-full bg-[#ffffff]">
+    <html lang="en" className={`h-full ${plusJakartaSans.variable}`}>
+      <body className="h-full bg-background text-foreground">
         <ClientProvider>
           <div className="flex flex-col h-full">
             <Header />
-            <main className="flex-1">{children}</main>
+            <main className="flex-1 min-h-0">{children}</main>
             <Footer />
           </div>
         </ClientProvider>

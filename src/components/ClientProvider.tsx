@@ -56,7 +56,7 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
   if (loading)
     return (
       <ErrorBoundary>
-        <div className="flex flex-col items-center justify-center h-full bg-white">
+        <div className="flex flex-col items-center justify-center h-full bg-background">
           <LoadingSpinner size="xl" />
         </div>
       </ErrorBoundary>

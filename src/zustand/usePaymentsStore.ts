@@ -12,6 +12,9 @@ import toast from "react-hot-toast";
 import { db } from "@/firebase/firebaseClient";
 
 export type PaymentType = {
+  /** Firestore document id (internal). */
+  docId?: string;
+  /** Provider payment id (Stripe PaymentIntent id, etc). */
   id: string;
   amount: number;
   createdAt: Timestamp | null;
@@ -93,16 +96,20 @@ export const usePaymentsStore = create<PaymentsStoreState>((set) => ({
 async function fetchUserPayments(uid: string): Promise<PaymentType[]> {
   const q = query(collection(db, "users", uid, "payments"));
   const querySnapshot = await getDocs(q);
-  const payments = querySnapshot.docs.map((doc) => ({
-    id: doc.id,
-    amount: doc.data().amount,
-    createdAt: doc.data().createdAt,
-    status: doc.data().status,
-    mode: doc.data().mode,
-    currency: doc.data().currency,
-    platform: doc.data().platform,
-    productId: doc.data().productId,
-  }));
+  const payments = querySnapshot.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      docId: doc.id,
+      id: data.id,
+      amount: data.amount,
+      createdAt: data.createdAt,
+      status: data.status,
+      mode: data.mode,
+      currency: data.currency,
+      platform: data.platform,
+      productId: data.productId,
+    } as PaymentType;
+  });
 
   return sortPayments(payments);
 }
@@ -125,10 +132,11 @@ async function createPayment(
   uid: string,
   payment: Omit<PaymentType, "createdAt">
 ): Promise<PaymentType> {
+  const createdAt = Timestamp.now();
   const newPaymentDoc = await addDoc(collection(db, "users", uid, "payments"), {
     id: payment.id,
     amount: payment.amount,
-    createdAt: Timestamp.now(),
+    createdAt,
     status: payment.status,
     mode: payment.mode,
     currency: payment.currency,
@@ -137,9 +145,10 @@ async function createPayment(
   });
 
   return {
-    id: newPaymentDoc.id,
+    docId: newPaymentDoc.id,
+    id: payment.id,
     amount: payment.amount,
-    createdAt: Timestamp.now(),
+    createdAt,
     status: payment.status,
     mode: payment.mode,
     currency: payment.currency,
@@ -162,7 +171,8 @@ async function findProcessedPayment(
   const querySnapshot = await getDocs(q);
 
   if (!querySnapshot.empty) {
-    return querySnapshot.docs[0].data() as PaymentType;
+    const doc = querySnapshot.docs[0];
+    return { docId: doc.id, ...(doc.data() as Omit<PaymentType, "docId">) };
   }
 
   return null;

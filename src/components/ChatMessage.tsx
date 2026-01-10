@@ -56,16 +56,13 @@ export default function ChatMessage({
         <div className="flex flex-col flex-1 min-w-0">
           <BotHeader />
 
-          <div className="bg-white border border-gray-100 rounded-2xl rounded-tl-sm px-6 py-5 shadow-sm text-gray-800 relative group">
+          <div className="bg-white border border-gray-100 rounded-2xl rounded-tl-sm px-6 py-5 shadow-sm text-gray-800">
             <div className="prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:p-0">
               <MarkdownRenderer content={message.response} />
             </div>
 
-            <div className="absolute -bottom-8 left-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-              <CopyButton
-                text={message.response}
-                successMessage="Response copied!"
-              />
+            <div className="mt-4 flex justify-start pt-3 border-t border-gray-50">
+              <CopyButton text={message.response} successMessage="Response copied!" />
             </div>
           </div>
         </div>

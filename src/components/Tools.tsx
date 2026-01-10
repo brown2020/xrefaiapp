@@ -73,13 +73,13 @@ export default function Tools() {
   const ToolComponent = toolComponents[selectedTool];
 
   return (
-    <div className="flex flex-col h-full relative bg-gray-50/30 w-full overflow-hidden">
+    <div className="flex flex-col h-full relative bg-muted/30 w-full overflow-hidden">
       <div className="flex flex-1 h-full max-w-7xl mx-auto w-full p-4 md:p-6 gap-6">
         {/* Sidebar / Tool Selector */}
-        <div className="flex flex-col w-full md:w-64 lg:w-72 shrink-0 h-full bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-gray-50">
-            <h2 className="text-lg font-bold text-[#041D34]">Tools</h2>
-            <p className="text-xs text-gray-500">
+        <div className="flex flex-col w-full md:w-64 lg:w-72 shrink-0 h-full bg-card text-card-foreground rounded-2xl border border-border shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-border">
+            <h2 className="text-lg font-bold text-foreground">Tools</h2>
+            <p className="text-xs text-muted-foreground">
               Select a tool to get started
             </p>
           </div>
@@ -91,13 +91,15 @@ export default function Tools() {
                 onClick={() => setSelectedTool(tool.title)}
                 className={`w-full px-4 py-3 flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200 ${
                   tool.title === selectedTool
-                    ? "bg-[#192449] text-white shadow-md"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-[#192449]"
+                    ? "bg-primary text-primary-foreground shadow-md"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
               >
                 <span
                   className={
-                    tool.title === selectedTool ? "text-white" : "text-gray-400"
+                    tool.title === selectedTool
+                      ? "text-primary-foreground"
+                      : "text-muted-foreground"
                   }
                 >
                   {tool.icon}
@@ -109,9 +111,9 @@ export default function Tools() {
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 h-full min-w-0 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
-          <div className="p-6 border-b border-gray-50 bg-white/80 backdrop-blur-xs sticky top-0 z-10">
-            <h1 className="text-xl font-bold text-[#041D34]">{selectedTool}</h1>
+        <div className="flex-1 h-full min-w-0 bg-card text-card-foreground rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col">
+          <div className="p-6 border-b border-border bg-background/80 backdrop-blur-xs sticky top-0 z-10">
+            <h1 className="text-xl font-bold text-foreground">{selectedTool}</h1>
           </div>
 
           <div className="flex-1 overflow-y-auto p-6">

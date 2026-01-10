@@ -5,9 +5,10 @@ import { useCallback, useEffect, useState } from "react";
 import { isIOSReactNativeWebView } from "@/utils/platform";
 import { usePaymentsStore } from "@/zustand/usePaymentsStore";
 import { inputClassName, labelClassName } from "@/components/ui/FormInput";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Eye, EyeOff } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { AI_MODELS, listAiModels, resolveAiModelKey } from "@/ai/models";
+import { InlineSpinner } from "@/components/ui/LoadingSpinner";
 
 export default function ProfileComponent() {
   const profile = useProfileStore((state) => state.profile);
@@ -27,6 +28,8 @@ export default function ProfileComponent() {
   const [useCredits, setUseCredits] = useState(profile.useCredits);
   const [textModel, setTextModel] = useState(profile.text_model);
   const [showCreditsSection, setShowCreditsSection] = useState(true); // State to control visibility of credits section
+  const [isSavingApiKeys, setIsSavingApiKeys] = useState(false);
+  const [visibleKeys, setVisibleKeys] = useState<Record<string, boolean>>({});
   const addCredits = useProfileStore((state) => state.addCredits);
   const addPayment = usePaymentsStore((state) => state.addPayment);
 
@@ -77,26 +80,30 @@ export default function ProfileComponent() {
   ]);
 
   const handleApiKeyChange = async () => {
-    if (
+    const hasChanges =
       fireworksApiKey !== profile.fireworks_api_key ||
       openaiApiKey !== profile.openai_api_key ||
       anthropicApiKey !== profile.anthropic_api_key ||
       xaiApiKey !== profile.xai_api_key ||
       googleApiKey !== profile.google_api_key ||
-      stabilityAPIKey !== profile.stability_api_key
-    ) {
-      try {
-        await updateProfile({
-          fireworks_api_key: fireworksApiKey,
-          openai_api_key: openaiApiKey,
-          anthropic_api_key: anthropicApiKey,
-          xai_api_key: xaiApiKey,
-          google_api_key: googleApiKey,
-          stability_api_key: stabilityAPIKey,
-        });
-      } catch (error) {
-        console.error("Error updating API keys:", error);
-      }
+      stabilityAPIKey !== profile.stability_api_key;
+
+    if (!hasChanges) return;
+
+    setIsSavingApiKeys(true);
+    try {
+      await updateProfile({
+        fireworks_api_key: fireworksApiKey,
+        openai_api_key: openaiApiKey,
+        anthropic_api_key: anthropicApiKey,
+        xai_api_key: xaiApiKey,
+        google_api_key: googleApiKey,
+        stability_api_key: stabilityAPIKey,
+      });
+    } catch (error) {
+      console.error("Error updating API keys:", error);
+    } finally {
+      setIsSavingApiKeys(false);
     }
   };
 
@@ -137,18 +144,18 @@ export default function ProfileComponent() {
 
   return (
     <div className="flex flex-col gap-4 ">
-      <div className="bg-[#ffffff] border border-[#81878D] rounded-2xl">
+      <div className="bg-card border border-border rounded-2xl">
         <div className="flex flex-col sm:flex-row px-5 py-3 gap-3">
           <div className="flex items-center by-credits gap-2 pt-2 pb-2 w-full">
             <div className="w-[25%] usage-credits-block">
-              <span className="text-[#041D34] font-normal">Usage Credits:</span>
-              <span className="text-[#83A873] font-semibold">
+              <span className="text-foreground font-normal">Usage Credits:</span>
+              <span className="text-accent font-semibold">
                 {Math.round(profile.credits)}
               </span>
             </div>
             <div className="w-[48%] credits-block">
               <button
-                className="font-bold bg-[#192449] hover:bg-[#83A873] rounded-3xl text-white w-48 block  mx-auto px-3 py-2 flex-1 text-center"
+                className="font-bold bg-primary hover:opacity-90 rounded-3xl text-primary-foreground w-48 block mx-auto px-3 py-2 flex-1 text-center transition-opacity"
                 onClick={handleBuyClick}
               >
                 Buy 10,000 Credits
@@ -156,108 +163,98 @@ export default function ProfileComponent() {
             </div>
           </div>
         </div>
-        <div className="text-sm text-[#7F8CA1] either-buy-credits px-5 pb-4">
+        <div className="text-sm text-muted-foreground either-buy-credits px-5 pb-4">
           You can either buy credits or add your own API keys for Fireworks and
           OpenAI.
         </div>
       </div>
 
-      <div className="flex flex-col p-5 space-y-3 bg-[#ffffff] border border-[#81878D] rounded-2xl">
-        <div className="flex flex-col">
-          <label htmlFor="fireworks-api-key" className={labelClassName}>
-            Fireworks API Key:
-          </label>
-          <input
-            type="text"
-            id="fireworks-api-key"
-            value={fireworksApiKey}
-            onChange={(e) => setFireworksApiKey(e.target.value)}
-            className={inputClassName}
-            placeholder="Enter your Fireworks API Key"
-          />
-        </div>
-        <div className="flex flex-col">
-          <label htmlFor="openai-api-key" className={labelClassName}>
-            OpenAI API Key:
-          </label>
-          <input
-            type="text"
-            id="openai-api-key"
-            value={openaiApiKey}
-            onChange={(e) => setOpenaiApiKey(e.target.value)}
-            className={inputClassName}
-            placeholder="Enter your OpenAI API Key"
-          />
-        </div>
-        <div className="flex flex-col">
-          <label htmlFor="anthropic-api-key" className={labelClassName}>
-            Anthropic API Key (optional):
-          </label>
-          <input
-            type="text"
-            id="anthropic-api-key"
-            value={anthropicApiKey}
-            onChange={(e) => setAnthropicApiKey(e.target.value)}
-            className={inputClassName}
-            placeholder="Enter your Anthropic API Key"
-          />
-        </div>
-        <div className="flex flex-col">
-          <label htmlFor="xai-api-key" className={labelClassName}>
-            xAI API Key (optional):
-          </label>
-          <input
-            type="text"
-            id="xai-api-key"
-            value={xaiApiKey}
-            onChange={(e) => setXaiApiKey(e.target.value)}
-            className={inputClassName}
-            placeholder="Enter your xAI API Key"
-          />
-        </div>
-        <div className="flex flex-col">
-          <label htmlFor="google-api-key" className={labelClassName}>
-            Google API Key (optional):
-          </label>
-          <input
-            type="text"
-            id="google-api-key"
-            value={googleApiKey}
-            onChange={(e) => setGoogleApiKey(e.target.value)}
-            className={inputClassName}
-            placeholder="Enter your Google API Key"
-          />
-        </div>
-        <div className="flex flex-col">
-          <label htmlFor="stability-api-key" className={labelClassName}>
-            Stability API Key:
-          </label>
-          <input
-            type="text"
-            id="stability-api-key"
-            value={stabilityAPIKey}
-            onChange={(e) => setStabilityAPIKey(e.target.value)}
-            className={inputClassName}
-            placeholder="Enter your Stability API Key"
-          />
-        </div>
+      <div className="flex flex-col p-5 space-y-3 bg-card border border-border rounded-2xl">
+        <ApiKeyField
+          id="fireworks-api-key"
+          label="Fireworks API Key"
+          value={fireworksApiKey}
+          onChange={setFireworksApiKey}
+          isVisible={Boolean(visibleKeys["fireworks"])}
+          onToggleVisibility={() =>
+            setVisibleKeys((p) => ({ ...p, fireworks: !p.fireworks }))
+          }
+          placeholder="Enter your Fireworks API Key"
+        />
+        <ApiKeyField
+          id="openai-api-key"
+          label="OpenAI API Key"
+          value={openaiApiKey}
+          onChange={setOpenaiApiKey}
+          isVisible={Boolean(visibleKeys["openai"])}
+          onToggleVisibility={() =>
+            setVisibleKeys((p) => ({ ...p, openai: !p.openai }))
+          }
+          placeholder="Enter your OpenAI API Key"
+        />
+        <ApiKeyField
+          id="anthropic-api-key"
+          label="Anthropic API Key (optional)"
+          value={anthropicApiKey}
+          onChange={setAnthropicApiKey}
+          isVisible={Boolean(visibleKeys["anthropic"])}
+          onToggleVisibility={() =>
+            setVisibleKeys((p) => ({ ...p, anthropic: !p.anthropic }))
+          }
+          placeholder="Enter your Anthropic API Key"
+        />
+        <ApiKeyField
+          id="xai-api-key"
+          label="xAI API Key (optional)"
+          value={xaiApiKey}
+          onChange={setXaiApiKey}
+          isVisible={Boolean(visibleKeys["xai"])}
+          onToggleVisibility={() =>
+            setVisibleKeys((p) => ({ ...p, xai: !p.xai }))
+          }
+          placeholder="Enter your xAI API Key"
+        />
+        <ApiKeyField
+          id="google-api-key"
+          label="Google API Key (optional)"
+          value={googleApiKey}
+          onChange={setGoogleApiKey}
+          isVisible={Boolean(visibleKeys["google"])}
+          onToggleVisibility={() =>
+            setVisibleKeys((p) => ({ ...p, google: !p.google }))
+          }
+          placeholder="Enter your Google API Key"
+        />
+        <ApiKeyField
+          id="stability-api-key"
+          label="Stability API Key"
+          value={stabilityAPIKey}
+          onChange={setStabilityAPIKey}
+          isVisible={Boolean(visibleKeys["stability"])}
+          onToggleVisibility={() =>
+            setVisibleKeys((p) => ({ ...p, stability: !p.stability }))
+          }
+          placeholder="Enter your Stability API Key"
+        />
         <button
           onClick={handleApiKeyChange}
           disabled={
-            fireworksApiKey === profile.fireworks_api_key &&
-            openaiApiKey === profile.openai_api_key &&
-            anthropicApiKey === profile.anthropic_api_key &&
-            xaiApiKey === profile.xai_api_key &&
-            googleApiKey === profile.google_api_key &&
-            stabilityAPIKey === profile.stability_api_key
+            isSavingApiKeys ||
+            (fireworksApiKey === profile.fireworks_api_key &&
+              openaiApiKey === profile.openai_api_key &&
+              anthropicApiKey === profile.anthropic_api_key &&
+              xaiApiKey === profile.xai_api_key &&
+              googleApiKey === profile.google_api_key &&
+              stabilityAPIKey === profile.stability_api_key)
           }
-          className="mt-2 w-56 font-bold bg-[#192449] hover:bg-[#83A873] rounded-3xl text-white px-3 py-2 disabled:opacity-50 mx-auto"
+          className="mt-2 w-56 font-bold bg-primary hover:opacity-90 rounded-3xl text-primary-foreground px-3 py-2 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed mx-auto transition-opacity flex items-center justify-center gap-2"
         >
-          Update API Keys
+          {isSavingApiKeys && <InlineSpinner size="sm" />}
+          {isSavingApiKeys ? "Updating..." : "Update API Keys"}
         </button>
       </div>
 
-      <div className="flex flex-col p-5 gap-2 bg-[#ffffff] border border-[#81878D] rounded-2xl">
+      <div className="flex flex-col p-5 gap-2 bg-card border border-border rounded-2xl">
         <div>
           <label htmlFor="text-model" className={labelClassName}>
             Text model:
@@ -278,15 +275,15 @@ export default function ProfileComponent() {
           </select>
           <ChevronDown
             size={16}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7F8CA1] pointer-events-none"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
           />
         </div>
-        <div className="text-xs text-[#7F8CA1]">
+        <div className="text-xs text-muted-foreground">
           API Keys mode requires Fireworks + the selected model provider key.
         </div>
       </div>
 
-      <div className="flex flex-col p-5 gap-2 bg-[#ffffff] border border-[#81878D] rounded-2xl">
+      <div className="flex flex-col p-5 gap-2 bg-card border border-border rounded-2xl">
         <div>
           <label htmlFor="toggle-use-credits" className={labelClassName}>
             Use:
@@ -305,9 +302,56 @@ export default function ProfileComponent() {
           </select>
           <ChevronDown
             size={16}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7F8CA1] pointer-events-none"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
           />
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ApiKeyField({
+  id,
+  label,
+  value,
+  onChange,
+  isVisible,
+  onToggleVisibility,
+  placeholder,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  isVisible: boolean;
+  onToggleVisibility: () => void;
+  placeholder?: string;
+}) {
+  return (
+    <div className="flex flex-col">
+      <label htmlFor={id} className={labelClassName}>
+        {label}:
+      </label>
+      <div className="relative mt-1">
+        <input
+          type={isVisible ? "text" : "password"}
+          id={id}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={`${inputClassName} pr-10`}
+          placeholder={placeholder}
+          autoComplete="off"
+          spellCheck={false}
+          autoCapitalize="none"
+        />
+        <button
+          type="button"
+          onClick={onToggleVisibility}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          aria-label={isVisible ? "Hide API key" : "Show API key"}
+        >
+          {isVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+        </button>
       </div>
     </div>
   );

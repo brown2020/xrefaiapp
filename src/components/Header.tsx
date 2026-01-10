@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Menu, X, MessageSquare, Grid2X2, History, User } from "lucide-react";
+import { Menu, MessageSquare, Grid2X2, History, User } from "lucide-react";
 import { NAV_MENU_ITEMS, ROUTES } from "@/constants/routes";
+import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui";
 
 type MenuItem = {
   label: string;
@@ -28,91 +29,71 @@ const menuItems: MenuItem[] = NAV_MENU_ITEMS.map((item) => ({
 }));
 
 export default function Header() {
-  const [showMenu, setShowMenu] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
-  const closeMenu = () => setShowMenu(false);
-  const toggleMenu = () => setShowMenu((prev) => !prev);
-
   return (
-    <div className="container mx-auto bg-[#ffffff] sticky top-0 z-[20] text-gray-700 px-4 py-4">
-      <div className="flex items-center justify-between text-sm">
-        {/* Logo */}
-        <Link href="/" className="flex items-center justify-center">
-          <span className="px-3 py-2 text-white bg-orange-500 rounded-md cursor-pointer text-lg font-bold">
-            XREF.AI
-          </span>
-        </Link>
+    <div className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur-md">
+      <div className="container mx-auto px-4 py-4 text-sm">
+        <div className="flex items-center justify-between text-sm">
+          {/* Logo */}
+          <Link href="/" className="flex items-center justify-center">
+            <span className="px-3 py-2 text-white bg-orange-500 rounded-md cursor-pointer text-lg font-bold">
+              XREF.AI
+            </span>
+          </Link>
 
-        {/* Menu icon for small screens */}
-        <button
-          className="ml-auto flex items-center justify-center h-full sm:hidden transition ease-in-out"
-          onClick={toggleMenu}
-          aria-label="Toggle menu"
-        >
-          <Menu className="w-6 h-6 cursor-pointer text-[#041D34] rounded-full" />
-        </button>
-
-        {/* Desktop Menu */}
-        <nav className="hidden sm:flex space-x-4">
-          {menuItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`px-3 py-2 navbar-link font-semibold flex items-center gap-2 text-base ${
-                pathname === item.href ? "active" : "text-[#041D34]"
-              }`}
-            >
-              <item.icon className="w-4 h-4" />
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-      </div>
-
-      {/* Mobile Menu */}
-      {showMenu && (
-        <div className="relative flex w-full h-full sm:hidden">
-          <div
-            className="fixed top-0 right-0 z-40 w-full h-screen bg-black/50"
-            onClick={closeMenu}
-          />
-          <div className="fixed top-0 right-0 z-40 w-full h-screen max-w-[250px] bg-[#ffffff] transition ease-in-out">
-            {/* Mobile Header */}
-            <div className="flex items-center justify-between p-4">
-              <Link href="/" onClick={closeMenu}>
-                <span className="px-3 py-2 text-white bg-orange-500 rounded-md cursor-pointer text-lg font-bold">
-                  XREF.AI
-                </span>
-              </Link>
-              <button
-                onClick={toggleMenu}
-                className="p-2"
-                aria-label="Close menu"
+          {/* Desktop Menu */}
+          <nav className="hidden sm:flex space-x-4">
+            {menuItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={pathname === item.href ? "page" : undefined}
+                className={`px-3 py-2 navbar-link font-semibold flex items-center gap-2 text-base ${
+                  pathname === item.href ? "active" : "text-foreground"
+                }`}
               >
-                <X className="w-5 h-5 text-[#041D34] cursor-pointer" />
-              </button>
-            </div>
+                <item.icon className="w-4 h-4" />
+                {item.label}
+              </Link>
+            ))}
+          </nav>
 
-            {/* Mobile Menu Items */}
-            <nav className="flex flex-col">
-              {menuItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={closeMenu}
-                  className={`transition-all whitespace-nowrap flex h-14 gap-2 w-full items-center justify-start p-4 navbar-link font-semibold md:py-2 ${
-                    pathname === item.href ? "active" : ""
-                  }`}
+          {/* Mobile Menu (accessible sheet) */}
+          <div className="sm:hidden">
+            <Sheet open={isOpen} onOpenChange={setIsOpen}>
+              <SheetTrigger>
+                <button
+                  type="button"
+                  className="ml-auto flex items-center justify-center"
+                  aria-label="Open menu"
                 >
-                  <item.icon className="w-4 h-4" />
-                  <span>{item.label}</span>
-                </Link>
-              ))}
-            </nav>
+                  <Menu className="w-6 h-6 text-foreground" />
+                </button>
+              </SheetTrigger>
+              <SheetContent title="Menu">
+                <nav className="flex flex-col">
+                  {menuItems.map((item) => (
+                    <SheetClose key={item.href}>
+                      <Link
+                        href={item.href}
+                        aria-current={pathname === item.href ? "page" : undefined}
+                        className={`transition-all whitespace-nowrap flex h-12 gap-2 w-full items-center justify-start px-3 rounded-lg navbar-link font-semibold ${
+                          pathname === item.href ? "active" : ""
+                        }`}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SheetClose>
+                  ))}
+                </nav>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

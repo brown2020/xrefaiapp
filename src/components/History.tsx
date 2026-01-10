@@ -76,21 +76,23 @@ export default function History() {
   if (!uid) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-gray-500">Please sign in to view your history.</p>
+        <p className="text-muted-foreground">
+          Please sign in to view your history.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full relative bg-gray-50/30 w-full">
+    <div className="flex flex-col h-full relative bg-muted/30 w-full">
       <div className="flex-1 min-h-0 overflow-y-auto scroll-smooth px-4 pb-8 pt-4">
         <div className="max-w-4xl mx-auto h-full">
           {/* Header */}
           <div className="w-full py-6 mb-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <h1 className="text-2xl font-bold text-[#041D34]">History</h1>
-                <p className="text-sm text-gray-500 mt-1">
+                <h1 className="text-2xl font-bold text-foreground">History</h1>
+                <p className="text-sm text-muted-foreground mt-1">
                   Your past conversations
                 </p>
               </div>
@@ -114,7 +116,7 @@ export default function History() {
               ))}
 
               {!loading && summaries.length === 0 && (
-                <div className="text-center py-12 text-gray-400 bg-white rounded-2xl border border-gray-100 border-dashed">
+                <div className="text-center py-12 text-muted-foreground bg-card rounded-2xl border border-border border-dashed">
                   <p>No history found.</p>
                 </div>
               )}
@@ -153,10 +155,10 @@ function SearchInput({
   return (
     <div className="relative group w-full md:w-auto md:min-w-[300px]">
       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <Search className="h-4 w-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+        <Search className="h-4 w-4 text-muted-foreground group-focus-within:text-ring transition-colors" />
       </div>
       <input
-        className="block w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm transition-all shadow-sm hover:shadow-md"
+        className="block w-full pl-9 pr-3 py-2.5 border border-border rounded-xl leading-5 bg-card text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring/20 focus:border-ring text-sm transition-all shadow-sm hover:shadow-md"
         type="text"
         placeholder="Search..."
         value={value}
@@ -180,10 +182,10 @@ function HistoryCard({
   const isImage = summary.words === "image";
 
   return (
-    <div className="flex flex-col bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all hover:shadow-md">
+    <div className="flex flex-col bg-card text-card-foreground rounded-2xl border border-border shadow-sm overflow-hidden transition-all hover:shadow-md">
       {/* Header */}
-      <div className="bg-gray-50/50 border-b border-gray-100 px-5 py-2.5 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
+      <div className="bg-muted/50 border-b border-border px-5 py-2.5 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
           <Calendar size={14} />
           {new Date(summary.timestamp.seconds * 1000).toLocaleString(
             undefined,
@@ -195,7 +197,7 @@ function HistoryCard({
         </div>
         <button
           onClick={onToggleExpand}
-          className="text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
+          className="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition-colors cursor-pointer"
         >
           {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
         </button>
@@ -226,7 +228,7 @@ function HistoryCard({
         <div className="flex w-full justify-start">
           <div className="flex max-w-full gap-4 items-start">
             <div className="flex flex-col flex-1 min-w-0">
-              <div className="bg-white border border-gray-100 rounded-2xl rounded-tl-sm px-6 py-5 shadow-sm text-gray-800 relative group">
+              <div className="bg-card border border-border rounded-2xl rounded-tl-sm px-6 py-5 shadow-sm text-card-foreground relative group">
                 <BotResponseHeader />
 
                 {isImage ? (
@@ -239,7 +241,7 @@ function HistoryCard({
                 )}
 
                 {!isImage && (
-                  <div className="mt-4 flex justify-start pt-3 border-t border-gray-50">
+                  <div className="mt-4 flex justify-start pt-3 border-t border-border">
                     <CopyButton text={summary.response} />
                   </div>
                 )}
@@ -252,7 +254,7 @@ function HistoryCard({
       {!isExpanded && (
         <button
           onClick={onToggleExpand}
-          className="w-full py-3 text-xs font-medium text-gray-500 hover:text-[#2563EB] hover:bg-gray-50 transition-colors border-t border-gray-100 flex items-center justify-center gap-1"
+          className="w-full py-3 text-xs font-medium text-muted-foreground hover:text-ring hover:bg-muted transition-colors border-t border-border flex items-center justify-center gap-1"
         >
           Show full conversation <ChevronDown size={14} />
         </button>

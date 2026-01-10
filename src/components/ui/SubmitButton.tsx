@@ -23,8 +23,9 @@ export function SubmitButton({
 }: SubmitButtonProps) {
   const baseClasses =
     "w-full py-3 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center";
-  const activeClasses = "bg-[#192449] text-white hover:bg-[#263566]";
-  const disabledClasses = "bg-gray-200 text-gray-400 cursor-not-allowed";
+  const activeClasses = "bg-primary text-primary-foreground hover:opacity-90";
+  const disabledClasses =
+    "bg-muted text-muted-foreground cursor-not-allowed";
 
   return (
     <button

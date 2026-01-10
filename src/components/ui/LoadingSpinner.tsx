@@ -20,8 +20,8 @@ export function LoadingSpinner({
 }: LoadingSpinnerProps) {
   return (
     <div className={`flex flex-col items-center gap-3 ${className}`}>
-      <Loader2 size={sizes[size]} className="animate-spin text-[#192449]" />
-      {text && <p className="font-medium text-gray-500">{text}</p>}
+      <Loader2 size={sizes[size]} className="animate-spin text-primary" />
+      {text && <p className="font-medium text-muted-foreground">{text}</p>}
     </div>
   );
 }

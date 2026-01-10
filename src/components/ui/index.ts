@@ -25,3 +25,6 @@ export { BotAvatar, BotHeader, BotMessageWrapper } from "./BotMessage";
 
 // Modals
 export { Modal, ConfirmModal } from "./Modal";
+
+// Sheets / drawers
+export { Sheet, SheetTrigger, SheetContent, SheetClose } from "./Sheet";

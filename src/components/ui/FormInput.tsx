@@ -4,9 +4,9 @@ import { forwardRef, InputHTMLAttributes, SelectHTMLAttributes } from "react";
 
 // Shared input styling classes
 export const inputClassName =
-  "bg-[#F5F5F5] text-[#0B3C68] mt-1 border border-[#ECECEC] font-normal placeholder:text-[#BBBEC9] focus:bg-[#F5F5F5] w-full p-3 rounded-md outline-none";
+  "mt-1 w-full p-3 rounded-md outline-none bg-card text-foreground border border-border font-normal placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/20 focus:border-ring";
 
-export const labelClassName = "text-[#041D34] font-semibold";
+export const labelClassName = "text-foreground font-semibold";
 
 interface FormInputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;

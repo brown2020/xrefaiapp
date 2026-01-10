@@ -33,7 +33,7 @@ export default function AuthComponent() {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [name, setName] = useState<string>("");
-  const [acceptTerms, setAcceptTerms] = useState<boolean>(true);
+  const [acceptTerms, setAcceptTerms] = useState<boolean>(false);
   const formRef = useRef<HTMLFormElement>(null);
   const [isVisible, setIsVisible] = useState<boolean>(false);
   const [isEmailLinkLogin, setIsEmailLinkLogin] = useState(false);

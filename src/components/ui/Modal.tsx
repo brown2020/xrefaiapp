@@ -72,10 +72,10 @@ export function Modal({
   if (!isOpen) return null;
 
   const modalContent = (
-    <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-[20000] p-4">
+    <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-20000 p-4">
       <div
         ref={modalRef}
-        className={`relative bg-white text-black p-6 rounded-lg shadow-lg w-full ${maxWidthClasses[maxWidth]} mx-auto`}
+        className={`relative bg-card text-card-foreground border border-border p-6 rounded-lg shadow-lg w-full ${maxWidthClasses[maxWidth]} mx-auto`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? "modal-title" : undefined}
@@ -83,10 +83,10 @@ export function Modal({
         {showCloseButton && (
           <button
             onClick={onClose}
-            className="absolute top-0 right-0 p-2 hover:bg-gray-400 bg-gray-200 rounded-full m-2 transition-colors"
+            className="absolute top-0 right-0 p-2 hover:bg-muted bg-muted rounded-full m-2 transition-colors"
             aria-label="Close modal"
           >
-            <X size={24} className="text-gray-800" />
+            <X size={24} className="text-foreground" />
           </button>
         )}
 
@@ -133,8 +133,8 @@ export function ConfirmModal({
 }: ConfirmModalProps) {
   const confirmClasses =
     confirmVariant === "danger"
-      ? "bg-red-500 hover:bg-red-600"
-      : "bg-[#2563EB] hover:bg-[#1d4ed8]";
+      ? "bg-destructive hover:opacity-90 text-destructive-foreground"
+      : "bg-primary hover:opacity-90 text-primary-foreground";
 
   return (
     <Modal
@@ -144,17 +144,17 @@ export function ConfirmModal({
       showCloseButton={false}
     >
       <h3 className="text-lg font-semibold mb-2">{title}</h3>
-      <p className="text-gray-600 mb-6">{message}</p>
+      <p className="text-muted-foreground mb-6">{message}</p>
       <div className="flex justify-end gap-3">
         <button
           onClick={onClose}
-          className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition-colors"
+          className="px-4 py-2 bg-muted hover:opacity-90 text-foreground rounded-lg transition-colors"
         >
           {cancelText}
         </button>
         <button
           onClick={onConfirm}
-          className={`px-4 py-2 text-white rounded-lg transition-colors ${confirmClasses}`}
+          className={`px-4 py-2 rounded-lg transition-colors ${confirmClasses}`}
         >
           {confirmText}
         </button>

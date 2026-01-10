@@ -26,6 +26,8 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
   componentDidCatch(_error: Error, _errorInfo: ErrorInfo) {
     // Error is already captured in getDerivedStateFromError
+    void _error;
+    void _errorInfo;
   }
 
   handleTryAgain = () => {
