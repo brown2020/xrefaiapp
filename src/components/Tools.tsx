@@ -73,7 +73,7 @@ export default function Tools() {
   const ToolComponent = toolComponents[selectedTool];
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-80px)] relative bg-gray-50/30 w-full overflow-hidden">
+    <div className="flex flex-col h-full relative bg-gray-50/30 w-full overflow-hidden">
       <div className="flex flex-1 h-full max-w-7xl mx-auto w-full p-4 md:p-6 gap-6">
         {/* Sidebar / Tool Selector */}
         <div className="flex flex-col w-full md:w-64 lg:w-72 shrink-0 h-full bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">

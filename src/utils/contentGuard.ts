@@ -1,3 +1,5 @@
+"use client";
+
 import toast from "react-hot-toast";
 import { checkRestrictedWords, isIOSReactNativeWebView } from "./platform";
 

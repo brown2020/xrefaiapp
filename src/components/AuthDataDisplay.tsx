@@ -9,6 +9,7 @@ import { doc } from "firebase/firestore";
 import Image from "next/image";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { inputClassName, labelClassName } from "@/components/ui/FormInput";
+import toast from "react-hot-toast";
 
 export default function AuthDataDisplay() {
   const uid = useAuthStore((s) => s.uid);
@@ -80,7 +81,7 @@ export default function AuthDataDisplay() {
       clearAuthDetails();
     } catch (error) {
       console.error("Error signing out:", error);
-      alert("An error occurred while signing out.");
+      toast.error("An error occurred while signing out.");
     } finally {
     }
   };
@@ -112,7 +113,7 @@ export default function AuthDataDisplay() {
             <div className="text-base text-[#041D34] font-semibold">
               Login email
             </div>
-            <div className="text-[#0B3C68] border-b-[1px] pb-3 border-[#B8D2FA] text-word">
+            <div className="text-[#0B3C68] border-b pb-3 border-[#B8D2FA] text-word">
               {authEmail}
             </div>
           </div>
@@ -120,7 +121,7 @@ export default function AuthDataDisplay() {
             <div className="text-base text-[#041D34] font-semibold">
               User ID
             </div>
-            <div className="text-[#0B3C68] border-b-[1px] pb-3 border-[#B8D2FA] text-word">
+            <div className="text-[#0B3C68] border-b pb-3 border-[#B8D2FA] text-word">
               {uid}
             </div>
           </div>

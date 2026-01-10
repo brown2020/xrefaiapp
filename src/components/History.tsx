@@ -9,6 +9,7 @@ import {
   Download,
 } from "lucide-react";
 import { useState, useCallback, useMemo } from "react";
+import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { UserHistoryType } from "@/types/UserHistoryType";
@@ -23,22 +24,22 @@ import { MAX_HISTORY_LOAD } from "@/constants";
 export default function History() {
   const uid = useAuthStore((state) => state.uid);
   const [search, setSearch] = useState("");
-  const [expandedItems, setExpandedItems] = useState<Record<number, boolean>>(
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>(
     {}
   );
 
   // Transform function for Firestore documents
   const transformHistoryDoc = useCallback(
-    (doc: { data: () => Record<string, unknown> }): UserHistoryType => {
+    (doc: QueryDocumentSnapshot<DocumentData>): UserHistoryType => {
       const d = doc.data();
       return {
-        id: d.id as string,
-        prompt: d.prompt as string,
-        response: d.response as string,
+        id: (d.id as string) || doc.id,
+        prompt: (d.prompt as string) || "",
+        response: (d.response as string) || "",
         timestamp: d.timestamp as UserHistoryType["timestamp"],
-        topic: d.topic as string,
-        words: d.words as string,
-        xrefs: d.xrefs as string[],
+        topic: (d.topic as string) || "",
+        words: (d.words as string) || "",
+        xrefs: (d.xrefs as string[]) || [],
       };
     },
     []
@@ -57,8 +58,8 @@ export default function History() {
     transform: transformHistoryDoc,
   });
 
-  const toggleExpand = useCallback((index: number) => {
-    setExpandedItems((prev) => ({ ...prev, [index]: !prev[index] }));
+  const toggleExpand = useCallback((id: string) => {
+    setExpandedItems((prev) => ({ ...prev, [id]: !prev[id] }));
   }, []);
 
   // Filter summaries by search term
@@ -74,14 +75,14 @@ export default function History() {
 
   if (!uid) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-80px)]">
+      <div className="flex items-center justify-center h-full">
         <p className="text-gray-500">Please sign in to view your history.</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-80px)] relative bg-gray-50/30 w-full">
+    <div className="flex flex-col h-full relative bg-gray-50/30 w-full">
       <div className="flex-1 min-h-0 overflow-y-auto scroll-smooth px-4 pb-8 pt-4">
         <div className="max-w-4xl mx-auto h-full">
           {/* Header */}
@@ -103,12 +104,12 @@ export default function History() {
             </div>
           ) : (
             <div className="flex flex-col space-y-6">
-              {filteredSummaries.map((summary, index) => (
+              {filteredSummaries.map((summary) => (
                 <HistoryCard
-                  key={index}
+                  key={summary.id}
                   summary={summary}
-                  isExpanded={expandedItems[index] || false}
-                  onToggleExpand={() => toggleExpand(index)}
+                  isExpanded={expandedItems[summary.id] || false}
+                  onToggleExpand={() => toggleExpand(summary.id)}
                 />
               ))}
 
@@ -214,7 +215,7 @@ function HistoryCard({
                   {summary.prompt}
                 </p>
                 {!isExpanded && (
-                  <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-[#2563EB] to-transparent pointer-events-none rounded-b-2xl" />
+                  <div className="absolute bottom-0 left-0 w-full h-12 bg-linear-to-t from-[#2563EB] to-transparent pointer-events-none rounded-b-2xl" />
                 )}
               </div>
             </div>
@@ -223,7 +224,7 @@ function HistoryCard({
 
         {/* Bot Response */}
         <div className="flex w-full justify-start">
-          <div className="flex max-w-[100%] gap-4 items-start">
+          <div className="flex max-w-full gap-4 items-start">
             <div className="flex flex-col flex-1 min-w-0">
               <div className="bg-white border border-gray-100 rounded-2xl rounded-tl-sm px-6 py-5 shadow-sm text-gray-800 relative group">
                 <BotResponseHeader />
@@ -264,7 +265,7 @@ function BotResponseHeader() {
   return (
     <div className="flex items-center gap-2 mb-3 border-b border-gray-50 pb-2">
       <span className="font-semibold text-sm text-gray-900">XREF.AI</span>
-      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] text-white">
+      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-linear-to-r from-[#9C26D7] to-[#1EB1DB] text-white">
         Bot
       </span>
     </div>
@@ -311,13 +312,13 @@ function TextResponse({
 }) {
   return (
     <div
-      className={`prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:p-0 transition-all duration-300 break-words ${
+      className={`prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:p-0 transition-all duration-300 wrap-break-word ${
         isExpanded ? "" : "max-h-60 overflow-y-hidden relative"
       }`}
     >
       <MarkdownRenderer content={content} />
       {!isExpanded && (
-        <div className="absolute bottom-0 left-0 w-full h-20 bg-gradient-to-t from-white to-transparent pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-full h-20 bg-linear-to-t from-white to-transparent pointer-events-none" />
       )}
     </div>
   );

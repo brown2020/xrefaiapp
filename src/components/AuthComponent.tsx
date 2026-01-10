@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import {
   GoogleAuthProvider,
   sendSignInLinkToEmail,
@@ -22,6 +21,7 @@ import googleLogo from "@/app/assets/google.svg";
 import Image from "next/image";
 import { isIOSReactNativeWebView } from "@/utils/platform";
 import { InlineSpinner } from "@/components/ui/LoadingSpinner";
+import { Modal } from "@/components/ui/Modal";
 
 export default function AuthComponent() {
   const setAuthDetails = useAuthStore((s) => s.setAuthDetails);
@@ -37,7 +37,6 @@ export default function AuthComponent() {
   const formRef = useRef<HTMLFormElement>(null);
   const [isVisible, setIsVisible] = useState<boolean>(false);
   const [isEmailLinkLogin, setIsEmailLinkLogin] = useState(false);
-  const modalRef = useRef<HTMLDivElement>(null);
   const [showGoogleSignIn, setShowGoogleSignIn] = useState(true); // State to control Google Sign-In visibility
 
   const showModal = () => setIsVisible(true);
@@ -82,7 +81,7 @@ export default function AuthComponent() {
       clearAuthDetails();
     } catch (error) {
       console.error("Error signing out:", error);
-      alert("An error occurred while signing out.");
+      toast.error("An error occurred while signing out.");
     } finally {
       hideModal();
     }
@@ -187,194 +186,12 @@ export default function AuthComponent() {
       window.localStorage.setItem("xrefEmail", email);
       window.localStorage.setItem("xrefName", name);
       setAuthDetails({ authPending: true });
+      toast.success("Check your email for a sign-in link.");
     } catch (error) {
       console.error("Error sending sign-in link:", error);
-      alert("An error occurred while sending the sign-in link.");
-      hideModal();
+      toast.error("Could not send sign-in link. Please try again.");
     }
   };
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        modalRef.current &&
-        !modalRef.current.contains(event.target as Node)
-      ) {
-        hideModal();
-      }
-    };
-
-    if (isVisible) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isVisible]);
-
-  const ModalContent = (
-    <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-[20000]">
-      <div
-        ref={modalRef}
-        className="relative bg-white text-black p-4 rounded-lg shadow-lg w-full max-w-md mx-auto"
-        style={{ zIndex: 20001 }}
-      >
-        <button
-          onClick={hideModal}
-          className="absolute top-0 right-0 p-2 hover:bg-gray-400 bg-gray-200 rounded-full m-2"
-        >
-          <XIcon size={24} className="text-gray-800" />
-        </button>
-        {uid ? (
-          <div className="flex flex-col gap-2">
-            <div className="text-2xl text-center">You are signed in</div>
-            <div className="input-disabled">{authDisplayName}</div>
-            <div className="input-disabled">{authEmail}</div>
-            <button onClick={handleSignOut} className="btn-danger">
-              Sign Out
-            </button>
-          </div>
-        ) : authPending ? (
-          <div className="flex flex-col gap-2">
-            <div className="text-2xl text-center">Signing you in</div>
-            <div className="flex flex-col gap-3 border rounded-md px-3 py-2">
-              <div>
-                {`Check your email at ${email} for a message from Xref.ai`}
-              </div>
-              <div>{`If you don't see the message, check your spam folder. Mark it "not spam" or move it to your inbox.`}</div>
-              <div>
-                Click the sign-in link in the message to complete the sign-in
-                process.
-              </div>
-              <div className="flex items-center gap-2">
-                <span>Waiting for you to click the sign-in link.</span>
-                <InlineSpinner size="sm" />
-              </div>
-            </div>
-
-            <button onClick={handleSignOut} className="btn-danger">
-              Start Over
-            </button>
-          </div>
-        ) : (
-          <form
-            onSubmit={isEmailLinkLogin ? handleSubmit : handlePasswordSignup}
-            ref={formRef}
-            className="flex flex-col gap-2"
-          >
-            <div className="text-3xl text-center pb-3">Sign In</div>
-
-            {/* Conditionally render Google Sign-In and divider */}
-            {showGoogleSignIn && (
-              <>
-                <AuthButton
-                  label="Continue with Google"
-                  logo={googleLogo}
-                  onClick={signInWithGoogle}
-                />
-                <div className="flex items-center justify-center w-full h-12">
-                  <hr className="grow h-px bg-gray-400 border-0" />
-                  <span className="px-3">or</span>
-                  <hr className="grow h-px bg-gray-400 border-0" />
-                </div>
-              </>
-            )}
-
-            {isEmailLinkLogin && (
-              <input
-                id="name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter your name"
-                className="input-primary mb-2"
-              />
-            )}
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              className="input-primary mt-2"
-            />
-            {!isEmailLinkLogin && (
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                className="input-primary mt-2"
-              />
-            )}
-            {!isEmailLinkLogin && (
-              <div className="text-right mt-2">
-                <button
-                  type="button"
-                  onClick={handlePasswordReset}
-                  className="underline text-sm text-blue-600 hover:text-blue-800"
-                >
-                  Forgot Password?
-                </button>
-              </div>
-            )}
-            <button
-              type="submit"
-              className="btn-primary"
-              disabled={!email || (!isEmailLinkLogin && !password)}
-            >
-              {isEmailLinkLogin ? (
-                <div className="flex items-center gap-2 h-8">
-                  <MailIcon size={20} />
-                  <span>Continue with Email Link</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 h-8">
-                  <LockIcon size={20} />
-                  <span>
-                    Sign{" "}
-                    {email.includes("@") && email.split("@")[1] ? "In" : "Up"}{" "}
-                    with Password
-                  </span>
-                </div>
-              )}
-            </button>
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={() => setIsEmailLinkLogin(!isEmailLinkLogin)}
-                className="underline"
-              >
-                {isEmailLinkLogin ? "Use Email/Password" : "Use Email Link"}
-              </button>
-            </div>
-            <label className="flex items-center space-x-2 pl-1">
-              <input
-                type="checkbox"
-                checked={acceptTerms}
-                onChange={(e) => setAcceptTerms(e.target.checked)}
-                className="h-full"
-                required
-              />
-              <span>
-                I accept the{" "}
-                <Link href={"/terms"} className="underline">
-                  terms
-                </Link>{" "}
-                and{" "}
-                <Link href="/privacy" className="underline">
-                  privacy
-                </Link>{" "}
-                policy.
-              </span>
-            </label>
-          </form>
-        )}
-      </div>
-    </div>
-  );
 
   return (
     <>
@@ -396,7 +213,167 @@ export default function AuthComponent() {
         </button>
       )}
 
-      {isVisible && createPortal(ModalContent, document.body)}
+      <Modal
+        isOpen={isVisible}
+        onClose={hideModal}
+        maxWidth="md"
+        showCloseButton={false}
+      >
+        <div className="relative">
+          <button
+            onClick={hideModal}
+            className="absolute top-0 right-0 p-2 hover:bg-gray-400 bg-gray-200 rounded-full -m-2 transition-colors"
+            aria-label="Close"
+          >
+            <XIcon size={20} className="text-gray-800" />
+          </button>
+
+          {uid ? (
+            <div className="flex flex-col gap-2 pt-2">
+              <div className="text-2xl text-center">You are signed in</div>
+              <div className="input-disabled">{authDisplayName}</div>
+              <div className="input-disabled">{authEmail}</div>
+              <button onClick={handleSignOut} className="btn-danger">
+                Sign Out
+              </button>
+            </div>
+          ) : authPending ? (
+            <div className="flex flex-col gap-2 pt-2">
+              <div className="text-2xl text-center">Signing you in</div>
+              <div className="flex flex-col gap-3 border rounded-md px-3 py-2">
+                <div>{`Check your email at ${email} for a message from Xref.ai`}</div>
+                <div>{`If you don't see the message, check your spam folder. Mark it "not spam" or move it to your inbox.`}</div>
+                <div>
+                  Click the sign-in link in the message to complete the sign-in
+                  process.
+                </div>
+                <div className="flex items-center gap-2">
+                  <span>Waiting for you to click the sign-in link.</span>
+                  <InlineSpinner size="sm" />
+                </div>
+              </div>
+
+              <button onClick={handleSignOut} className="btn-danger">
+                Start Over
+              </button>
+            </div>
+          ) : (
+            <form
+              onSubmit={isEmailLinkLogin ? handleSubmit : handlePasswordSignup}
+              ref={formRef}
+              className="flex flex-col gap-2 pt-2"
+            >
+              <div className="text-3xl text-center pb-3">Sign In</div>
+
+              {/* Conditionally render Google Sign-In and divider */}
+              {showGoogleSignIn && (
+                <>
+                  <AuthButton
+                    label="Continue with Google"
+                    logo={googleLogo}
+                    onClick={signInWithGoogle}
+                  />
+                  <div className="flex items-center justify-center w-full h-12">
+                    <hr className="grow h-px bg-gray-400 border-0" />
+                    <span className="px-3">or</span>
+                    <hr className="grow h-px bg-gray-400 border-0" />
+                  </div>
+                </>
+              )}
+
+              {isEmailLinkLogin && (
+                <input
+                  id="name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Enter your name"
+                  className="input-primary mb-2"
+                />
+              )}
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                className="input-primary mt-2"
+              />
+              {!isEmailLinkLogin && (
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="input-primary mt-2"
+                />
+              )}
+              {!isEmailLinkLogin && (
+                <div className="text-right mt-2">
+                  <button
+                    type="button"
+                    onClick={handlePasswordReset}
+                    className="underline text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
+              )}
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={!email || (!isEmailLinkLogin && !password)}
+              >
+                {isEmailLinkLogin ? (
+                  <div className="flex items-center gap-2 h-8">
+                    <MailIcon size={20} />
+                    <span>Continue with Email Link</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 h-8">
+                    <LockIcon size={20} />
+                    <span>
+                      Sign{" "}
+                      {email.includes("@") && email.split("@")[1] ? "In" : "Up"}{" "}
+                      with Password
+                    </span>
+                  </div>
+                )}
+              </button>
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => setIsEmailLinkLogin(!isEmailLinkLogin)}
+                  className="underline"
+                >
+                  {isEmailLinkLogin ? "Use Email/Password" : "Use Email Link"}
+                </button>
+              </div>
+              <label className="flex items-center space-x-2 pl-1">
+                <input
+                  type="checkbox"
+                  checked={acceptTerms}
+                  onChange={(e) => setAcceptTerms(e.target.checked)}
+                  className="h-full"
+                  required
+                />
+                <span>
+                  I accept the{" "}
+                  <Link href={"/terms"} className="underline">
+                    terms
+                  </Link>{" "}
+                  and{" "}
+                  <Link href="/privacy" className="underline">
+                    privacy
+                  </Link>{" "}
+                  policy.
+                </span>
+              </label>
+            </form>
+          )}
+        </div>
+      </Modal>
     </>
   );
 }

@@ -48,7 +48,7 @@ export default function Chat() {
   );
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-80px)] relative bg-gray-50/30 w-full">
+    <div className="flex flex-col h-full relative bg-gray-50/30 w-full">
       {loading ? (
         <div className="flex flex-1 items-center justify-center h-full">
           <LoadingSpinner size="lg" text="Loading your conversation..." />
@@ -80,8 +80,8 @@ export default function Chat() {
 
                 {/* Chat List */}
                 <div className="flex flex-col space-y-2">
-                  {reversedChatlist.map((chat, index) => (
-                    <div key={index} className="flex flex-col">
+                  {reversedChatlist.map((chat) => (
+                    <div key={chat.id} className="flex flex-col">
                       <ChatMessage
                         message={chat}
                         profilePhoto={profile.photoUrl}
