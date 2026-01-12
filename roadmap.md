@@ -61,7 +61,7 @@ Then, once analytics exist, move to **token-based** charging for text (more fair
 
 ## Roadmap
 
-### Phase 0 (1–3 days): Fix the credit loop (must-have)
+### Track A — Monetization plumbing (credits/payments) (must-have, but not the product)
 
 #### 0.0 Lock down credit integrity (security + correctness)
 
@@ -129,7 +129,65 @@ Then, once analytics exist, move to **token-based** charging for text (more fair
 
 ---
 
-### Phase 1 (1–2 weeks): Conversion UX (make buying credits feel inevitable)
+### Track B — Product features (what users actually pay for)
+
+> Goal: make the app feel like a **workflow tool** (repeatable outcomes), not a single-output demo.
+
+#### 1.0 Repurpose actions from History (1 click → useful deliverables)
+
+From a history item, add “repurpose” buttons such as:
+
+- “Turn into Twitter thread”
+- “Turn into LinkedIn post”
+- “Turn into email to a client”
+- “Generate 5 hooks”
+- “SEO title + meta”
+
+**Why it’s valuable**
+
+- Turns a single output into a _set of finished assets_ users can ship.
+- Creates a strong repeat loop (more actions → more wins → more retention).
+
+**Implementation touches**
+
+- `src/components/History.tsx`: add an action row per history item (shown when expanded).
+- Add reusable prompt templates (constants) and reuse existing text generation action.
+- Save repurposed outputs back into History as new items linked to the original.
+
+**Acceptance criteria**
+
+- Any history item can be repurposed with 1 click.
+- User sees streamed output + can save it.
+- History shows a parent/child relationship (simple “Derived from …” label is enough v1).
+
+---
+
+#### 1.1 Projects / Workspaces (organize + collaborate later)
+
+Allow users to group outputs by project (client, brand, class, campaign).
+
+- Project entity: `users/{uid}/projects/{projectId}`
+- History items optionally link to `projectId`
+
+**Why it’s valuable**
+
+- Makes outputs feel like “work in progress” rather than disposable.
+- Users return because their work is organized in-app.
+
+---
+
+#### 1.2 Saved prompts + reusable templates (high leverage)
+
+- Let users save prompt templates and run them repeatedly.
+- Add “variables” (e.g., `{product}`, `{audience}`, `{tone}`).
+
+**Premium hooks**
+
+- Some templates are “Pro” (higher cost) and clearly labeled.
+
+---
+
+### Track C — Conversion UX (helps monetization, but supports product)
 
 #### 1.1 In-context paywall modal (not a dead-end error)
 
@@ -186,7 +244,7 @@ Add “before/after” and “use-case templates” that demonstrate outcomes us
 
 ---
 
-### Phase 2 (2–4 weeks): Product loops that drive repeat credit spend
+### Phase 2 (2–4 weeks): Product loops that drive repeat usage + referrals
 
 #### 2.1 Projects / Workspaces (retain + organize)
 

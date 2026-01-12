@@ -10,8 +10,10 @@ import {
 } from "lucide-react";
 import { useState, useCallback, useMemo } from "react";
 import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
+import { Timestamp } from "firebase/firestore";
 
 import { useAuthStore } from "@/zustand/useAuthStore";
+import useProfileStore, { type ProfileType } from "@/zustand/useProfileStore";
 import { UserHistoryType } from "@/types/UserHistoryType";
 import { copyImageToClipboard, downloadImage } from "@/utils/clipboard";
 import Image from "next/image";
@@ -20,13 +22,19 @@ import { LoadingSpinner, InlineSpinner } from "@/components/ui/LoadingSpinner";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { useFirestorePagination } from "@/hooks/useFirestorePagination";
 import { MAX_HISTORY_LOAD } from "@/constants";
+import { useHistorySaver } from "@/hooks/useHistorySaver";
+import toast from "react-hot-toast";
+import { readStreamableValue } from "@ai-sdk/rsc";
+import { generateResponse } from "@/actions/generateAIResponse";
 
 export default function History() {
   const uid = useAuthStore((state) => state.uid);
+  const profile = useProfileStore((s) => s.profile);
   const [search, setSearch] = useState("");
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>(
     {}
   );
+  const [localAdds, setLocalAdds] = useState<UserHistoryType[]>([]);
 
   // Transform function for Firestore documents
   const transformHistoryDoc = useCallback(
@@ -40,6 +48,8 @@ export default function History() {
         topic: (d.topic as string) || "",
         words: (d.words as string) || "",
         xrefs: (d.xrefs as string[]) || [],
+        derivedFromId: (d.derivedFromId as string) || undefined,
+        tool: (d.tool as string) || undefined,
       };
     },
     []
@@ -65,12 +75,22 @@ export default function History() {
   // Filter summaries by search term
   const filteredSummaries = useMemo(
     () =>
-      summaries.filter((summary) =>
-        (summary.response + " " + summary.prompt)
-          .toUpperCase()
-          .includes(search.toUpperCase())
-      ),
-    [summaries, search]
+      [...localAdds, ...summaries]
+        .reduce<UserHistoryType[]>((acc, item) => {
+          // de-dupe by id (local insert may overlap if pagination picks it up)
+          if (!acc.some((x) => x.id === item.id)) acc.push(item);
+          return acc;
+        }, [])
+        .sort(
+          (a, b) =>
+            (b.timestamp?.toMillis?.() ?? 0) - (a.timestamp?.toMillis?.() ?? 0)
+        )
+        .filter((summary) =>
+          (summary.response + " " + summary.prompt)
+            .toUpperCase()
+            .includes(search.toUpperCase())
+        ),
+    [localAdds, summaries, search]
   );
 
   if (!uid) {
@@ -110,8 +130,12 @@ export default function History() {
                 <HistoryCard
                   key={summary.id}
                   summary={summary}
+                  profile={profile}
                   isExpanded={expandedItems[summary.id] || false}
                   onToggleExpand={() => toggleExpand(summary.id)}
+                  onAddDerived={(entry) =>
+                    setLocalAdds((prev) => [entry, ...prev])
+                  }
                 />
               ))}
 
@@ -170,16 +194,145 @@ function SearchInput({
 
 interface HistoryCardProps {
   summary: UserHistoryType;
+  profile: ProfileType;
   isExpanded: boolean;
   onToggleExpand: () => void;
+  onAddDerived: (entry: UserHistoryType) => void;
 }
 
 function HistoryCard({
   summary,
+  profile,
   isExpanded,
   onToggleExpand,
+  onAddDerived,
 }: HistoryCardProps) {
   const isImage = summary.words === "image";
+  const { saveHistory } = useHistorySaver();
+  const [repurposeLoading, setRepurposeLoading] = useState(false);
+  const [repurposeLabel, setRepurposeLabel] = useState<string | null>(null);
+  const [repurposeOutput, setRepurposeOutput] = useState("");
+
+  const repurposeTargets = useMemo(
+    () =>
+      [
+        { key: "repurpose:twitter-thread", label: "Twitter thread", words: 220 },
+        { key: "repurpose:linkedin", label: "LinkedIn post", words: 200 },
+        { key: "repurpose:email", label: "Client email", words: 170 },
+        { key: "repurpose:hooks", label: "5 hooks", words: 120 },
+        { key: "repurpose:seo-meta", label: "SEO title + meta", words: 120 },
+      ] as const,
+    []
+  );
+
+  const handleRepurpose = useCallback(
+    async (targetKey: string) => {
+      if (isImage) {
+        toast.error("Repurpose is currently for text outputs only.");
+        return;
+      }
+      const target = repurposeTargets.find((t) => t.key === targetKey);
+      if (!target) return;
+
+      setRepurposeLoading(true);
+      setRepurposeLabel(target.label);
+      setRepurposeOutput("");
+
+      const systemPrompt =
+        "You are Xref.ai. Produce high-quality, ready-to-use writing. Follow the user's requested format and do not add extra commentary.";
+      const userPrompt = [
+        `Task: Repurpose the content into a ${target.label}.`,
+        "",
+        "Original user prompt:",
+        summary.prompt,
+        "",
+        "Original output to repurpose:",
+        summary.response,
+      ].join("\n");
+
+      try {
+        const stream = await generateResponse(systemPrompt, userPrompt, {
+          modelKey: profile.text_model,
+          useCredits: profile.useCredits,
+          requestedWordCount: target.words,
+          openaiApiKey: profile.openai_api_key,
+          anthropicApiKey: profile.anthropic_api_key,
+          xaiApiKey: profile.xai_api_key,
+          googleApiKey: profile.google_api_key,
+        });
+
+        let finished = "";
+        for await (const chunk of readStreamableValue(stream)) {
+          if (!chunk) continue;
+          finished = chunk.trim();
+          setRepurposeOutput(finished);
+        }
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          (error.message === "INSUFFICIENT_CREDITS" ||
+            error.message.toLowerCase().includes("insufficient"))
+        ) {
+          toast.error("Not enough credits. Please buy more credits in Account.");
+        } else {
+          console.error("Repurpose error:", error);
+          toast.error("Could not repurpose this item right now.");
+        }
+        setRepurposeLabel(null);
+        setRepurposeOutput("");
+      } finally {
+        setRepurposeLoading(false);
+      }
+    },
+    [isImage, profile, repurposeTargets, summary.prompt, summary.response]
+  );
+
+  const handleSaveRepurpose = useCallback(async () => {
+    if (!repurposeLabel || !repurposeOutput.trim()) return;
+    try {
+      const id = await saveHistory({
+        prompt: `Repurpose: ${repurposeLabel}\n\nSource prompt:\n${summary.prompt}`,
+        response: repurposeOutput.trim(),
+        topic: summary.topic ? `${summary.topic} (repurpose)` : "Repurpose",
+        words: "repurpose",
+        derivedFromId: summary.id,
+        tool:
+          repurposeTargets.find((t) => t.label === repurposeLabel)?.key ??
+          "repurpose",
+        xrefs: [],
+      });
+
+      if (id) {
+        onAddDerived({
+          id,
+          prompt: `Repurpose: ${repurposeLabel}\n\nSource prompt:\n${summary.prompt}`,
+          response: repurposeOutput.trim(),
+          topic: summary.topic ? `${summary.topic} (repurpose)` : "Repurpose",
+          words: "repurpose",
+          xrefs: [],
+          derivedFromId: summary.id,
+          tool:
+            repurposeTargets.find((t) => t.label === repurposeLabel)?.key ??
+            "repurpose",
+          timestamp: Timestamp.now(),
+        });
+      }
+
+      toast.success("Saved to History");
+    } catch (error) {
+      console.error("Save repurpose error:", error);
+      toast.error("Could not save repurposed output.");
+    }
+  }, [
+    onAddDerived,
+    repurposeLabel,
+    repurposeOutput,
+    repurposeTargets,
+    saveHistory,
+    summary.id,
+    summary.prompt,
+    summary.topic,
+  ]);
 
   return (
     <div className="flex flex-col bg-card text-card-foreground rounded-2xl border border-border shadow-sm overflow-hidden transition-all hover:shadow-md">
@@ -194,6 +347,11 @@ function HistoryCard({
               timeStyle: "short",
             }
           )}
+          {summary.derivedFromId ? (
+            <span className="ml-2 inline-flex items-center rounded-full border border-border bg-card px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+              Derived
+            </span>
+          ) : null}
         </div>
         <button
           onClick={onToggleExpand}
@@ -243,6 +401,57 @@ function HistoryCard({
                 {!isImage && (
                   <div className="mt-4 flex justify-start pt-3 border-t border-border">
                     <CopyButton text={summary.response} />
+                  </div>
+                )}
+
+                {/* Repurpose (text-only, shown when expanded) */}
+                {!isImage && isExpanded && (
+                  <div className="mt-4 border-t border-border pt-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-xs font-semibold text-muted-foreground">
+                        Repurpose
+                      </div>
+                      {repurposeLoading ? (
+                        <div className="text-xs text-muted-foreground flex items-center gap-2">
+                          <InlineSpinner size="sm" />
+                          Generating {repurposeLabel ?? "…"}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {repurposeTargets.map((t) => (
+                        <button
+                          key={t.key}
+                          type="button"
+                          disabled={repurposeLoading}
+                          onClick={() => handleRepurpose(t.key)}
+                          className="text-xs font-medium px-3 py-2 rounded-xl border border-border bg-card hover:bg-muted transition-colors disabled:opacity-50"
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {repurposeOutput ? (
+                      <div className="mt-4 rounded-xl border border-border bg-muted/30 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-xs font-semibold text-foreground">
+                            {repurposeLabel ?? "Repurposed output"}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleSaveRepurpose}
+                            className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+                          >
+                            Save to History
+                          </button>
+                        </div>
+                        <div className="mt-3 prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:p-0 wrap-break-word">
+                          <MarkdownRenderer content={repurposeOutput} />
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 )}
               </div>

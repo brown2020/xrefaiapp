@@ -8,6 +8,8 @@ export interface HistoryEntry {
   topic: string;
   words: string;
   xrefs?: string[];
+  derivedFromId?: string;
+  tool?: string;
 }
 
 export function useHistorySaver() {
@@ -23,6 +25,8 @@ export function useHistorySaver() {
       response: entry.response,
       topic: entry.topic,
       words: entry.words,
+      derivedFromId: entry.derivedFromId ?? null,
+      tool: entry.tool ?? null,
       xrefs: entry.xrefs ?? [],
       timestamp: Timestamp.now(),
     });
