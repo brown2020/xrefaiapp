@@ -9,6 +9,9 @@ import { debounce } from "lodash";
 import { MAX_WORDS_IN_CONTEXT } from "@/constants";
 import useProfileStore from "@/zustand/useProfileStore";
 import toast from "react-hot-toast";
+import { usePaywallStore } from "@/zustand/usePaywallStore";
+import { CREDITS_COSTS } from "@/constants/credits";
+import { ROUTES } from "@/constants/routes";
 
 export function useChatGeneration(
   uid: string,
@@ -119,6 +122,11 @@ export function useChatGeneration(
           error.message.toLowerCase().includes("insufficient"))
       ) {
         toast.error("Not enough credits. Please buy more credits in Account.");
+        usePaywallStore.getState().openPaywall({
+          actionLabel: "Chat message",
+          requiredCredits: CREDITS_COSTS.chatMessage,
+          redirectPath: ROUTES.chat,
+        });
         setLoadingResponse(false);
         setPendingPrompt("");
         return;

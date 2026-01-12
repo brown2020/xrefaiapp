@@ -9,6 +9,7 @@ import { ChevronDown, Eye, EyeOff } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { AI_MODELS, listAiModels, resolveAiModelKey } from "@/ai/models";
 import { InlineSpinner } from "@/components/ui/LoadingSpinner";
+import { CREDIT_PACKS, DEFAULT_CREDIT_PACK_ID, formatDollarsFromCents, getCreditPack } from "@/constants/creditPacks";
 
 export default function ProfileComponent() {
   const profile = useProfileStore((state) => state.profile);
@@ -30,6 +31,7 @@ export default function ProfileComponent() {
   const [showCreditsSection, setShowCreditsSection] = useState(true); // State to control visibility of credits section
   const [isSavingApiKeys, setIsSavingApiKeys] = useState(false);
   const [visibleKeys, setVisibleKeys] = useState<Record<string, boolean>>({});
+  const [selectedPackId, setSelectedPackId] = useState<string>(DEFAULT_CREDIT_PACK_ID);
   const addCredits = useProfileStore((state) => state.addCredits);
   const addPayment = usePaymentsStore((state) => state.addPayment);
 
@@ -148,11 +150,14 @@ export default function ProfileComponent() {
 
   const handleBuyClick = useCallback(() => {
     if (showCreditsSection) {
-      window.location.href = ROUTES.paymentAttempt;
+      const pack = getCreditPack(selectedPackId);
+      window.location.href = `${ROUTES.paymentAttempt}?pack=${encodeURIComponent(
+        pack.id
+      )}&redirect=${encodeURIComponent(ROUTES.account)}`;
     } else {
       window.ReactNativeWebView?.postMessage("INIT_IAP");
     }
-  }, [showCreditsSection]);
+  }, [selectedPackId, showCreditsSection]);
 
   return (
     <div className="flex flex-col gap-4 ">
@@ -165,12 +170,39 @@ export default function ProfileComponent() {
                 {Math.round(profile.credits)}
               </span>
             </div>
-            <div className="w-[48%] credits-block">
+            <div className="w-[48%] credits-block flex flex-col items-center gap-2">
+              <div className="w-full max-w-xs">
+                <label htmlFor="credit-pack" className={labelClassName}>
+                  Credit pack:
+                </label>
+                <div className="relative">
+                  <select
+                    id="credit-pack"
+                    value={selectedPackId}
+                    onChange={(e) => setSelectedPackId(e.target.value)}
+                    className={`${inputClassName} appearance-none`}
+                    disabled={!showCreditsSection}
+                  >
+                    {CREDIT_PACKS.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.label} — ${formatDollarsFromCents(p.amountCents)} →{" "}
+                        {p.credits.toLocaleString()} credits
+                        {p.badge ? ` (${p.badge})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    size={16}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+                  />
+                </div>
+              </div>
+
               <button
-                className="font-bold bg-primary hover:opacity-90 rounded-3xl text-primary-foreground w-48 block mx-auto px-3 py-2 flex-1 text-center transition-opacity"
+                className="font-bold bg-primary hover:opacity-90 rounded-3xl text-primary-foreground w-56 block mx-auto px-3 py-2 flex-1 text-center transition-opacity disabled:opacity-60"
                 onClick={handleBuyClick}
               >
-                Buy 10,000 Credits
+                Buy credits
               </button>
             </div>
           </div>

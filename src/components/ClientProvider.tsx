@@ -12,6 +12,7 @@ import ErrorBoundary from "./ErrorBoundary";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { PROTECTED_ROUTES, ROUTES } from "@/constants/routes";
 import { getAuthCookieName } from "@/utils/getAuthCookieName";
+import { CreditsPaywallModal } from "@/components/ui/CreditsPaywallModal";
 
 /**
  * Client-side provider that handles:
@@ -65,6 +66,7 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
   return (
     <ErrorBoundary>
       {children}
+      <CreditsPaywallModal />
       {isClient && !isWebView && (
         <CookieConsent>
           This app uses cookies to enhance the user experience.

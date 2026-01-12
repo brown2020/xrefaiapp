@@ -15,6 +15,8 @@ import { ResponseDisplay } from "@/components/ui/ResponseDisplay";
 import { MIN_WORD_COUNT, MAX_WORD_COUNT } from "@/constants";
 import useProfileStore from "@/zustand/useProfileStore";
 import { getTextGenerationCreditsCost } from "@/constants/credits";
+import { usePaywallStore } from "@/zustand/usePaywallStore";
+import { ROUTES } from "@/constants/routes";
 
 export interface BasePromptProps {
   title: string;
@@ -40,6 +42,7 @@ export default function BasePrompt({
   children,
 }: BasePromptProps) {
   const profile = useProfileStore((s) => s.profile);
+  const openPaywall = usePaywallStore((s) => s.openPaywall);
   const { saveHistory, uid } = useHistorySaver();
   const {
     summary,
@@ -122,6 +125,11 @@ export default function BasePrompt({
         toast.error(
           `Not enough credits (need ${cost}). Please buy more credits in Account.`
         );
+        openPaywall({
+          actionLabel: title,
+          requiredCredits: cost,
+          redirectPath: ROUTES.tools,
+        });
         completeWithError("Not enough credits");
         return;
       }

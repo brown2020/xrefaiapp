@@ -11,9 +11,13 @@ import { createPaymentIntent } from "@/actions/paymentActions";
 import convertToSubcurrency from "@/utils/convertToSubcurrency";
 import { LoadingSpinner, InlineSpinner } from "@/components/ui/LoadingSpinner";
 
-type Props = { amount: number };
+type Props = { amount: number; packId?: string; redirectPath?: string };
 
-export default function PaymentCheckoutPage({ amount }: Props) {
+export default function PaymentCheckoutPage({
+  amount,
+  packId,
+  redirectPath,
+}: Props) {
   const stripe = useStripe();
   const elements = useElements();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -71,7 +75,9 @@ export default function PaymentCheckoutPage({ amount }: Props) {
         elements,
         clientSecret,
         confirmParams: {
-          return_url: `${window.location.origin}/payment-success?amount=${amount}&redirect=/account`,
+          return_url: `${window.location.origin}/payment-success?pack=${encodeURIComponent(
+            packId || ""
+          )}&redirect=${encodeURIComponent(redirectPath || "/account")}`,
         },
       });
 

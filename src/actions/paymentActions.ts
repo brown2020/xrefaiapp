@@ -5,6 +5,7 @@ import Stripe from "stripe";
 import { cookies } from "next/headers";
 import { adminAuth, adminDb, admin } from "@/firebase/firebaseAdmin";
 import { getAuthCookieName } from "@/utils/getAuthCookieName";
+import { getCreditPackByAmountCents } from "@/constants/creditPacks";
 
 const stripeSecretKey = (process.env.STRIPE_SECRET_KEY || "").trim();
 if (!stripeSecretKey) {
@@ -26,10 +27,12 @@ async function requireAuthedUid(): Promise<string> {
 }
 
 function computeCreditsForAmountCents(amountCents: number): number {
-  // Current product is fixed at $99.99 for 10,000 credits.
   // Keep this mapping server-side so clients can't "choose" credits.
-  if (amountCents === 9999) return 10_000;
-  // Fallback: 1 cent == 1 credit.
+  const pack = getCreditPackByAmountCents(amountCents);
+  if (pack) return pack.credits;
+
+  // Unknown amount (shouldn't happen in normal UI flows).
+  // Safe fallback: 1 cent == 1 credit.
   return Math.max(0, Math.floor(amountCents));
 }
 
