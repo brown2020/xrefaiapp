@@ -4,18 +4,19 @@
 
 - **Strong “bones”**: Chat + Tools + History + Account pages are implemented and reasonably polished (`src/components/Chat.tsx`, `src/components/Tools.tsx`, `src/components/History.tsx`, `src/components/Profile.tsx`).
 - **Payments exist**: Stripe PaymentIntent + PaymentElement checkout (`src/actions/paymentActions.ts`, `src/app/payment-attempt/page.tsx`, `src/components/PaymentCheckoutPage.tsx`, `src/components/PaymentSuccessPage.tsx`).
+- **Payment fulfillment is now server-side + idempotent**: credits are minted in a server transaction tied to the authenticated Firebase user (not on the client). (`src/actions/paymentActions.ts` → `fulfillStripePaymentIntent(...)`)
 - **Credits exist (and are persisted)**: credits live in Firestore `users/{uid}/profile/userData` and are shown in Account (`src/zustand/useProfileStore.ts`, `src/components/ProfileComponent.tsx`).
 - **BYO API keys mode exists**: users can opt out of credits and use their own provider keys (`profile.useCredits`, `src/ai/getTextModel.ts`, `src/components/ProfileComponent.tsx`).
 
 ## Highest-impact finding (revenue blocker)
 
-**Credits are not consistently enforced/deducted for generations.**
+**Credits are enforced in the UI, but not enforced server-side (bypass risk).**
 
-- Text generation paths (`generateResponse`, `generateResponseWithMemory`) stream responses but **do not decrement credits** (`src/actions/generateAIResponse.ts`, `src/components/BasePrompt.tsx`, `src/hooks/useChatGeneration.ts`).
-- Image generation also **does not decrement credits** (`src/actions/generateImage.ts`, `src/components/ImagePrompt.tsx`, `src/hooks/useImageGeneration.ts`).
-- Tag suggestion checks balance (`credits < 1`) but also **does not deduct** on success (`src/actions/suggestTags.ts`).
+- Client/UI paths **do** reserve credits (`minusCredits`) and refund on failures in chat/tools/images (`src/components/BasePrompt.tsx`, `src/hooks/useChatGeneration.ts`, `src/components/ImagePrompt.tsx`, `src/hooks/useImageGeneration.ts`).
+- However, the server actions (`generateAIResponse`, `generateImage`, `suggestTags`) do **not** verify credit balance or debit credits on the server. A determined user can bypass the UI and call these paths without spending credits.
+- Tag suggestion is especially weak: it trusts a **client-provided `credits` number** and does **no debit on success** (`src/actions/suggestTags.ts`).
 
-If users can generate unlimited output with their initial/default credits (or without deduction), you won’t get a reliable credit-to-revenue loop.
+If generation can be triggered without a server-side debit, you won’t get a reliable credit-to-revenue loop (and you’ll have preventable abuse/cost).
 
 ---
 
@@ -38,7 +39,7 @@ If users can generate unlimited output with their initial/default credits (or wi
 
 ### Use a simple, visible credit economy
 
-Current mapping in code: payment success adds **`credits = amountCents + 1`** (so $99.99 → 10,000 credits). That implies:
+Recommended mapping: **$1.00 ≈ 100 credits** (so $99.99 → 10,000 credits). That implies:
 
 - **$1.00 ≈ 100 credits**
 - **1 credit ≈ $0.01**
@@ -62,6 +63,20 @@ Then, once analytics exist, move to **token-based** charging for text (more fair
 
 ### Phase 0 (1–3 days): Fix the credit loop (must-have)
 
+#### 0.0 Lock down credit integrity (security + correctness)
+
+- ✅ **Move Stripe credit fulfillment server-side + idempotent** (done)
+  - Prevents “replay” and “someone else’s PaymentIntent” credit minting.
+  - Implementation: `src/actions/paymentActions.ts` → `fulfillStripePaymentIntent(...)` writes:
+    - `users/{uid}/payments/{paymentIntentId}`
+    - increments `users/{uid}/profile/userData.credits` transactionally
+- ✅ **Close free-credits exploit via `window.postMessage`** (done)
+  - Only accept `IAP_SUCCESS` messages inside the RN WebView context.
+  - Implementation: `src/components/ProfileComponent.tsx`
+- ✅ **Harden credit charging API** (done)
+  - `minusCredits(NaN|<=0)` no longer “succeeds”.
+  - Implementation: `src/zustand/useProfileStore.ts`
+
 #### 0.1 Enforce credits at every generation boundary
 
 - **Goal**: every “generate” action must either:
@@ -71,23 +86,31 @@ Then, once analytics exist, move to **token-based** charging for text (more fair
 
 **Implementation touches**
 
-- Text tools: `src/components/BasePrompt.tsx` (wrap request with “reserve credits” → generate → commit)
-- Chat: `src/hooks/useChatGeneration.ts`
-- Images: `src/components/ImagePrompt.tsx` and `src/hooks/useImageGeneration.ts`
-- Tag suggestion: `src/actions/suggestTags.ts`
+- Client/UI reserve+refund (already implemented):
+  - Text tools: `src/components/BasePrompt.tsx`
+  - Chat: `src/hooks/useChatGeneration.ts`
+  - Images: `src/components/ImagePrompt.tsx` and `src/hooks/useImageGeneration.ts`
+- Server-side enforcement (still needed):
+  - Text: `src/actions/generateAIResponse.ts`
+  - Images: `src/actions/generateImage.ts`
+  - Tags: `src/actions/suggestTags.ts`
 - Credit source of truth: `src/zustand/useProfileStore.ts` (`minusCredits`, `addCredits`)
 
 **Recommended approach**
 
-- Add a small “credits service” that:
+- Add a small “credits service” (server-side) that:
   - computes the **expected cost** for an action (`getCreditsCost(...)`)
-  - checks user balance
-  - deducts credits only after success (or reserve+refund pattern if you want strictness)
+  - verifies auth (Firebase ID token cookie)
+  - checks user balance and debits atomically (transaction / `increment(-cost)`)
+  - writes an auditable ledger entry (see 0.2)
+
+> Rule: **clients can request generation, but only the server can decide whether credits are spent**.
 
 **Acceptance criteria**
 
 - When balance is insufficient, generation does not run and user sees a clear CTA to buy credits.
 - Credits decrement is reflected immediately in UI and persisted to Firestore.
+- Direct calls to server actions cannot bypass debiting (no “free generations”).
 
 #### 0.2 Add a credit ledger (auditable + trust-building)
 
@@ -246,6 +269,9 @@ This requires shifting from PaymentIntent-only to a Stripe customer + saved PM f
 - **Trust**:
   - show credit costs before user clicks “Generate”
   - provide ledger + receipts
+- **Payments/credits correctness**:
+  - keep fulfillment idempotent and server-owned (no client-side credit minting)
+  - prefer Stripe webhooks for fulfillment (event-driven) over return-url flows long-term
 
 ---
 
