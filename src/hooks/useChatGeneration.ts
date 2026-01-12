@@ -8,6 +8,8 @@ import { validateContentWithToast } from "@/utils/contentGuard";
 import { debounce } from "lodash";
 import { MAX_WORDS_IN_CONTEXT } from "@/constants";
 import useProfileStore from "@/zustand/useProfileStore";
+import toast from "react-hot-toast";
+import { CREDITS_COSTS } from "@/constants/credits";
 
 export function useChatGeneration(
   uid: string,
@@ -15,7 +17,15 @@ export function useChatGeneration(
   onResponseSaved: () => void,
   scrollToBottom: () => void
 ) {
-  const profile = useProfileStore((s) => s.profile);
+  // Subscribe only to fields required to generate (avoid re-renders on credit changes).
+  const useCredits = useProfileStore((s) => s.profile.useCredits);
+  const modelKey = useProfileStore((s) => s.profile.text_model);
+  const openaiApiKey = useProfileStore((s) => s.profile.openai_api_key);
+  const anthropicApiKey = useProfileStore((s) => s.profile.anthropic_api_key);
+  const xaiApiKey = useProfileStore((s) => s.profile.xai_api_key);
+  const googleApiKey = useProfileStore((s) => s.profile.google_api_key);
+  const minusCredits = useProfileStore((s) => s.minusCredits);
+  const addCredits = useProfileStore((s) => s.addCredits);
   const [newPrompt, setNewPrompt] = useState<string>("");
   const [pendingPrompt, setPendingPrompt] = useState<string>(""); // Track the message being processed
   const [streamedResponse, setStreamedResponse] = useState<string>("");
@@ -50,6 +60,22 @@ export function useChatGeneration(
       return;
     }
 
+    let charged = false;
+    if (useCredits) {
+      const cost = CREDITS_COSTS.chatMessage;
+      const ok = await minusCredits(cost);
+      if (!ok) {
+        const currentCredits = useProfileStore.getState().profile.credits;
+        toast.error(
+          `Not enough credits (${Math.round(
+            currentCredits
+          )} available, need ${cost}). Please buy more credits in Account.`
+        );
+        return;
+      }
+      charged = true;
+    }
+
     // Store the prompt being sent so it can be displayed immediately
     const promptToSend = newPrompt.trim();
     setPendingPrompt(promptToSend);
@@ -74,12 +100,12 @@ export function useChatGeneration(
 
     try {
       const result = await generateResponseWithMemory(systemPrompt, context, {
-        modelKey: profile.text_model,
-        useCredits: profile.useCredits,
-        openaiApiKey: profile.openai_api_key,
-        anthropicApiKey: profile.anthropic_api_key,
-        xaiApiKey: profile.xai_api_key,
-        googleApiKey: profile.google_api_key,
+        modelKey,
+        useCredits,
+        openaiApiKey,
+        anthropicApiKey,
+        xaiApiKey,
+        googleApiKey,
       });
       let finishedSummary = "";
 
@@ -97,6 +123,10 @@ export function useChatGeneration(
       setLoadingResponse(false);
       setPendingPrompt(""); // Clear pending prompt after save
     } catch (error) {
+      // Refund reserved credits if generation fails.
+      if (charged) {
+        await addCredits(CREDITS_COSTS.chatMessage);
+      }
       console.error("Error generating response:", error);
       setLoadingResponse(false);
       setPendingPrompt(""); // Clear on error too

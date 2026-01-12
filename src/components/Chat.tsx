@@ -15,7 +15,8 @@ import { ROUTES } from "@/constants/routes";
 
 export default function Chat() {
   const uid = useAuthStore((s) => s.uid);
-  const profile = useProfileStore((s) => s.profile);
+  // Subscribe ONLY to the photo URL (avoid re-renders on credit changes).
+  const profilePhotoUrl = useProfileStore((s) => s.profile.photoUrl);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Helper to scroll to bottom
@@ -139,12 +140,12 @@ export default function Chat() {
                     <div key={chat.id} className="flex flex-col">
                       <ChatMessage
                         message={chat}
-                        profilePhoto={profile.photoUrl}
+                        profilePhoto={profilePhotoUrl}
                         isUser={true}
                       />
                       <ChatMessage
                         message={chat}
-                        profilePhoto={profile.photoUrl}
+                        profilePhoto={profilePhotoUrl}
                         isUser={false}
                       />
                     </div>
@@ -161,7 +162,7 @@ export default function Chat() {
                           response: "",
                           seconds: Math.floor(Date.now() / 1000),
                         }}
-                        profilePhoto={profile.photoUrl}
+                        profilePhoto={profilePhotoUrl}
                         isUser={true}
                       />
                       {/* AI streaming response */}

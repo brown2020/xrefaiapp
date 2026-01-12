@@ -1,5 +1,12 @@
 import { create } from "zustand";
-import { deleteDoc, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import {
+  deleteDoc,
+  doc,
+  getDoc,
+  runTransaction,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
 import { useAuthStore } from "./useAuthStore";
 import { db } from "@/firebase/firebaseClient";
 import { deleteUser, getAuth } from "firebase/auth";
@@ -53,6 +60,15 @@ const defaultProfile: ProfileType = {
   text_model: "openai:gpt-5.2",
 };
 
+function coerceCredits(value: unknown, fallback: number): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+}
+
 interface ProfileState {
   profile: ProfileType;
   fetchProfile: () => Promise<void>;
@@ -93,7 +109,7 @@ const useProfileStore = create<ProfileState>((set, get) => ({
             firestoreProfile.emailVerified !== undefined
               ? firestoreProfile.emailVerified
               : authEmailVerified || false, // Ensure a boolean value
-          credits: firestoreProfile.credits ?? 1000, // Default only if not set in Firestore
+          credits: coerceCredits(firestoreProfile.credits, 1000), // Default only if not set in Firestore
           firstName: firestoreProfile.firstName || authFirstName || "",
           lastName: firestoreProfile.lastName || authLastName || "",
           headerUrl: firestoreProfile.headerUrl || "",
@@ -160,15 +176,22 @@ const useProfileStore = create<ProfileState>((set, get) => ({
     const uid = useAuthStore.getState().uid;
     if (!uid) return false;
 
-    const profile = get().profile;
-    if (profile.credits < amount) return false;
+    if (!Number.isFinite(amount) || amount <= 0) return true;
 
     try {
-      const newCredits = profile.credits - amount;
-      await updateCredits(uid, newCredits);
+      const profile = get().profile;
+      const newCredits = await changeCreditsAtomic(uid, -amount);
       set({ profile: { ...profile, credits: newCredits } });
       return true;
     } catch (error) {
+      // Treat insufficient credits as a normal false return (no console noise).
+      if (
+        error instanceof Error &&
+        (error.message === "INSUFFICIENT_CREDITS" ||
+          error.message.toLowerCase().includes("insufficient"))
+      ) {
+        return false;
+      }
       handleProfileError("using credits", error);
       return false;
     }
@@ -178,11 +201,11 @@ const useProfileStore = create<ProfileState>((set, get) => ({
     const uid = useAuthStore.getState().uid;
     if (!uid) return;
 
-    const profile = get().profile;
-    const newCredits = profile.credits + amount;
+    if (!Number.isFinite(amount) || amount <= 0) return;
 
     try {
-      await updateCredits(uid, newCredits);
+      const profile = get().profile;
+      const newCredits = await changeCreditsAtomic(uid, amount);
       set({ profile: { ...profile, credits: newCredits } });
     } catch (error) {
       handleProfileError("adding credits", error);
@@ -223,10 +246,33 @@ function createNewProfile(
   };
 }
 
-// Helper function to update credits in Firestore
-async function updateCredits(uid: string, credits: number): Promise<void> {
+// Atomic credits adjustment to avoid race conditions.
+async function changeCreditsAtomic(uid: string, delta: number): Promise<number> {
   const userRef = doc(db, `users/${uid}/profile/userData`);
-  await updateDoc(userRef, { credits });
+
+  return await runTransaction(db, async (tx) => {
+    const snap = await tx.get(userRef);
+    const raw =
+      snap.exists() ? (snap.data().credits as unknown) : defaultProfile.credits;
+    const current = coerceCredits(raw, defaultProfile.credits);
+
+    const next = current + delta;
+    if (!Number.isFinite(next)) {
+      throw new Error("Invalid credits value");
+    }
+    if (next < 0) {
+      throw new Error("INSUFFICIENT_CREDITS");
+    }
+
+    // Ensure document exists and update credits.
+    if (!snap.exists()) {
+      tx.set(userRef, { credits: next }, { merge: true });
+    } else {
+      tx.update(userRef, { credits: next });
+    }
+
+    return next;
+  });
 }
 
 // Helper function to handle profile errors

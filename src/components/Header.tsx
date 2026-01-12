@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Menu, MessageSquare, Grid2X2, History, User } from "lucide-react";
 import { NAV_MENU_ITEMS, ROUTES } from "@/constants/routes";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui";
+import { CreditsBadge } from "@/components/ui/CreditsBadge";
 
 type MenuItem = {
   label: string;
@@ -43,22 +44,25 @@ export default function Header() {
             </span>
           </Link>
 
-          {/* Desktop Menu */}
-          <nav className="hidden sm:flex space-x-4">
-            {menuItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={pathname === item.href ? "page" : undefined}
-                className={`px-3 py-2 navbar-link font-semibold flex items-center gap-2 text-base ${
-                  pathname === item.href ? "active" : "text-foreground"
-                }`}
-              >
-                <item.icon className="w-4 h-4" />
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          <div className="hidden sm:flex items-center gap-4">
+            {/* Desktop Menu */}
+            <nav className="flex space-x-1">
+              {menuItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={pathname === item.href ? "page" : undefined}
+                  className={`px-3 py-2 navbar-link font-semibold flex items-center gap-2 text-base ${
+                    pathname === item.href ? "active" : "text-foreground"
+                  }`}
+                >
+                  <item.icon className="w-4 h-4" />
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+            <CreditsBadge />
+          </div>
 
           {/* Mobile Menu (accessible sheet) */}
           <div className="sm:hidden">
@@ -74,6 +78,9 @@ export default function Header() {
               </SheetTrigger>
               <SheetContent title="Menu">
                 <nav className="flex flex-col">
+                  <div className="px-3 pb-3">
+                    <CreditsBadge />
+                  </div>
                   {menuItems.map((item) => (
                     <SheetClose key={item.href}>
                       <Link

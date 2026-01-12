@@ -15,12 +15,17 @@ import { Copy, Download } from "lucide-react";
 import { inputClassName, labelClassName } from "@/components/ui/FormInput";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ResponseDisplay } from "@/components/ui/ResponseDisplay";
+import useProfileStore from "@/zustand/useProfileStore";
+import { CREDITS_COSTS } from "@/constants/credits";
 
 const IMAGE_ERROR_MESSAGE =
   "I can't do that. I can't do real people or anything that violates the terms of service. Please try changing the prompt.";
 
 export default function ImagePrompt() {
   const { saveHistory, uid } = useHistorySaver();
+  const profile = useProfileStore((s) => s.profile);
+  const minusCredits = useProfileStore((s) => s.minusCredits);
+  const addCredits = useProfileStore((s) => s.addCredits);
   const {
     summary,
     flagged,
@@ -47,10 +52,30 @@ export default function ImagePrompt() {
       return;
     }
 
+    if (!uid) {
+      toast.error("Please sign in to generate images.");
+      return;
+    }
+
+    let charged = false;
+    if (profile.useCredits) {
+      const cost = CREDITS_COSTS.imageGeneration;
+      const ok = await minusCredits(cost);
+      if (!ok) {
+        toast.error(
+          `Not enough credits (${Math.round(
+            profile.credits
+          )} available, need ${cost}). Please buy more credits in Account.`
+        );
+        return;
+      }
+      charged = true;
+    }
+
     startGeneration();
     const toastId = toast.loading("Working on the design...");
 
-    const result = await generateImage(finalTopic, uid || "");
+    const result = await generateImage(finalTopic, uid);
 
     if (result.imageUrl && uid) {
       try {
@@ -70,11 +95,19 @@ export default function ImagePrompt() {
         toast.dismiss(toastId);
         toast.error("Error generating design...");
         completeWithError("Error saving to history");
+        // Refund reserved credits on downstream failure.
+        if (charged) {
+          await addCredits(CREDITS_COSTS.imageGeneration);
+        }
       }
     } else {
       completeWithError(IMAGE_ERROR_MESSAGE);
       toast.dismiss(toastId);
       toast.error("Issue with design...");
+      // Refund reserved credits if image generation fails.
+      if (charged) {
+        await addCredits(CREDITS_COSTS.imageGeneration);
+      }
     }
   };
 

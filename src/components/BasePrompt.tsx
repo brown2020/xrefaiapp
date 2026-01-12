@@ -14,6 +14,7 @@ import { ProgressBar } from "@/components/ui/ProgressBar";
 import { ResponseDisplay } from "@/components/ui/ResponseDisplay";
 import { MIN_WORD_COUNT, MAX_WORD_COUNT } from "@/constants";
 import useProfileStore from "@/zustand/useProfileStore";
+import { getTextGenerationCreditsCost } from "@/constants/credits";
 
 export interface BasePromptProps {
   title: string;
@@ -39,6 +40,8 @@ export default function BasePrompt({
   children,
 }: BasePromptProps) {
   const profile = useProfileStore((s) => s.profile);
+  const minusCredits = useProfileStore((s) => s.minusCredits);
+  const addCredits = useProfileStore((s) => s.addCredits);
   const { saveHistory, uid } = useHistorySaver();
   const {
     summary,
@@ -64,14 +67,29 @@ export default function BasePrompt({
       return;
     }
 
-    startGeneration();
-
     let wordnum = Number(words || "30");
     if (wordnum < MIN_WORD_COUNT) wordnum = MIN_WORD_COUNT;
     if (wordnum > MAX_WORD_COUNT) wordnum = MAX_WORD_COUNT;
 
     const newPrompt = promptBuilder(inputValue, wordnum);
     let finishedSummary = "";
+    const cost = getTextGenerationCreditsCost(wordnum);
+    let charged = false;
+
+    if (profile.useCredits) {
+      const ok = await minusCredits(cost);
+      if (!ok) {
+        toast.error(
+          `Not enough credits (${Math.round(
+            profile.credits
+          )} available, need ${cost}). Please buy more credits in Account.`
+        );
+        return;
+      }
+      charged = true;
+    }
+
+    startGeneration();
 
     try {
       const result = await generateResponse(systemPrompt, newPrompt, {
@@ -111,6 +129,10 @@ export default function BasePrompt({
 
       toast.success(`${title} generated successfully`);
     } catch (error) {
+      // Refund reserved credits if generation fails.
+      if (charged) {
+        await addCredits(cost);
+      }
       completeWithError(
         "No suggestions found. Servers might be overloaded right now."
       );
