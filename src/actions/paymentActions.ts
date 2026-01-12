@@ -6,7 +6,11 @@ import { cookies } from "next/headers";
 import { adminAuth, adminDb, admin } from "@/firebase/firebaseAdmin";
 import { getAuthCookieName } from "@/utils/getAuthCookieName";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
+const stripeSecretKey = (process.env.STRIPE_SECRET_KEY || "").trim();
+if (!stripeSecretKey) {
+  throw new Error("Missing STRIPE_SECRET_KEY");
+}
+const stripe = new Stripe(stripeSecretKey);
 
 async function requireAuthedUid(): Promise<string> {
   const cookieName = getAuthCookieName();

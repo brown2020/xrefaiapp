@@ -103,7 +103,28 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  if (targetUrl.username || targetUrl.password) {
+    return NextResponse.json(
+      { error: "Credentials in URLs are not allowed." },
+      { status: 400 }
+    );
+  }
+
+  // Keep the attack surface small: only default HTTPS port.
+  if (targetUrl.port && targetUrl.port !== "443") {
+    return NextResponse.json(
+      { error: "Only the default HTTPS port is allowed." },
+      { status: 400 }
+    );
+  }
+
   const hostname = targetUrl.hostname.toLowerCase();
+  if (net.isIP(hostname)) {
+    return NextResponse.json(
+      { error: "IP address targets are not allowed." },
+      { status: 400 }
+    );
+  }
   try {
     await resolvePublicIp(hostname);
   } catch (error) {
@@ -120,11 +141,23 @@ export async function GET(req: NextRequest) {
   try {
     const response = await fetch(targetUrl, {
       method: "GET",
-      headers: { Accept: "application/json, text/plain;q=0.9" },
-      redirect: "follow",
+      headers: {
+        // Primary caller is website scraping; prefer HTML/text.
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8,*/*;q=0.1",
+      },
+      // Prevent SSRF via redirects to private hosts.
+      redirect: "manual",
       signal: controller.signal,
     });
     clearTimeout(timeout);
+
+    if ([301, 302, 303, 307, 308].includes(response.status)) {
+      return NextResponse.json(
+        { error: "Redirects are not allowed." },
+        { status: 400 }
+      );
+    }
 
     const contentType = response.headers.get("content-type") || "text/plain";
     const text = await response.text();

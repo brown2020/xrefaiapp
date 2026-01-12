@@ -6,7 +6,6 @@ import { PromptDataType } from "@/types/PromptDataType";
 import { useHistorySaver } from "@/hooks/useHistorySaver";
 import { useGenerationState } from "@/hooks/useGenerationState";
 import useProfileStore from "@/zustand/useProfileStore";
-import { CREDITS_COSTS } from "@/constants/credits";
 
 const IMAGE_ERROR_MESSAGE =
   "I can't do that. I can't do real people or anything that violates the terms of service. Please try changing the prompt.";

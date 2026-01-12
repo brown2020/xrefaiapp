@@ -6,7 +6,7 @@ import {
   PaymentElement,
 } from "@stripe/react-stripe-js";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPaymentIntent } from "@/actions/paymentActions";
 import convertToSubcurrency from "@/utils/convertToSubcurrency";
 import { LoadingSpinner, InlineSpinner } from "@/components/ui/LoadingSpinner";
@@ -19,24 +19,35 @@ export default function PaymentCheckoutPage({ amount }: Props) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [clientSecret, setClientSecret] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const initializedForAmountRef = useRef<number | null>(null);
 
   useEffect(() => {
+    // React Strict Mode runs effects twice in dev; avoid creating duplicate PaymentIntents.
+    if (initializedForAmountRef.current === amount) return;
+    initializedForAmountRef.current = amount;
+
+    let isCancelled = false;
     async function initializePayment() {
       try {
         const secret = await createPaymentIntent(convertToSubcurrency(amount));
-        if (secret) setClientSecret(secret);
+        if (!isCancelled && secret) setClientSecret(secret);
       } catch (error: unknown) {
         if (error instanceof Error) {
-          setErrorMessage(
-            error.message || "Failed to initialize payment. Please try again."
-          );
+          if (!isCancelled) {
+            setErrorMessage(
+              error.message || "Failed to initialize payment. Please try again."
+            );
+          }
         } else {
-          setErrorMessage("An unknown error occurred.");
+          if (!isCancelled) setErrorMessage("An unknown error occurred.");
         }
       }
     }
 
     initializePayment();
+    return () => {
+      isCancelled = true;
+    };
   }, [amount]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -93,7 +104,7 @@ export default function PaymentCheckoutPage({ amount }: Props) {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-[#F0F6FF] px-4 py-10">
       <div className="w-full max-w-md bg-white rounded-xl shadow-lg overflow-hidden">
-        <div className="bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] py-6 px-6 text-center">
+        <div className="bg-linear-to-r from-[#9C26D7] to-[#1EB1DB] py-6 px-6 text-center">
           <h2 className="text-3xl font-bold text-white">XREF.AI</h2>
         </div>
 

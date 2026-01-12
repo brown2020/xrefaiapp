@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { addDoc, collection, Timestamp } from "firebase/firestore";
 import { db } from "@/firebase/firebaseClient";
 import { generateResponseWithMemory } from "@/actions/generateAIResponse";
@@ -49,7 +49,16 @@ export function useChatGeneration(
     return context;
   };
 
-  const debouncedScrollToBottom = debounce(scrollToBottom, 100);
+  const debouncedScrollToBottom = useMemo(
+    () => debounce(scrollToBottom, 100),
+    [scrollToBottom]
+  );
+
+  useEffect(() => {
+    return () => {
+      debouncedScrollToBottom.cancel();
+    };
+  }, [debouncedScrollToBottom]);
 
   const handleSendPrompt = async () => {
     if (!newPrompt.trim()) return;

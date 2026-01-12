@@ -16,7 +16,6 @@ import { inputClassName, labelClassName } from "@/components/ui/FormInput";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ResponseDisplay } from "@/components/ui/ResponseDisplay";
 import useProfileStore from "@/zustand/useProfileStore";
-import { CREDITS_COSTS } from "@/constants/credits";
 
 const IMAGE_ERROR_MESSAGE =
   "I can't do that. I can't do real people or anything that violates the terms of service. Please try changing the prompt.";
