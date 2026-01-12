@@ -9,7 +9,6 @@ import { debounce } from "lodash";
 import { MAX_WORDS_IN_CONTEXT } from "@/constants";
 import useProfileStore from "@/zustand/useProfileStore";
 import toast from "react-hot-toast";
-import { CREDITS_COSTS } from "@/constants/credits";
 
 export function useChatGeneration(
   uid: string,
@@ -24,8 +23,6 @@ export function useChatGeneration(
   const anthropicApiKey = useProfileStore((s) => s.profile.anthropic_api_key);
   const xaiApiKey = useProfileStore((s) => s.profile.xai_api_key);
   const googleApiKey = useProfileStore((s) => s.profile.google_api_key);
-  const minusCredits = useProfileStore((s) => s.minusCredits);
-  const addCredits = useProfileStore((s) => s.addCredits);
   const [newPrompt, setNewPrompt] = useState<string>("");
   const [pendingPrompt, setPendingPrompt] = useState<string>(""); // Track the message being processed
   const [streamedResponse, setStreamedResponse] = useState<string>("");
@@ -58,22 +55,6 @@ export function useChatGeneration(
     if (!newPrompt.trim()) return;
     if (!validateContentWithToast(newPrompt)) {
       return;
-    }
-
-    let charged = false;
-    if (useCredits) {
-      const cost = CREDITS_COSTS.chatMessage;
-      const ok = await minusCredits(cost);
-      if (!ok) {
-        const currentCredits = useProfileStore.getState().profile.credits;
-        toast.error(
-          `Not enough credits (${Math.round(
-            currentCredits
-          )} available, need ${cost}). Please buy more credits in Account.`
-        );
-        return;
-      }
-      charged = true;
     }
 
     // Store the prompt being sent so it can be displayed immediately
@@ -123,9 +104,15 @@ export function useChatGeneration(
       setLoadingResponse(false);
       setPendingPrompt(""); // Clear pending prompt after save
     } catch (error) {
-      // Refund reserved credits if generation fails.
-      if (charged) {
-        await addCredits(CREDITS_COSTS.chatMessage);
+      if (
+        error instanceof Error &&
+        (error.message === "INSUFFICIENT_CREDITS" ||
+          error.message.toLowerCase().includes("insufficient"))
+      ) {
+        toast.error("Not enough credits. Please buy more credits in Account.");
+        setLoadingResponse(false);
+        setPendingPrompt("");
+        return;
       }
       console.error("Error generating response:", error);
       setLoadingResponse(false);

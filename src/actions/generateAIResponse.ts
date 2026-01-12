@@ -4,11 +4,16 @@ import { createStreamableValue } from "@ai-sdk/rsc";
 import { ModelMessage, streamText } from "ai";
 import type { AiModelKey } from "@/ai/models";
 import { getTextModel } from "@/ai/getTextModel";
+import { requireAuthedUid } from "@/actions/serverAuth";
+import { debitCreditsOrThrow } from "@/actions/serverCredits";
+import { CREDITS_COSTS, getTextGenerationCreditsCost } from "@/constants/credits";
+import { MAX_WORD_COUNT, MIN_WORD_COUNT } from "@/constants";
 
 interface SimpleMessage {
   type: "simple";
   systemPrompt: string;
   userPrompt: string;
+  requestedWordCount?: number;
   modelKey?: AiModelKey;
   useCredits?: boolean;
   openaiApiKey?: string;
@@ -35,6 +40,27 @@ type MessageInput = SimpleMessage | ConversationMessage;
  * Unified AI response generator supporting both simple prompts and conversations
  */
 export async function generateAIResponse(input: MessageInput) {
+  // Server-side credit enforcement: if the caller wants to use app keys (credits mode),
+  // require auth and debit credits atomically.
+  //
+  // If `useCredits === false`, the request must supply user API keys and is billed to the user.
+  if (input.useCredits !== false) {
+    const uid = await requireAuthedUid();
+    const cost =
+      input.type === "conversation"
+        ? CREDITS_COSTS.chatMessage
+        : getTextGenerationCreditsCost(
+            Math.max(
+              MIN_WORD_COUNT,
+              Math.min(
+                MAX_WORD_COUNT,
+                Math.floor(Number(input.requestedWordCount ?? MIN_WORD_COUNT))
+              )
+            )
+          );
+    await debitCreditsOrThrow(uid, cost);
+  }
+
   const model = getTextModel({
     modelKey: input.modelKey,
     useCredits: input.useCredits,
@@ -72,6 +98,7 @@ export async function generateResponse(
   options?: {
     modelKey?: AiModelKey;
     useCredits?: boolean;
+    requestedWordCount?: number;
     openaiApiKey?: string;
     anthropicApiKey?: string;
     xaiApiKey?: string;

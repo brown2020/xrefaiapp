@@ -24,8 +24,6 @@ const IMAGE_ERROR_MESSAGE =
 export default function ImagePrompt() {
   const { saveHistory, uid } = useHistorySaver();
   const profile = useProfileStore((s) => s.profile);
-  const minusCredits = useProfileStore((s) => s.minusCredits);
-  const addCredits = useProfileStore((s) => s.addCredits);
   const {
     summary,
     flagged,
@@ -57,35 +55,20 @@ export default function ImagePrompt() {
       return;
     }
 
-    let charged = false;
-    if (profile.useCredits) {
-      const cost = CREDITS_COSTS.imageGeneration;
-      const ok = await minusCredits(cost);
-      if (!ok) {
-        toast.error(
-          `Not enough credits (${Math.round(
-            profile.credits
-          )} available, need ${cost}). Please buy more credits in Account.`
-        );
-        return;
-      }
-      charged = true;
-    }
-
     startGeneration();
     const toastId = toast.loading("Working on the design...");
 
     let result: { imageUrl?: string; error?: string } = {};
     try {
-      result = await generateImage(finalTopic, uid);
+      result = await generateImage(finalTopic, {
+        useCredits: profile.useCredits,
+        fireworksApiKey: profile.fireworks_api_key,
+      });
     } catch (error) {
       console.error("Error generating image:", error);
       toast.dismiss(toastId);
       toast.error("Issue with design...");
       completeWithError("Error generating image");
-      if (charged) {
-        await addCredits(CREDITS_COSTS.imageGeneration);
-      }
       return;
     }
 
@@ -107,19 +90,17 @@ export default function ImagePrompt() {
         toast.dismiss(toastId);
         toast.error("Error generating design...");
         completeWithError("Error saving to history");
-        // Refund reserved credits on downstream failure.
-        if (charged) {
-          await addCredits(CREDITS_COSTS.imageGeneration);
-        }
       }
     } else {
+      if (result.error === "INSUFFICIENT_CREDITS") {
+        toast.dismiss(toastId);
+        toast.error("Not enough credits. Please buy more credits in Account.");
+        completeWithError("Not enough credits");
+        return;
+      }
       completeWithError(IMAGE_ERROR_MESSAGE);
       toast.dismiss(toastId);
       toast.error("Issue with design...");
-      // Refund reserved credits if image generation fails.
-      if (charged) {
-        await addCredits(CREDITS_COSTS.imageGeneration);
-      }
     }
   };
 

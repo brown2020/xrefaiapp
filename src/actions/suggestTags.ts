@@ -3,32 +3,35 @@
 import { generateText } from "ai";
 import type { AiModelKey } from "@/ai/models";
 import { getTextModel } from "@/ai/getTextModel";
+import { requireAuthedUid } from "@/actions/serverAuth";
+import { debitCreditsOrThrow } from "@/actions/serverCredits";
+import { CREDITS_COSTS } from "@/constants/credits";
 
 export const suggestTags = async (
   freestyle: string,
   tags: string[],
-  openAPIKey: string,
-  useCredits: boolean,
-  credits: number,
-  modelKey?: AiModelKey,
-  anthropicApiKey?: string,
-  xaiApiKey?: string,
-  googleApiKey?: string
+  options?: {
+    useCredits?: boolean;
+    modelKey?: AiModelKey;
+    openaiApiKey?: string;
+    anthropicApiKey?: string;
+    xaiApiKey?: string;
+    googleApiKey?: string;
+  }
 ): Promise<string | { error: string }> => {
   try {
-    if (useCredits && credits < 1) {
-      throw new Error(
-        "Not enough credits to suggest a tag. Please purchase credits or use your own API Keys."
-      );
+    if ((options?.useCredits ?? true) !== false) {
+      const uid = await requireAuthedUid();
+      await debitCreditsOrThrow(uid, CREDITS_COSTS.tagSuggestion);
     }
 
     const model = getTextModel({
-      modelKey,
-      useCredits,
-      openaiApiKey: openAPIKey,
-      anthropicApiKey,
-      xaiApiKey,
-      googleApiKey,
+      modelKey: options?.modelKey,
+      useCredits: options?.useCredits,
+      openaiApiKey: options?.openaiApiKey,
+      anthropicApiKey: options?.anthropicApiKey,
+      xaiApiKey: options?.xaiApiKey,
+      googleApiKey: options?.googleApiKey,
     });
 
     const { text } = await generateText({

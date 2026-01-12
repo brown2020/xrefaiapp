@@ -40,8 +40,6 @@ export default function BasePrompt({
   children,
 }: BasePromptProps) {
   const profile = useProfileStore((s) => s.profile);
-  const minusCredits = useProfileStore((s) => s.minusCredits);
-  const addCredits = useProfileStore((s) => s.addCredits);
   const { saveHistory, uid } = useHistorySaver();
   const {
     summary,
@@ -74,20 +72,6 @@ export default function BasePrompt({
     const newPrompt = promptBuilder(inputValue, wordnum);
     let finishedSummary = "";
     const cost = getTextGenerationCreditsCost(wordnum);
-    let charged = false;
-
-    if (profile.useCredits) {
-      const ok = await minusCredits(cost);
-      if (!ok) {
-        toast.error(
-          `Not enough credits (${Math.round(
-            profile.credits
-          )} available, need ${cost}). Please buy more credits in Account.`
-        );
-        return;
-      }
-      charged = true;
-    }
 
     startGeneration();
 
@@ -95,6 +79,7 @@ export default function BasePrompt({
       const result = await generateResponse(systemPrompt, newPrompt, {
         modelKey: profile.text_model,
         useCredits: profile.useCredits,
+        requestedWordCount: wordnum,
         openaiApiKey: profile.openai_api_key,
         anthropicApiKey: profile.anthropic_api_key,
         xaiApiKey: profile.xai_api_key,
@@ -129,9 +114,16 @@ export default function BasePrompt({
 
       toast.success(`${title} generated successfully`);
     } catch (error) {
-      // Refund reserved credits if generation fails.
-      if (charged) {
-        await addCredits(cost);
+      if (
+        error instanceof Error &&
+        (error.message === "INSUFFICIENT_CREDITS" ||
+          error.message.toLowerCase().includes("insufficient"))
+      ) {
+        toast.error(
+          `Not enough credits (need ${cost}). Please buy more credits in Account.`
+        );
+        completeWithError("Not enough credits");
+        return;
       }
       completeWithError(
         "No suggestions found. Servers might be overloaded right now."

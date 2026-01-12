@@ -1,12 +1,35 @@
 "use server";
 
 import { adminBucket } from "@/firebase/firebaseAdmin";
-import * as dotenv from "dotenv";
+import { requireAuthedUid } from "@/actions/serverAuth";
+import { debitCreditsOrThrow } from "@/actions/serverCredits";
+import { CREDITS_COSTS } from "@/constants/credits";
 
-dotenv.config();
-
-export async function generateImage(message: string, uid: string) {
+export async function generateImage(
+  message: string,
+  options?: { useCredits?: boolean; fireworksApiKey?: string }
+) {
   try {
+    const uid = await requireAuthedUid();
+
+    // Credits mode uses app key and debits credits. BYO mode requires a user key.
+    const useCredits = options?.useCredits !== false;
+    const apiKey = useCredits
+      ? (process.env.FIREWORKS_API_KEY || "").trim()
+      : (options?.fireworksApiKey || "").trim();
+
+    if (!apiKey) {
+      throw new Error(
+        useCredits
+          ? "Missing server Fireworks API key."
+          : "Missing Fireworks API key (profile.fireworks_api_key)."
+      );
+    }
+
+    if (useCredits) {
+      await debitCreditsOrThrow(uid, CREDITS_COSTS.imageGeneration);
+    }
+
     const response = await fetch(
       `https://api.fireworks.ai/inference/v1/image_generation/accounts/fireworks/models/stable-diffusion-xl-1024-v1-0`,
       {
@@ -14,7 +37,7 @@ export async function generateImage(message: string, uid: string) {
         headers: {
           "Content-Type": "application/json",
           Accept: "image/jpeg",
-          Authorization: `Bearer ${process.env.FIREWORKS_API_KEY}`,
+          Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
           cfg_scale: 7,

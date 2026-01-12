@@ -9,6 +9,7 @@
 export const CREDITS_COSTS = {
   chatMessage: 25,
   imageGeneration: 300,
+  tagSuggestion: 25,
   /**
    * Minimum cost for any text generation (tools/summaries/etc).
    * Chat uses `chatMessage` instead.
