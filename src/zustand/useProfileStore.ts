@@ -176,7 +176,8 @@ const useProfileStore = create<ProfileState>((set, get) => ({
     const uid = useAuthStore.getState().uid;
     if (!uid) return false;
 
-    if (!Number.isFinite(amount) || amount <= 0) return true;
+    // Defensive: never "succeed" a charge with an invalid amount (could bypass charging).
+    if (!Number.isFinite(amount) || amount <= 0) return false;
 
     try {
       const profile = get().profile;

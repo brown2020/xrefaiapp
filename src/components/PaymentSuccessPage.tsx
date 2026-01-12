@@ -1,11 +1,10 @@
 "use client";
 
 import { useAuthStore } from "@/zustand/useAuthStore";
-import { usePaymentsStore } from "@/zustand/usePaymentsStore";
 import useProfileStore from "@/zustand/useProfileStore";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { validatePaymentIntent } from "@/actions/paymentActions";
+import { fulfillStripePaymentIntent } from "@/actions/paymentActions";
 import { useSearchParams } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { CheckCircle, AlertTriangle, ArrowRight } from "lucide-react";
@@ -24,15 +23,12 @@ export default function PaymentSuccessPage({ payment_intent }: Props) {
   const [paymentId, setPaymentId] = useState("");
   const [amountCents, setAmountCents] = useState(0);
   const [currency, setCurrency] = useState("USD");
+  const [creditsAdded, setCreditsAdded] = useState<number | null>(null);
 
   const searchParams = useSearchParams();
   const redirectPath = searchParams.get("redirect") || ROUTES.account;
 
-  const addPayment = usePaymentsStore((state) => state.addPayment);
-  const checkIfPaymentProcessed = usePaymentsStore(
-    (state) => state.checkIfPaymentProcessed
-  );
-  const addCredits = useProfileStore((state) => state.addCredits);
+  const fetchProfile = useProfileStore((state) => state.fetchProfile);
 
   const uid = useAuthStore((state) => state.uid);
 
@@ -51,41 +47,16 @@ export default function PaymentSuccessPage({ payment_intent }: Props) {
           return;
         }
 
-        const data = await validatePaymentIntent(payment_intent);
+        const result = await fulfillStripePaymentIntent(payment_intent);
+        setIsAlreadyProcessed(result.alreadyProcessed);
+        setPaymentId(result.id);
+        setAmountCents(result.amount);
+        setCurrency((result.currency || "USD").toUpperCase());
+        setCreatedMs(result.createdMs);
+        setCreditsAdded(result.creditsAdded);
 
-        if (data.status === "succeeded") {
-          // Check if payment is already processed
-          const existingPayment = await checkIfPaymentProcessed(data.id);
-          if (existingPayment) {
-            setIsAlreadyProcessed(true);
-            setPaymentId(existingPayment.id);
-            setAmountCents(existingPayment.amount);
-            setCurrency((existingPayment.currency || "USD").toUpperCase());
-            setCreatedMs(existingPayment.createdAt?.toMillis?.() ?? null);
-            return;
-          }
-
-          setPaymentId(data.id);
-          setAmountCents(data.amount);
-          setCurrency((data.currency || "usd").toUpperCase());
-          setCreatedMs(data.created ? data.created * 1000 : null);
-
-          await addPayment({
-            id: data.id,
-            amount: data.amount,
-            status: data.status,
-            mode: "stripe",
-            platform: "web",
-            productId: "payment_gateway",
-            currency: (data.currency || "usd").toUpperCase(),
-          });
-
-          // 1 cent = 1 credit; $99.99 (9999 cents) => 10,000 credits
-          const creditsToAdd = data.amount + 1;
-          await addCredits(creditsToAdd);
-        } else {
-          setErrorMessage("Payment validation failed.");
-        }
+        // Refresh local credits balance from Firestore after server fulfillment.
+        await fetchProfile();
       } catch (error) {
         setErrorMessage(
           error instanceof Error
@@ -98,10 +69,9 @@ export default function PaymentSuccessPage({ payment_intent }: Props) {
     };
 
     void handlePaymentSuccess();
-  }, [payment_intent, addPayment, checkIfPaymentProcessed, addCredits, uid]);
+  }, [payment_intent, fetchProfile, uid]);
 
   const amountDollars = amountCents ? (amountCents / 100).toFixed(2) : null;
-  const creditsAdded = amountCents ? amountCents + 1 : null;
   const shortPaymentId = paymentId ? `${paymentId.slice(0, 10)}…` : "";
 
   return (

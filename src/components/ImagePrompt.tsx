@@ -75,7 +75,19 @@ export default function ImagePrompt() {
     startGeneration();
     const toastId = toast.loading("Working on the design...");
 
-    const result = await generateImage(finalTopic, uid);
+    let result: { imageUrl?: string; error?: string } = {};
+    try {
+      result = await generateImage(finalTopic, uid);
+    } catch (error) {
+      console.error("Error generating image:", error);
+      toast.dismiss(toastId);
+      toast.error("Issue with design...");
+      completeWithError("Error generating image");
+      if (charged) {
+        await addCredits(CREDITS_COSTS.imageGeneration);
+      }
+      return;
+    }
 
     if (result.imageUrl && uid) {
       try {

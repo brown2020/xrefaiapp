@@ -55,7 +55,19 @@ export function useImageGeneration(uid: string | null) {
     const toastId = toast.loading("Working on the design...");
     const generatedPrompt = getImagePrompt(promptData, topic);
 
-    const result = await generateImage(generatedPrompt, uid);
+    let result: { imageUrl?: string; error?: string } = {};
+    try {
+      result = await generateImage(generatedPrompt, uid);
+    } catch (error) {
+      console.error("Error generating image:", error);
+      toast.dismiss(toastId);
+      toast.error("Issue with design...");
+      completeWithError("Error generating image");
+      if (charged) {
+        await addCredits(CREDITS_COSTS.imageGeneration);
+      }
+      return;
+    }
 
     if (result.imageUrl && uid) {
       try {

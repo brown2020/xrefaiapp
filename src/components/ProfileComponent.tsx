@@ -35,6 +35,11 @@ export default function ProfileComponent() {
 
   useEffect(() => {
     const handleMessageFromRN = async (event: MessageEvent) => {
+      // Critical: only accept IAP messages inside the native WebView.
+      // On the normal web app, `window.postMessage` is user-controllable and
+      // would allow free credit minting.
+      if (!isIOSReactNativeWebView() || !window.ReactNativeWebView) return;
+
       const message = event.data;
       if (message?.type === "IAP_SUCCESS") {
         await addPayment({
@@ -46,7 +51,14 @@ export default function ProfileComponent() {
           productId: message.productId,
           currency: message.currency,
         });
-        await addCredits(10000);
+        // Best-effort mapping until receipts are validated server-side.
+        // Prefer explicit credits from native if provided; otherwise fall back to
+        // the legacy 10,000 credits pack.
+        const creditsToAdd =
+          typeof message.credits === "number" && Number.isFinite(message.credits)
+            ? Math.max(0, Math.floor(message.credits))
+            : 10_000;
+        await addCredits(creditsToAdd);
       }
     };
 
