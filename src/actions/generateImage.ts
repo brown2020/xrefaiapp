@@ -27,7 +27,10 @@ export async function generateImage(
     }
 
     if (useCredits) {
-      await debitCreditsOrThrow(uid, CREDITS_COSTS.imageGeneration);
+      await debitCreditsOrThrow(uid, CREDITS_COSTS.imageGeneration, {
+        reason: "image_generation",
+        tool: "image",
+      });
     }
 
     const response = await fetch(

@@ -58,7 +58,11 @@ export async function generateAIResponse(input: MessageInput) {
               )
             )
           );
-    await debitCreditsOrThrow(uid, cost);
+    await debitCreditsOrThrow(uid, cost, {
+      reason: input.type === "conversation" ? "chat_message" : "text_generation",
+      tool: input.type === "conversation" ? "chat" : "tools",
+      modelKey: input.modelKey,
+    });
   }
 
   const model = getTextModel({

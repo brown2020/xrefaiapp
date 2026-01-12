@@ -4,6 +4,7 @@ import AuthDataDisplay from "./AuthDataDisplay";
 import PaymentsPage from "./PaymentsPage";
 import ProfileComponent from "./ProfileComponent";
 import DeleteAccount from "./DeleteAccount";
+import CreditsLedger from "./CreditsLedger";
 
 export default function Profile() {
   return (
@@ -17,6 +18,7 @@ export default function Profile() {
         <AuthDataDisplay />
         <ProfileComponent />
         <PaymentsPage />
+        <CreditsLedger />
         <DeleteAccount />
       </div>
     </div>

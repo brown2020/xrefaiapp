@@ -22,7 +22,11 @@ export const suggestTags = async (
   try {
     if ((options?.useCredits ?? true) !== false) {
       const uid = await requireAuthedUid();
-      await debitCreditsOrThrow(uid, CREDITS_COSTS.tagSuggestion);
+      await debitCreditsOrThrow(uid, CREDITS_COSTS.tagSuggestion, {
+        reason: "tag_suggestion",
+        tool: "tags",
+        modelKey: options?.modelKey,
+      });
     }
 
     const model = getTextModel({

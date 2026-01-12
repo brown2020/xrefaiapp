@@ -33,6 +33,15 @@ function computeCreditsForAmountCents(amountCents: number): number {
   return Math.max(0, Math.floor(amountCents));
 }
 
+function coerceCredits(value: unknown, fallback: number): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+}
+
 export async function createPaymentIntent(amount: number) {
   const product = process.env.NEXT_PUBLIC_STRIPE_PRODUCT_NAME;
 
@@ -108,6 +117,9 @@ export async function fulfillStripePaymentIntent(paymentIntentId: string): Promi
 
   const paymentRef = adminDb.doc(`users/${uid}/payments/${paymentIntent.id}`);
   const profileRef = adminDb.doc(`users/${uid}/profile/userData`);
+  const ledgerRef = adminDb.doc(
+    `users/${uid}/creditsLedger/stripe_${paymentIntent.id}`
+  );
 
   const res = await adminDb.runTransaction(async (tx) => {
     const existingPaymentSnap = await tx.get(paymentRef);
@@ -120,6 +132,16 @@ export async function fulfillStripePaymentIntent(paymentIntentId: string): Promi
           amount: typeof existing.amount === "number" ? existing.amount : paymentIntent.amount,
         };
       }
+    }
+
+    const profileSnap = await tx.get(profileRef);
+    const currentCredits = coerceCredits(
+      profileSnap.exists ? profileSnap.data()?.credits : 0,
+      0
+    );
+    const nextCredits = currentCredits + creditsToAdd;
+    if (!Number.isFinite(nextCredits)) {
+      throw new Error("Invalid credits value");
     }
 
     // Record payment (idempotent doc id).
@@ -139,9 +161,21 @@ export async function fulfillStripePaymentIntent(paymentIntentId: string): Promi
     );
 
     // Increment credits.
+    tx.set(profileRef, { credits: nextCredits }, { merge: true });
+
+    // Add auditable credit ledger entry (idempotent id).
     tx.set(
-      profileRef,
-      { credits: admin.firestore.FieldValue.increment(creditsToAdd) },
+      ledgerRef,
+      {
+        type: "credit",
+        amount: creditsToAdd,
+        reason: "purchase",
+        tool: "stripe",
+        modelKey: null,
+        refId: paymentIntent.id,
+        balanceAfter: nextCredits,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
       { merge: true }
     );
 
