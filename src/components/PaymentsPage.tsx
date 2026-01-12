@@ -20,7 +20,7 @@ export default function PaymentsPage() {
   return (
     <div className="flex flex-col container mt-4 mx-auto gap-4">
       <div className="text-3xl font-bold text-center">
-        <span className="bg-gradient-to-r from-[#9C26D7] to-[#1EB1DB] bg-clip-text text-transparent">
+        <span className="bg-linear-to-r from-[#9C26D7] to-[#1EB1DB] bg-clip-text text-transparent">
           Payment History
         </span>
       </div>
@@ -63,7 +63,10 @@ function EmptyPaymentsState() {
 }
 
 function PaymentCard({ payment }: { payment: PaymentType }) {
-  const isSuccessful = payment.status === "succeeded";
+  // Stripe Checkout uses `payment_status: "paid"`, while PaymentIntents use `status: "succeeded"`.
+  // Treat both as successful for consistent UX.
+  const normalizedStatus = payment.status === "paid" ? "succeeded" : payment.status;
+  const isSuccessful = normalizedStatus === "succeeded";
 
   return (
     <div className="border border-gray-100 p-4 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow">
@@ -114,7 +117,7 @@ function PaymentCard({ payment }: { payment: PaymentType }) {
                 : "bg-gray-100 text-gray-600"
             }`}
           >
-            {payment.status}
+            {normalizedStatus}
           </span>
         </div>
       </div>

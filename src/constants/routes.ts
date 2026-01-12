@@ -27,6 +27,8 @@ export const PROTECTED_ROUTES = [
   ROUTES.tools,
   ROUTES.history,
   ROUTES.account,
+  ROUTES.paymentAttempt,
+  ROUTES.paymentSuccess,
 ] as const;
 
 /**
@@ -48,6 +50,8 @@ export const FOOTER_HIDDEN_ROUTES = [
   ROUTES.tools,
   ROUTES.history,
   ROUTES.account,
+  ROUTES.paymentAttempt,
+  ROUTES.paymentSuccess,
 ] as const;
 
 /**

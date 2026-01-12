@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Modal } from "@/components/ui/Modal";
 import { usePaywallStore } from "@/zustand/usePaywallStore";
 import useProfileStore from "@/zustand/useProfileStore";
@@ -43,7 +44,7 @@ export function CreditsPaywallModal() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {CREDIT_PACKS.map((p) => (
-            <a
+            <Link
               key={p.id}
               href={`${ROUTES.paymentAttempt}?pack=${encodeURIComponent(
                 p.id
@@ -64,19 +65,19 @@ export function CreditsPaywallModal() {
               <div className="mt-1 text-sm text-muted-foreground">
                 ${formatDollarsFromCents(p.amountCents)} · {p.credits.toLocaleString()} credits
               </div>
-            </a>
+            </Link>
           ))}
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 sm:justify-end pt-2">
-          <a
+          <Link
             href={ROUTES.account}
             onClick={() => closePaywall()}
             className="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-border bg-card text-foreground hover:opacity-90 transition-opacity"
           >
             Use API keys instead
-          </a>
-          <a
+          </Link>
+          <Link
             href={`${ROUTES.paymentAttempt}?pack=${encodeURIComponent(
               DEFAULT_CREDIT_PACK_ID
             )}&redirect=${encodeURIComponent(redirectPath)}`}
@@ -84,7 +85,7 @@ export function CreditsPaywallModal() {
             className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
           >
             Buy credits
-          </a>
+          </Link>
         </div>
       </div>
     </Modal>

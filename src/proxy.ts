@@ -14,6 +14,8 @@ const PROTECTED_ROUTE_PREFIXES = [
   "/tools",
   "/history",
   "/account",
+  "/payment-attempt",
+  "/payment-success",
 ] as const;
 
 /**
@@ -54,5 +56,7 @@ export const config = {
     "/chat/:path*",
     "/history/:path*",
     "/account/:path*",
+    "/payment-attempt/:path*",
+    "/payment-success/:path*",
   ],
 };
