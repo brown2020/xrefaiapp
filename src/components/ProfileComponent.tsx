@@ -10,6 +10,7 @@ import { ROUTES } from "@/constants/routes";
 import { AI_MODELS, listAiModels, resolveAiModelKey } from "@/ai/models";
 import { InlineSpinner } from "@/components/ui/LoadingSpinner";
 import { CREDIT_PACKS, DEFAULT_CREDIT_PACK_ID, formatDollarsFromCents, getCreditPack } from "@/constants/creditPacks";
+import { confirmIapPurchase } from "@/actions/confirmIapPurchase";
 
 export default function ProfileComponent() {
   const profile = useProfileStore((state) => state.profile);
@@ -32,8 +33,8 @@ export default function ProfileComponent() {
   const [isSavingApiKeys, setIsSavingApiKeys] = useState(false);
   const [visibleKeys, setVisibleKeys] = useState<Record<string, boolean>>({});
   const [selectedPackId, setSelectedPackId] = useState<string>(DEFAULT_CREDIT_PACK_ID);
-  const addCredits = useProfileStore((state) => state.addCredits);
-  const addPayment = usePaymentsStore((state) => state.addPayment);
+  const fetchProfile = useProfileStore((state) => state.fetchProfile);
+  const fetchPayments = usePaymentsStore((state) => state.fetchPayments);
 
   useEffect(() => {
     const handleMessageFromRN = async (event: MessageEvent) => {
@@ -44,23 +45,37 @@ export default function ProfileComponent() {
 
       const message = event.data;
       if (message?.type === "IAP_SUCCESS") {
-        await addPayment({
-          id: message.message,
-          amount: message.amount,
-          status: "succeeded",
-          mode: "iap",
-          platform: message.platform,
-          productId: message.productId,
-          currency: message.currency,
-        });
-        // Best-effort mapping until receipts are validated server-side.
-        // Prefer explicit credits from native if provided; otherwise fall back to
-        // the legacy 10,000 credits pack.
-        const creditsToAdd =
+        const transactionId = String(
+          message.transactionId || message.message || ""
+        );
+        const signature = String(message.signature || "");
+        const credits =
           typeof message.credits === "number" && Number.isFinite(message.credits)
             ? Math.max(0, Math.floor(message.credits))
-            : 10_000;
-        await addCredits(creditsToAdd);
+            : 0;
+
+        if (!transactionId || !signature || !credits) {
+          console.error("IAP confirmation missing required fields");
+          return;
+        }
+
+        try {
+          await confirmIapPurchase({
+            transactionId,
+            productId: String(message.productId || "iap"),
+            amount: Number(message.amount || 0),
+            currency: String(message.currency || "USD"),
+            platform: String(message.platform || "ios"),
+            credits,
+            ts: Number(message.ts || Date.now()),
+            signature,
+          });
+
+          await fetchProfile();
+          await fetchPayments();
+        } catch (error) {
+          console.error("IAP confirmation failed:", error);
+        }
       }
     };
 
@@ -70,7 +85,7 @@ export default function ProfileComponent() {
     return () => {
       window.removeEventListener("message", handleMessageFromRN);
     };
-  }, [addCredits, addPayment]);
+  }, [fetchPayments, fetchProfile]);
 
   useEffect(() => {
     setFireworksApiKey(profile.fireworks_api_key);

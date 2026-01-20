@@ -21,6 +21,7 @@ export function useChatGeneration(
 ) {
   // Subscribe only to fields required to generate (avoid re-renders on credit changes).
   const useCredits = useProfileStore((s) => s.profile.useCredits);
+  const fetchProfile = useProfileStore((s) => s.fetchProfile);
   const modelKey = useProfileStore((s) => s.profile.text_model);
   const openaiApiKey = useProfileStore((s) => s.profile.openai_api_key);
   const anthropicApiKey = useProfileStore((s) => s.profile.anthropic_api_key);
@@ -31,18 +32,18 @@ export function useChatGeneration(
   const [streamedResponse, setStreamedResponse] = useState<string>("");
   const [loadingResponse, setLoadingResponse] = useState(false);
 
-  // Collect past interactions for memory (up to the word limit)
+  // Collect past interactions for memory (most recent first, up to the word limit)
   const getContextWithMemory = (chatlist: ChatType[]): ChatType[] => {
     const context: ChatType[] = [];
     let wordCount = 0;
 
-    for (let i = 0; i < chatlist.length; i++) {
+    for (let i = chatlist.length - 1; i >= 0; i--) {
       const chat = chatlist[i];
       const promptWords = chat.prompt.split(" ").length;
       const responseWords = chat.response.split(" ").length;
 
       if (wordCount + promptWords + responseWords <= MAX_WORDS_IN_CONTEXT) {
-        context.push(chat);
+        context.unshift(chat);
         wordCount += promptWords + responseWords;
       } else {
         break;
@@ -113,6 +114,9 @@ export function useChatGeneration(
       await saveChat(promptToSend, finishedSummary);
 
       onResponseSaved();
+      if (useCredits) {
+        await fetchProfile();
+      }
       setLoadingResponse(false);
       setPendingPrompt(""); // Clear pending prompt after save
     } catch (error) {

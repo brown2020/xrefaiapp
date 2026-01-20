@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
  */
 export function useWebsiteScraper() {
   const [progress, setProgress] = useState(0);
+  const MAX_SCRAPED_CHARS = 20000;
 
   const normalizeUrl = useCallback((value: string): string => {
     if (!value) return "";
@@ -39,6 +40,9 @@ export function useWebsiteScraper() {
         const html = response.data;
         const $ = load(html);
         const scrapedContent = $("body").text().replace(/\s+/g, " ").trim();
+        if (scrapedContent.length > MAX_SCRAPED_CHARS) {
+          return scrapedContent.slice(0, MAX_SCRAPED_CHARS).trim();
+        }
 
         return scrapedContent;
       } catch (err) {

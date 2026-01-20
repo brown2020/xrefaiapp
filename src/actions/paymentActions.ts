@@ -29,11 +29,10 @@ async function requireAuthedUid(): Promise<string> {
 function computeCreditsForAmountCents(amountCents: number): number {
   // Keep this mapping server-side so clients can't "choose" credits.
   const pack = getCreditPackByAmountCents(amountCents);
-  if (pack) return pack.credits;
-
-  // Unknown amount (shouldn't happen in normal UI flows).
-  // Safe fallback: 1 cent == 1 credit.
-  return Math.max(0, Math.floor(amountCents));
+  if (!pack) {
+    throw new Error("UNSUPPORTED_PAYMENT_AMOUNT");
+  }
+  return pack.credits;
 }
 
 function coerceCredits(value: unknown, fallback: number): number {

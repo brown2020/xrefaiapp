@@ -42,6 +42,7 @@ export default function BasePrompt({
   children,
 }: BasePromptProps) {
   const profile = useProfileStore((s) => s.profile);
+  const fetchProfile = useProfileStore((s) => s.fetchProfile);
   const openPaywall = usePaywallStore((s) => s.openPaywall);
   const { saveHistory, uid } = useHistorySaver();
   const {
@@ -100,6 +101,9 @@ export default function BasePrompt({
       }
 
       completeWithSuccess(finishedSummary);
+      if (profile.useCredits) {
+        await fetchProfile();
+      }
 
       if (uid) {
         const topicDisplay =

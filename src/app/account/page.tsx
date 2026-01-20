@@ -1,5 +1,7 @@
 import Profile from "@/components/Profile";
+import { requireAuthedPage } from "@/utils/requireAuthedPage";
 
-export default function ProfilePage() {
+export default async function ProfilePage() {
+  await requireAuthedPage();
   return <Profile />;
 }

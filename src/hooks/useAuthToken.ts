@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { getIdToken } from "firebase/auth";
 import { deleteCookie, setCookie } from "cookies-next";
 import { debounce } from "lodash";
@@ -16,9 +16,7 @@ const useAuthToken = (cookieName = getAuthCookieName()) => {
   const refreshInterval = 50 * 60 * 1000; // 50 minutes
   const lastTokenRefresh = `lastTokenRefresh_${cookieName}`;
 
-  const [activityTimeout, setActivityTimeout] = useState<ReturnType<
-    typeof setTimeout
-  > | null>(null);
+  const activityTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refreshAuthToken = useCallback(async () => {
     try {
@@ -47,14 +45,16 @@ const useAuthToken = (cookieName = getAuthCookieName()) => {
   }, [cookieName, lastTokenRefresh]);
 
   const scheduleTokenRefresh = useCallback(() => {
-    if (activityTimeout) {
-      clearTimeout(activityTimeout);
+    if (activityTimeoutRef.current) {
+      clearTimeout(activityTimeoutRef.current);
     }
-    if (document.visibilityState === "visible") {
-      const timeoutId = setTimeout(refreshAuthToken, refreshInterval);
-      setActivityTimeout(timeoutId);
+    if (document.visibilityState === "visible" && auth.currentUser) {
+      activityTimeoutRef.current = setTimeout(
+        () => void refreshAuthToken(),
+        refreshInterval
+      );
     }
-  }, [activityTimeout, refreshAuthToken, refreshInterval]);
+  }, [refreshAuthToken, refreshInterval]);
 
   useEffect(() => {
     const handleStorageChange = debounce((e: StorageEvent) => {
@@ -69,12 +69,23 @@ const useAuthToken = (cookieName = getAuthCookieName()) => {
 
     return () => {
       window.removeEventListener("storage", handleStorageChange);
-      if (activityTimeout) {
-        clearTimeout(activityTimeout);
+      if (activityTimeoutRef.current) {
+        clearTimeout(activityTimeoutRef.current);
       }
       handleStorageChange.cancel();
     };
-  }, [activityTimeout, scheduleTokenRefresh, lastTokenRefresh]);
+  }, [scheduleTokenRefresh, lastTokenRefresh]);
+
+  useEffect(() => {
+    const handleVisibility = () => scheduleTokenRefresh();
+    window.addEventListener("focus", handleVisibility);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      window.removeEventListener("focus", handleVisibility);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [scheduleTokenRefresh]);
 
   useEffect(() => {
     if (user?.uid) {
@@ -89,8 +100,8 @@ const useAuthToken = (cookieName = getAuthCookieName()) => {
       };
       setAuthDetails(authDetails);
       void syncAuthProfile(authDetails);
-      // Ensure cookie is set whenever user is detected/updated
-      void refreshAuthToken();
+      // Ensure cookie is set and refresh scheduled whenever user is detected/updated
+      void refreshAuthToken().then(scheduleTokenRefresh);
     } else {
       clearAuthDetails();
       deleteCookie(cookieName);
@@ -102,6 +113,7 @@ const useAuthToken = (cookieName = getAuthCookieName()) => {
     syncAuthProfile,
     user,
     refreshAuthToken,
+    scheduleTokenRefresh,
   ]);
 
   return { uid: user?.uid, loading, error };

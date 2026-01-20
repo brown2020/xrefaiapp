@@ -16,6 +16,7 @@ const IMAGE_ERROR_MESSAGE =
 export function useImageGeneration(uid: string | null) {
   const { saveHistory } = useHistorySaver();
   const profile = useProfileStore((s) => s.profile);
+  const fetchProfile = useProfileStore((s) => s.fetchProfile);
   const openPaywall = usePaywallStore((s) => s.openPaywall);
   const {
     summary,
@@ -58,6 +59,9 @@ export function useImageGeneration(uid: string | null) {
     if (result.imageUrl && uid) {
       try {
         completeWithSuccess(result.imageUrl);
+        if (profile.useCredits) {
+          await fetchProfile();
+        }
         await saveHistory({
           prompt: topic,
           response: result.imageUrl,

@@ -15,7 +15,15 @@ interface MarkdownRendererProps {
 const MarkdownRenderer = memo(function MarkdownRenderer({
   content,
 }: MarkdownRendererProps) {
-  return <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>;
+  const MAX_MARKDOWN_CHARS = 20000;
+  const safeContent =
+    typeof content === "string" ? content : String(content ?? "");
+
+  if (safeContent.length > MAX_MARKDOWN_CHARS) {
+    return <div className="whitespace-pre-wrap">{safeContent}</div>;
+  }
+
+  return <ReactMarkdown remarkPlugins={[remarkGfm]}>{safeContent}</ReactMarkdown>;
 });
 
 export default MarkdownRenderer;
