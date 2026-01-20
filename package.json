@@ -12,6 +12,7 @@
     "@ai-sdk/anthropic": "^3.0.9",
     "@ai-sdk/google": "^3.0.6",
     "@ai-sdk/openai": "^3.0.1",
+    "@ai-sdk/react": "^3.0.44",
     "@ai-sdk/rsc": "^2.0.3",
     "@ai-sdk/xai": "^3.0.10",
     "@radix-ui/react-dialog": "^1.1.15",

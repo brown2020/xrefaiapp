@@ -89,11 +89,18 @@ export default function BasePrompt({
         xaiApiKey: profile.xai_api_key,
         googleApiKey: profile.google_api_key,
       });
+      const MAX_STREAMED_CHARS = 12000;
+      const TRUNCATION_NOTICE = "\n\n[Response truncated due to length]";
       let chunkCount = 0;
 
       for await (const content of readStreamableValue(result)) {
         if (content) {
           finishedSummary = content.trim();
+          if (finishedSummary.length > MAX_STREAMED_CHARS) {
+            finishedSummary =
+              finishedSummary.slice(0, MAX_STREAMED_CHARS) + TRUNCATION_NOTICE;
+            break;
+          }
           chunkCount++;
           const currentProgress = 20 + (chunkCount / wordnum) * 80;
           setProgress(Math.min(currentProgress, 95));

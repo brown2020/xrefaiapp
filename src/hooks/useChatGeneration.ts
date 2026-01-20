@@ -101,12 +101,20 @@ export function useChatGeneration(
         xaiApiKey,
         googleApiKey,
       });
+      const MAX_STREAMED_CHARS = 12000;
+      const TRUNCATION_NOTICE = "\n\n[Response truncated due to length]";
       let finishedSummary = "";
       let lastUiUpdate = 0;
 
       for await (const content of readStreamableValue(result)) {
-        if (content) {
-          finishedSummary = content.trim();
+        if (content !== undefined && content !== null) {
+          finishedSummary = String(content).trim();
+          if (finishedSummary.length > MAX_STREAMED_CHARS) {
+            finishedSummary =
+              finishedSummary.slice(0, MAX_STREAMED_CHARS) + TRUNCATION_NOTICE;
+            setStreamedResponse(finishedSummary);
+            break;
+          }
           const now = Date.now();
           if (now - lastUiUpdate > 120) {
             lastUiUpdate = now;
