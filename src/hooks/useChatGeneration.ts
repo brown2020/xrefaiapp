@@ -102,14 +102,20 @@ export function useChatGeneration(
         googleApiKey,
       });
       let finishedSummary = "";
+      let lastUiUpdate = 0;
 
       for await (const content of readStreamableValue(result)) {
         if (content) {
           finishedSummary = content.trim();
-          setStreamedResponse(finishedSummary);
-          debouncedScrollToBottom();
+          const now = Date.now();
+          if (now - lastUiUpdate > 120) {
+            lastUiUpdate = now;
+            setStreamedResponse(finishedSummary);
+            debouncedScrollToBottom();
+          }
         }
       }
+      setStreamedResponse(finishedSummary);
 
       await saveChat(promptToSend, finishedSummary);
 
