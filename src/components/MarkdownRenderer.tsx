@@ -15,15 +15,30 @@ interface MarkdownRendererProps {
 const MarkdownRenderer = memo(function MarkdownRenderer({
   content,
 }: MarkdownRendererProps) {
-  const MAX_MARKDOWN_CHARS = 20000;
+  const MAX_MARKDOWN_CHARS = 8000;
+  const MAX_MARKDOWN_LINES = 400;
+  const MAX_MARKDOWN_MARKERS = 300;
   const safeContent =
     typeof content === "string" ? content : String(content ?? "");
 
-  if (safeContent.length > MAX_MARKDOWN_CHARS) {
-    return <div className="whitespace-pre-wrap">{safeContent}</div>;
+  const lineCount = safeContent.split("\n").length;
+  const markerCount = (safeContent.match(/(^|\n)\s*(?:[-*+]|\d+\.)\s+/g) || [])
+    .length;
+
+  const shouldBypassMarkdown =
+    safeContent.length > MAX_MARKDOWN_CHARS ||
+    lineCount > MAX_MARKDOWN_LINES ||
+    markerCount > MAX_MARKDOWN_MARKERS;
+
+  if (shouldBypassMarkdown) {
+    return (
+      <div className="whitespace-pre-wrap wrap-break-word">{safeContent}</div>
+    );
   }
 
-  return <ReactMarkdown remarkPlugins={[remarkGfm]}>{safeContent}</ReactMarkdown>;
+  return (
+    <ReactMarkdown remarkPlugins={[remarkGfm]}>{safeContent}</ReactMarkdown>
+  );
 });
 
 export default MarkdownRenderer;

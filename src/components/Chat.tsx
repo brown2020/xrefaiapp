@@ -44,11 +44,18 @@ export default function Chat() {
     handleSendPrompt,
   } = useChatGeneration(uid, chatlist, markResponseSaved, scrollToBottom);
 
+  const MAX_VISIBLE_CHATS = 80;
   // Memoize reversed chat list to avoid recalculating on every render
   const reversedChatlist = useMemo(
     () => chatlist.slice().reverse(),
     [chatlist]
   );
+  const visibleChatlist = useMemo(() => {
+    if (reversedChatlist.length <= MAX_VISIBLE_CHATS) {
+      return reversedChatlist;
+    }
+    return reversedChatlist.slice(-MAX_VISIBLE_CHATS);
+  }, [reversedChatlist]);
 
   return (
     <div className="flex flex-col h-full relative bg-muted/30 w-full">
@@ -136,7 +143,15 @@ export default function Chat() {
                       </div>
                     </div>
                   )}
-                  {reversedChatlist.map((chat) => (
+                  {reversedChatlist.length > MAX_VISIBLE_CHATS && (
+                    <div className="flex justify-center mb-4">
+                      <span className="text-xs text-muted-foreground">
+                        Showing the most recent {MAX_VISIBLE_CHATS} messages.
+                        Load older messages to view more.
+                      </span>
+                    </div>
+                  )}
+                  {visibleChatlist.map((chat) => (
                     <div key={chat.id} className="flex flex-col">
                       <ChatMessage
                         message={chat}
