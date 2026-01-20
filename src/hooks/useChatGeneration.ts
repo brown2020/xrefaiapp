@@ -32,25 +32,25 @@ export function useChatGeneration(
   const [streamedResponse, setStreamedResponse] = useState<string>("");
   const [loadingResponse, setLoadingResponse] = useState(false);
 
-  // Collect past interactions for memory (most recent first, up to the word limit)
+  // Collect past interactions for memory (newest first from Firestore, then order chronologically)
   const getContextWithMemory = (chatlist: ChatType[]): ChatType[] => {
     const context: ChatType[] = [];
     let wordCount = 0;
 
-    for (let i = chatlist.length - 1; i >= 0; i--) {
+    for (let i = 0; i < chatlist.length; i++) {
       const chat = chatlist[i];
       const promptWords = chat.prompt.split(" ").length;
       const responseWords = chat.response.split(" ").length;
 
       if (wordCount + promptWords + responseWords <= MAX_WORDS_IN_CONTEXT) {
-        context.unshift(chat);
+        context.push(chat);
         wordCount += promptWords + responseWords;
       } else {
         break;
       }
     }
 
-    return context;
+    return context.reverse();
   };
 
   const debouncedScrollToBottom = useMemo(
