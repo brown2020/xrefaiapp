@@ -39,7 +39,7 @@ An AI-powered content generation platform built with **Next.js 16**, **React 19*
 
 | Package                                       | Version | Purpose                                                        |
 | --------------------------------------------- | ------- | -------------------------------------------------------------- |
-| [Next.js](https://nextjs.org/)                | 16.x    | React framework with App Router, Server Actions, and Turbopack |
+| [Next.js](https://nextjs.org/)                | 16.x    | React framework with App Router and Turbopack                  |
 | [React](https://react.dev/)                   | 19.x    | UI library with latest features                                |
 | [TypeScript](https://www.typescriptlang.org/) | 5.x     | Type safety and developer experience                           |
 
@@ -47,9 +47,13 @@ An AI-powered content generation platform built with **Next.js 16**, **React 19*
 
 | Package                                                  | Version | Purpose                                      |
 | -------------------------------------------------------- | ------- | -------------------------------------------- |
-| [Vercel AI SDK](https://sdk.vercel.ai/)                  | 5.x     | Streaming AI responses and model integration |
-| [@ai-sdk/openai](https://sdk.vercel.ai/providers/openai) | 2.x     | OpenAI provider for text generation          |
-| [@ai-sdk/rsc](https://sdk.vercel.ai/docs/ai-sdk-rsc)     | 1.x     | React Server Components streaming            |
+| [Vercel AI SDK](https://sdk.vercel.ai/)                  | 6.x     | Streaming AI responses and model integration |
+| [@ai-sdk/react](https://ai-sdk.dev/docs/ai-sdk-ui)       | 3.x     | UI hooks for streaming chat                  |
+| [@ai-sdk/openai](https://sdk.vercel.ai/providers/openai) | 3.x     | OpenAI provider for text generation          |
+| [@ai-sdk/anthropic](https://sdk.vercel.ai/providers/anthropic) | 3.x | Anthropic provider                           |
+| [@ai-sdk/xai](https://sdk.vercel.ai/providers/xai)       | 3.x     | xAI provider                                 |
+| [@ai-sdk/google](https://sdk.vercel.ai/providers/google) | 3.x     | Google provider                              |
+| [@ai-sdk/rsc](https://sdk.vercel.ai/docs/ai-sdk-rsc)     | 2.x     | Server Actions streaming                     |
 
 ### Backend & Database
 
@@ -64,7 +68,7 @@ An AI-powered content generation platform built with **Next.js 16**, **React 19*
 | Package                                                      | Version | Purpose                             |
 | ------------------------------------------------------------ | ------- | ----------------------------------- |
 | [Tailwind CSS](https://tailwindcss.com/)                     | 4.x     | Utility-first CSS framework         |
-| [Lucide React](https://lucide.dev/)                          | 0.559.x | Beautiful icon library              |
+| [Lucide React](https://lucide.dev/)                          | 0.562.x | Beautiful icon library              |
 | [React Select](https://react-select.com/)                    | 5.x     | Advanced select/dropdown components |
 | [React Markdown](https://github.com/remarkjs/react-markdown) | 10.x    | Render markdown content             |
 | [React Hot Toast](https://react-hot-toast.com/)              | 2.x     | Toast notifications                 |
@@ -101,9 +105,10 @@ Before you begin, ensure you have:
   - Authentication enabled (Email/Password and/or Google)
   - Firestore Database
   - Cloud Storage
-- An **OpenAI** API key
+- An **OpenAI** API key (optional if you use credits only)
 - A **Fireworks AI** API key (for image generation)
 - A **Stripe** account (for payments)
+  - Optional: Anthropic, xAI, or Google API keys for alternate models
 
 ## 🔧 Installation
 
@@ -153,12 +158,22 @@ NEXT_PUBLIC_FIREBASE_APPID=your_app_id
 NEXT_PUBLIC_FIREBASE_MEASUREMENTID=G-XXXXXXXXXX
 
 # Firebase Admin (Server-side)
-FIREBASE_ADMIN_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your_project.iam.gserviceaccount.com
-FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+FIREBASE_TYPE=service_account
+FIREBASE_PROJECT_ID=your_project_id
+FIREBASE_PRIVATE_KEY_ID=your_private_key_id
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your_project.iam.gserviceaccount.com
+FIREBASE_CLIENT_ID=your_client_id
+FIREBASE_AUTH_URI=https://accounts.google.com/o/oauth2/auth
+FIREBASE_TOKEN_URI=https://oauth2.googleapis.com/token
+FIREBASE_AUTH_PROVIDER_X509_CERT_URL=https://www.googleapis.com/oauth2/v1/certs
+FIREBASE_CLIENT_CERTS_URL=https://www.googleapis.com/robot/v1/metadata/x509/...
 
-# OpenAI
+# AI Providers (used when credits are enabled)
 OPENAI_API_KEY=sk-...
-OPENAI_ORG_ID=org-...  # Optional
+ANTHROPIC_API_KEY=...
+XAI_API_KEY=...
+GOOGLE_API_KEY=...
 
 # Fireworks AI (Image Generation)
 FIREWORKS_API_KEY=your_fireworks_api_key
@@ -167,6 +182,13 @@ FIREWORKS_API_KEY=your_fireworks_api_key
 NEXT_PUBLIC_STRIPE_KEY=pk_...
 STRIPE_SECRET_KEY=sk_...
 NEXT_PUBLIC_STRIPE_PRODUCT_NAME=Xref.ai Credits
+APP_URL=https://your-production-domain.com
+
+# Optional
+NEXT_PUBLIC_COOKIE_NAME=xrefAuthToken
+
+# Optional (native IAP WebView)
+IAP_WEBVIEW_SECRET=your_shared_hmac_secret
 ```
 
 ### Getting API Keys
@@ -188,11 +210,13 @@ xrefaiapp/
 │   ├── actions/            # Server Actions
 │   │   ├── generateAIResponse.ts    # Unified AI text generation
 │   │   ├── generateImage.ts         # AI image generation
+│   │   ├── confirmIapPurchase.ts    # Native IAP fulfillment
 │   │   ├── paymentActions.ts        # Stripe payment handling
 │   │   └── suggestTags.ts           # AI tag suggestions
 │   │
 │   ├── app/                # Next.js App Router pages
 │   │   ├── api/proxy/      # Web scraping proxy endpoint
+│   │   ├── api/chat/       # AI chat streaming endpoint
 │   │   ├── chat/           # AI chat interface
 │   │   ├── tools/          # AI writing tools
 │   │   ├── history/        # Generation history
@@ -206,7 +230,6 @@ xrefaiapp/
 │   │   └── ...             # Feature components
 │   │
 │   ├── hooks/              # Custom React hooks
-│   │   ├── useChatGeneration.ts   # Chat AI logic
 │   │   ├── useChatMessages.ts     # Chat history management
 │   │   ├── useHistorySaver.ts     # Save to Firestore
 │   │   └── ...
@@ -236,7 +259,7 @@ xrefaiapp/
 
 A full-featured chat interface with:
 
-- **Streaming responses** — See AI responses as they're generated
+- **Streaming responses** — UI streaming via AI SDK `useChat` and `/api/chat`
 - **Conversation memory** — AI remembers context from previous messages
 - **Persistent history** — Conversations saved to Firestore
 - **Load more** — Pagination for older messages
@@ -269,38 +292,23 @@ Six AI-powered writing tools:
 
 ## 🏗 Architecture
 
-### Server Actions
+### Server Actions & API Routes
 
-Xref.ai uses Next.js Server Actions for secure server-side operations:
+Xref.ai uses Server Actions for tools and API routes for chat streaming with AI SDK UI:
 
 ```typescript
-// Example: generateAIResponse.ts
-"use server";
-
+// Example: /api/chat route (AI SDK UI)
 import { streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
-import { createStreamableValue } from "@ai-sdk/rsc";
 
-export async function generateResponse(
-  systemPrompt: string,
-  userPrompt: string
-) {
-  const stream = createStreamableValue("");
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+  const result = streamText({
+    model: openai("gpt-4.1"),
+    messages,
+  });
 
-  (async () => {
-    const { textStream } = streamText({
-      model: openai("gpt-4.1"),
-      system: systemPrompt,
-      prompt: userPrompt,
-    });
-
-    for await (const text of textStream) {
-      stream.update(text);
-    }
-    stream.done();
-  })();
-
-  return stream.value;
+  return result.toUIMessageStreamResponse();
 }
 ```
 
@@ -339,6 +347,15 @@ Fetches and returns HTML content from the specified URL for summarization.
 - `url` (required): URL-encoded website address
 
 **Response:** Raw HTML content
+
+### API Routes
+
+| Endpoint                     | Purpose                            | Input                           |
+| ---------------------------- | ---------------------------------- | ------------------------------- |
+| `POST /api/chat`             | Streaming chat responses           | `messages`, `history`, `model`  |
+| `POST /api/billing/checkout` | Start Stripe checkout session      | `packId`, `redirectPath`        |
+| `POST /api/billing/confirm`  | Confirm Stripe checkout session    | `sessionId`                     |
+| `GET /api/proxy`             | Web scraping proxy                 | `url`                           |
 
 ### Server Actions
 
@@ -388,7 +405,7 @@ We welcome contributions! Here's how to get started:
 - Use **TypeScript** for all new code
 - Follow **functional components** with hooks
 - Use **Tailwind CSS** for styling
-- Implement **Server Actions** for server-side logic (not API routes)
+- Use **Server Actions** for tool generation and **API routes** for chat streaming
 - Use **Zustand** for global state management
 - Keep components **modular and reusable**
 
