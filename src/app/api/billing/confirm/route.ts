@@ -7,6 +7,60 @@ import { CREDIT_PACKS } from "@/constants/creditPacks";
 
 export const runtime = "nodejs";
 
+/** Lock TTL in milliseconds (30 seconds) */
+const PAYMENT_LOCK_TTL_MS = 30_000;
+
+/**
+ * Attempts to acquire a distributed lock for payment processing.
+ * Returns true if lock acquired, false if another request is processing.
+ */
+async function tryAcquirePaymentLock(uid: string, sessionId: string): Promise<boolean> {
+  const lockRef = adminDb.doc(`users/${uid}/locks/payment_${sessionId}`);
+  const now = Date.now();
+
+  try {
+    await adminDb.runTransaction(async (tx) => {
+      const lockSnap = await tx.get(lockRef);
+
+      if (lockSnap.exists) {
+        const lockData = lockSnap.data();
+        const acquiredAt = lockData?.acquiredAt?.toMillis?.() || lockData?.acquiredAt || 0;
+
+        // If lock exists and hasn't expired, fail to acquire
+        if (now - acquiredAt < PAYMENT_LOCK_TTL_MS) {
+          throw new Error("LOCK_HELD");
+        }
+        // Lock expired, we can take over
+      }
+
+      // Acquire the lock
+      tx.set(lockRef, {
+        acquiredAt: admin.firestore.FieldValue.serverTimestamp(),
+        uid,
+        sessionId,
+      });
+    });
+    return true;
+  } catch (error) {
+    if (error instanceof Error && error.message === "LOCK_HELD") {
+      return false;
+    }
+    throw error;
+  }
+}
+
+/**
+ * Releases the payment processing lock.
+ */
+async function releasePaymentLock(uid: string, sessionId: string): Promise<void> {
+  const lockRef = adminDb.doc(`users/${uid}/locks/payment_${sessionId}`);
+  try {
+    await lockRef.delete();
+  } catch {
+    // Ignore errors on lock release
+  }
+}
+
 function requireEnv(name: string): string {
   const value = process.env[name];
   if (!value) throw new Error(`Missing env var: ${name}`);
@@ -46,15 +100,27 @@ async function requireAuthedUid(req: NextRequest): Promise<string> {
 }
 
 export async function POST(req: NextRequest) {
+  let uid: string | null = null;
+  let sessionId: string | null = null;
+
   try {
-    const uid = await requireAuthedUid(req);
+    uid = await requireAuthedUid(req);
 
     const body = (await req.json().catch(() => null)) as
       | { sessionId?: string }
       | null;
-    const sessionId = body?.sessionId?.toString() ?? "";
+    sessionId = body?.sessionId?.toString() ?? "";
     if (!sessionId) {
       return Response.json({ error: "Missing sessionId" }, { status: 400 });
+    }
+
+    // Acquire distributed lock to prevent concurrent processing
+    const lockAcquired = await tryAcquirePaymentLock(uid, sessionId);
+    if (!lockAcquired) {
+      return Response.json(
+        { error: "Payment processing in progress", status: "processing" },
+        { status: 409 }
+      );
     }
 
     const checkoutSession = await getStripe().checkout.sessions.retrieve(sessionId, {
@@ -153,6 +219,11 @@ export async function POST(req: NextRequest) {
       return { alreadyProcessed: false, creditsAdded: pack.credits, creditsBalance: nextCredits };
     });
 
+    // Release lock after successful processing
+    if (uid && sessionId) {
+      await releasePaymentLock(uid, sessionId);
+    }
+
     return Response.json(
       {
         ok: true,
@@ -162,6 +233,11 @@ export async function POST(req: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
+    // Release lock on error
+    if (uid && sessionId) {
+      await releasePaymentLock(uid, sessionId);
+    }
+
     if (error instanceof Error && error.message === "AUTH_REQUIRED") {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }

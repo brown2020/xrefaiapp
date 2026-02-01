@@ -142,17 +142,22 @@ const useProfileStore = create<ProfileState>((set, get) => ({
     const uid = useAuthStore.getState().uid;
     if (!uid) return;
 
+    // Save previous state for rollback on failure
+    const previousProfile = get().profile;
+    const updatedProfile = { ...previousProfile, ...newProfile };
+
+    // Optimistic update - update local state immediately
+    set({ profile: updatedProfile });
+
     try {
       const userRef = doc(db, `users/${uid}/profile/userData`);
-      const updatedProfile = { ...get().profile, ...newProfile };
-
-      // Update local state
-      set({ profile: updatedProfile });
-
       // Update Firestore only for changed fields
       await updateDoc(userRef, newProfile);
       toast.success("Profile updated successfully");
     } catch (error) {
+      // Rollback to previous state on failure
+      set({ profile: previousProfile });
+      toast.error("Failed to update profile. Changes have been reverted.");
       handleProfileError("updating profile", error);
     }
   },

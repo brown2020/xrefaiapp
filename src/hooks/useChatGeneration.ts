@@ -1,17 +1,32 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { addDoc, collection, Timestamp } from "firebase/firestore";
 import { db } from "@/firebase/firebaseClient";
 import { generateResponseWithMemory } from "@/actions/generateAIResponse";
 import { readStreamableValue } from "@ai-sdk/rsc";
 import { ChatType } from "@/types/ChatType";
 import { validateContentWithToast } from "@/utils/contentGuard";
-import { debounce } from "lodash";
+import debounce from "lodash/debounce";
 import { MAX_WORDS_IN_CONTEXT } from "@/constants";
 import useProfileStore from "@/zustand/useProfileStore";
 import toast from "react-hot-toast";
 import { usePaywallStore } from "@/zustand/usePaywallStore";
 import { CREDITS_COSTS } from "@/constants/credits";
 import { ROUTES } from "@/constants/routes";
+import { useShallow } from "zustand/react/shallow";
+import type { AiModelKey } from "@/ai/models";
+
+/**
+ * Configuration needed for chat generation
+ * Using a single memoized selector prevents race conditions between individual field subscriptions
+ */
+interface GenerationConfig {
+  useCredits: boolean;
+  modelKey: AiModelKey;
+  openaiApiKey: string;
+  anthropicApiKey: string;
+  xaiApiKey: string;
+  googleApiKey: string;
+}
 
 export function useChatGeneration(
   uid: string,
@@ -19,21 +34,38 @@ export function useChatGeneration(
   onResponseSaved: () => void,
   scrollToBottom: () => void
 ) {
-  // Subscribe only to fields required to generate (avoid re-renders on credit changes).
-  const useCredits = useProfileStore((s) => s.profile.useCredits);
+  // Use a single memoized selector to get all generation-related config at once
+  // This prevents race conditions where individual fields might be read at different times
+  const generationConfig = useProfileStore(
+    useShallow((s): GenerationConfig => ({
+      useCredits: s.profile.useCredits ?? true,
+      modelKey: s.profile.text_model,
+      openaiApiKey: s.profile.openai_api_key ?? "",
+      anthropicApiKey: s.profile.anthropic_api_key ?? "",
+      xaiApiKey: s.profile.xai_api_key ?? "",
+      googleApiKey: s.profile.google_api_key ?? "",
+    }))
+  );
+
   const fetchProfile = useProfileStore((s) => s.fetchProfile);
-  const modelKey = useProfileStore((s) => s.profile.text_model);
-  const openaiApiKey = useProfileStore((s) => s.profile.openai_api_key);
-  const anthropicApiKey = useProfileStore((s) => s.profile.anthropic_api_key);
-  const xaiApiKey = useProfileStore((s) => s.profile.xai_api_key);
-  const googleApiKey = useProfileStore((s) => s.profile.google_api_key);
+
+  // Destructure for easier access
+  const {
+    useCredits,
+    modelKey,
+    openaiApiKey,
+    anthropicApiKey,
+    xaiApiKey,
+    googleApiKey,
+  } = generationConfig;
   const [newPrompt, setNewPrompt] = useState<string>("");
   const [pendingPrompt, setPendingPrompt] = useState<string>(""); // Track the message being processed
   const [streamedResponse, setStreamedResponse] = useState<string>("");
   const [loadingResponse, setLoadingResponse] = useState(false);
 
   // Collect past interactions for memory (newest first from Firestore, then order chronologically)
-  const getContextWithMemory = (chatlist: ChatType[]): ChatType[] => {
+  // Memoized with useCallback to prevent recreation on every render
+  const getContextWithMemory = useCallback((chatlist: ChatType[]): ChatType[] => {
     const context: ChatType[] = [];
     let wordCount = 0;
 
@@ -51,7 +83,7 @@ export function useChatGeneration(
     }
 
     return context.reverse();
-  };
+  }, []); // No dependencies - pure function based on input
 
   const debouncedScrollToBottom = useMemo(
     () => debounce(scrollToBottom, 100),

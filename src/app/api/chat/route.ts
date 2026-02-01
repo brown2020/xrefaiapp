@@ -4,6 +4,14 @@ import { getTextModel } from "@/ai/getTextModel";
 import { requireAuthedUid } from "@/actions/serverAuth";
 import { debitCreditsOrThrow } from "@/actions/serverCredits";
 import { CREDITS_COSTS } from "@/constants/credits";
+import {
+  generateIdempotencyKey,
+  generateClientIdempotencyKey,
+  checkAndSetIdempotency,
+  markIdempotencyComplete,
+  markIdempotencyFailed,
+} from "@/utils/idempotency";
+import { rateLimitMiddleware } from "@/utils/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -18,6 +26,8 @@ type ChatRequestBody = {
   anthropicApiKey?: string;
   xaiApiKey?: string;
   googleApiKey?: string;
+  /** Optional client-provided idempotency key to prevent duplicate charges on retries */
+  idempotencyKey?: string;
 };
 
 const SYSTEM_PROMPT = "The user will ask you questions. Respond in a helpful way.";
@@ -72,12 +82,40 @@ export async function POST(req: Request) {
 
     const uid = await requireAuthedUid();
 
+    // Check rate limit before processing
+    const rateLimitResponse = await rateLimitMiddleware(uid, "chat");
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
+    // Generate or use client-provided idempotency key to prevent duplicate charges
+    const idempotencyKey = body.idempotencyKey
+      ? generateClientIdempotencyKey(uid, body.idempotencyKey)
+      : generateIdempotencyKey(uid, { userText, modelKey: body.modelKey });
+
     if (body.useCredits !== false) {
-      await debitCreditsOrThrow(uid, CREDITS_COSTS.chatMessage, {
-        reason: "chat_message",
-        tool: "chat",
-        modelKey: body.modelKey,
-      });
+      // Check idempotency to prevent double-charging on retries
+      const idempotencyResult = await checkAndSetIdempotency(uid, idempotencyKey);
+
+      if (!idempotencyResult.isNew) {
+        // This request was already processed - don't charge again
+        // But still generate the response (user might have lost connection)
+        console.log(`Idempotent request detected for user ${uid}, skipping credit debit`);
+      } else {
+        // New request - charge credits
+        try {
+          await debitCreditsOrThrow(uid, CREDITS_COSTS.chatMessage, {
+            reason: "chat_message",
+            tool: "chat",
+            modelKey: body.modelKey,
+          });
+          await markIdempotencyComplete(uid, idempotencyKey);
+        } catch (error) {
+          // If debit fails, allow retry
+          await markIdempotencyFailed(uid, idempotencyKey);
+          throw error;
+        }
+      }
     }
 
     const model = getTextModel({

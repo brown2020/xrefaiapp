@@ -2,6 +2,9 @@ import { db } from "@/firebase/firebaseClient";
 import { Timestamp, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { create } from "zustand";
 
+/** Status of profile synchronization to prevent race conditions */
+export type ProfileSyncStatus = "idle" | "syncing" | "synced" | "error";
+
 interface AuthState {
   uid: string;
   firebaseUid: string;
@@ -16,6 +19,8 @@ interface AuthState {
   isInvited: boolean;
   lastSignIn: Timestamp | null;
   premium: boolean;
+  /** Tracks the status of profile sync to coordinate with profile fetching */
+  profileSyncStatus: ProfileSyncStatus;
 }
 
 interface AuthActions {
@@ -40,6 +45,7 @@ const defaultAuthState: AuthState = {
   isInvited: false,
   lastSignIn: null,
   premium: false,
+  profileSyncStatus: "idle",
 };
 
 const PERSISTED_KEYS: (keyof AuthState)[] = [
@@ -71,6 +77,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       return;
     }
 
+    // Set sync status to syncing
+    set({ profileSyncStatus: "syncing" });
+
     const persistableDetails: Partial<AuthState> = {};
     PERSISTED_KEYS.forEach((key) => {
       const value =
@@ -85,7 +94,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         value as AuthState[typeof key];
     });
 
-    await updateUserDetailsInFirestore(persistableDetails, uid);
+    try {
+      await updateUserDetailsInFirestore(persistableDetails, uid);
+      set({ profileSyncStatus: "synced" });
+    } catch (error) {
+      console.error("Failed to sync auth profile:", error);
+      set({ profileSyncStatus: "error" });
+    }
   },
 }));
 

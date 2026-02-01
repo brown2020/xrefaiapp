@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
 import { ChatType } from "@/types/ChatType";
 import { MAX_CHAT_LOAD } from "@/constants";
@@ -10,6 +10,15 @@ import { useFirestoreRealtime } from "./useFirestoreRealtime";
  */
 export function useChatMessages(uid: string) {
   const [responseSaved, setResponseSaved] = useState(false);
+
+  // Use ref to track responseSaved to avoid recreating callback on every state change
+  // This prevents the realtime listener from being recreated unnecessarily
+  const responseSavedRef = useRef(responseSaved);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    responseSavedRef.current = responseSaved;
+  }, [responseSaved]);
 
   // Transform Firestore document to ChatType
   const transformChat = useCallback(
@@ -26,11 +35,12 @@ export function useChatMessages(uid: string) {
   );
 
   // Handle data changes (reset responseSaved flag)
+  // Uses ref instead of state in dependency array to prevent callback recreation
   const handleDataChange = useCallback(() => {
-    if (responseSaved) {
+    if (responseSavedRef.current) {
       setResponseSaved(false);
     }
-  }, [responseSaved]);
+  }, []); // Empty deps - uses ref for current value
 
   const {
     items: chatlist,
