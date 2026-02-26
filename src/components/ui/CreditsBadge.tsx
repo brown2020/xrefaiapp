@@ -21,16 +21,12 @@ export function CreditsBadge() {
 
   const LOW_CREDITS_THRESHOLD = 200;
 
-  const creditsLabel = useMemo(() => {
-    // Avoid layout-jank from large numbers.
-    const safe = typeof credits === "number" ? credits : Number(credits);
-    return Math.max(0, Math.round(Number.isFinite(safe) ? safe : 0)).toLocaleString();
-  }, [credits]);
-
   const numericCredits = useMemo(() => {
     const safe = typeof credits === "number" ? credits : Number(credits);
     return Math.max(0, Math.round(Number.isFinite(safe) ? safe : 0));
   }, [credits]);
+
+  const creditsLabel = numericCredits.toLocaleString();
 
   const topUpHref = useMemo(() => {
     const redirect = pathname || ROUTES.account;

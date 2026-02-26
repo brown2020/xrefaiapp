@@ -15,8 +15,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { validateContentWithToast } from "@/utils/contentGuard";
 import { MAX_WORDS_IN_CONTEXT } from "@/constants";
-import { addDoc, collection, Timestamp } from "firebase/firestore";
-import { db } from "@/firebase/firebaseClient";
+import { saveChatServer } from "@/actions/serverHistory";
 import { usePaywallStore } from "@/zustand/usePaywallStore";
 import { CREDITS_COSTS } from "@/constants/credits";
 import toast from "react-hot-toast";
@@ -58,11 +57,7 @@ export default function Chat() {
       const response = getMessageText(message);
 
       if (uid && prompt && response) {
-        await addDoc(collection(db, "users", uid, "chats"), {
-          prompt,
-          response,
-          timestamp: Timestamp.now(),
-        });
+        await saveChatServer(prompt, response);
         markResponseSaved();
         if (profile.useCredits) {
           await fetchProfile();
@@ -177,7 +172,7 @@ export default function Chat() {
                     <button
                       onClick={loadMoreChats}
                       disabled={loadingMore}
-                      className="text-xs font-medium text-[#192449] hover:text-blue-700 bg-white border border-gray-200 hover:bg-gray-50 px-4 py-2 rounded-full transition-all shadow-sm flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                      className="text-xs font-medium text-foreground bg-card border border-border hover:bg-muted px-4 py-2 rounded-full transition-all shadow-sm flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                     >
                       {loadingMore && <InlineSpinner size="sm" />}
                       {loadingMore

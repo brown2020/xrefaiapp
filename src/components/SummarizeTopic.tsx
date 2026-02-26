@@ -15,10 +15,14 @@ import { ProgressBar } from "@/components/ui/ProgressBar";
 import { ResponseDisplay } from "@/components/ui/ResponseDisplay";
 import { MIN_WORD_COUNT, MAX_WORD_COUNT } from "@/constants";
 import useProfileStore from "@/zustand/useProfileStore";
+import { usePaywallStore } from "@/zustand/usePaywallStore";
 import { getTextGenerationCreditsCost } from "@/constants/credits";
+import { ROUTES } from "@/constants/routes";
 
 export default function SummarizeTopic() {
   const profile = useProfileStore((s) => s.profile);
+  const fetchProfile = useProfileStore((s) => s.fetchProfile);
+  const openPaywall = usePaywallStore((s) => s.openPaywall);
   const { saveHistory, uid } = useHistorySaver();
   const {
     scrapeWebsite,
@@ -98,6 +102,9 @@ export default function SummarizeTopic() {
       }
 
       completeWithSuccess(finishedSummary);
+      if (profile.useCredits) {
+        await fetchProfile();
+      }
 
       if (uid) {
         await saveHistory({
@@ -119,6 +126,11 @@ export default function SummarizeTopic() {
         toast.error(
           `Not enough credits (need ${cost}). Please buy more credits in Account.`
         );
+        openPaywall({
+          actionLabel: "Website summary",
+          requiredCredits: cost,
+          redirectPath: ROUTES.tools,
+        });
         completeWithError("Not enough credits");
         return;
       }

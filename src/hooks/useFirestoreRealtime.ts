@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   collection,
   onSnapshot,
@@ -58,7 +58,13 @@ export function useFirestoreRealtime<T>({
   const [lastDoc, setLastDoc] = useState<Timestamp | null>(null);
   const [hasMore, setHasMore] = useState(false);
 
-  // Initial real-time subscription
+  // Stabilize callbacks via refs so the snapshot listener isn't recreated on every render
+  const onDataChangeRef = useRef(onDataChange);
+  useEffect(() => { onDataChangeRef.current = onDataChange; }, [onDataChange]);
+
+  const transformRef = useRef(transform);
+  useEffect(() => { transformRef.current = transform; }, [transform]);
+
   useEffect(() => {
     if (!uid) {
       setItems([]);
@@ -80,7 +86,7 @@ export function useFirestoreRealtime<T>({
 
         querySnapshot.forEach((doc) => {
           if (doc.exists()) {
-            newItems.push(transform(doc));
+            newItems.push(transformRef.current(doc));
             if (newItems.length === pageSize) {
               lastTimestamp = doc.data()?.[orderByField] || null;
             }
@@ -91,7 +97,7 @@ export function useFirestoreRealtime<T>({
         setLoading(false);
         setHasMore(querySnapshot.size === pageSize);
         setLastDoc(lastTimestamp);
-        onDataChange?.();
+        onDataChangeRef.current?.();
       },
       (error) => {
         // Ignore permission errors during sign-out
@@ -102,15 +108,7 @@ export function useFirestoreRealtime<T>({
     );
 
     return () => unsub();
-  }, [
-    uid,
-    collectionName,
-    orderByField,
-    orderDirection,
-    pageSize,
-    transform,
-    onDataChange,
-  ]);
+  }, [uid, collectionName, orderByField, orderDirection, pageSize]);
 
   // Load more (pagination)
   const loadMore = useCallback(async () => {
@@ -135,7 +133,7 @@ export function useFirestoreRealtime<T>({
 
     querySnapshot.forEach((doc) => {
       if (doc.exists()) {
-        newItems.push(transform(doc));
+        newItems.push(transformRef.current(doc));
         if (newItems.length === pageSize) {
           newLastTimestamp = doc.data()?.[orderByField] || null;
         }
@@ -154,7 +152,6 @@ export function useFirestoreRealtime<T>({
     orderByField,
     orderDirection,
     pageSize,
-    transform,
   ]);
 
   return {

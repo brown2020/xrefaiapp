@@ -1,11 +1,10 @@
-// paymentActions.ts
 "use server";
 
 import Stripe from "stripe";
-import { cookies } from "next/headers";
-import { adminAuth, adminDb, admin } from "@/firebase/firebaseAdmin";
-import { getAuthCookieName } from "@/utils/getAuthCookieName";
+import { adminDb, admin } from "@/firebase/firebaseAdmin";
+import { requireAuthedUid } from "@/actions/serverAuth";
 import { getCreditPackByAmountCents } from "@/constants/creditPacks";
+import { coerceCredits } from "@/utils/credits";
 
 const stripeSecretKey = (process.env.STRIPE_SECRET_KEY || "").trim();
 if (!stripeSecretKey) {
@@ -13,35 +12,12 @@ if (!stripeSecretKey) {
 }
 const stripe = new Stripe(stripeSecretKey);
 
-async function requireAuthedUid(): Promise<string> {
-  const cookieName = getAuthCookieName();
-  const token = (await cookies()).get(cookieName)?.value;
-  if (!token) {
-    throw new Error("AUTH_REQUIRED");
-  }
-  const decoded = await adminAuth.verifyIdToken(token);
-  if (!decoded?.uid) {
-    throw new Error("AUTH_REQUIRED");
-  }
-  return decoded.uid;
-}
-
 function computeCreditsForAmountCents(amountCents: number): number {
-  // Keep this mapping server-side so clients can't "choose" credits.
   const pack = getCreditPackByAmountCents(amountCents);
   if (!pack) {
     throw new Error("UNSUPPORTED_PAYMENT_AMOUNT");
   }
   return pack.credits;
-}
-
-function coerceCredits(value: unknown, fallback: number): number {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) return parsed;
-  }
-  return fallback;
 }
 
 export async function createPaymentIntent(amount: number) {

@@ -1,11 +1,10 @@
 "use client";
 
-import { copyToClipboard } from "@/utils/clipboard";
+import { CopyButton } from "./CopyButton";
 
 interface ResponseDisplayProps {
   flagged: string;
   summary: string;
-  /** Optional: render custom content instead of default text display */
   children?: React.ReactNode;
 }
 
@@ -16,22 +15,28 @@ export function ResponseDisplay({
 }: ResponseDisplayProps) {
   if (flagged) {
     return (
-      <h3 id="flagged" className="p-3 bg-red-100 text-red-800 my-3 rounded-md">
+      <div
+        id="flagged"
+        role="alert"
+        className="p-3 bg-destructive/10 text-destructive my-3 rounded-md text-sm"
+      >
         {flagged}
-      </h3>
+      </div>
     );
   }
 
   if (summary) {
     return (
-      <div id="response">
+      <div id="response" className="my-4">
         {children || (
-          <h3
-            className="cursor-pointer response bg-[#E7EAEF] text-[#0B3C68]"
-            onClick={() => copyToClipboard(summary)}
-          >
-            {summary}
-          </h3>
+          <div className="bg-muted/50 text-foreground rounded-lg p-4 border border-border">
+            <div className="flex justify-end mb-2">
+              <CopyButton text={summary} size={14} />
+            </div>
+            <div className="whitespace-pre-wrap text-sm leading-relaxed">
+              {summary}
+            </div>
+          </div>
         )}
       </div>
     );

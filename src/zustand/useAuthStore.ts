@@ -1,6 +1,5 @@
-import { db } from "@/firebase/firebaseClient";
-import { Timestamp, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { create } from "zustand";
+import { syncAuthProfileServer } from "@/actions/serverAuthSync";
 
 /** Status of profile synchronization to prevent race conditions */
 export type ProfileSyncStatus = "idle" | "syncing" | "synced" | "error";
@@ -17,7 +16,6 @@ interface AuthState {
   isAdmin: boolean;
   isAllowed: boolean;
   isInvited: boolean;
-  lastSignIn: Timestamp | null;
   premium: boolean;
   /** Tracks the status of profile sync to coordinate with profile fetching */
   profileSyncStatus: ProfileSyncStatus;
@@ -43,7 +41,6 @@ const defaultAuthState: AuthState = {
   isAdmin: false,
   isAllowed: false,
   isInvited: false,
-  lastSignIn: null,
   premium: false,
   profileSyncStatus: "idle",
 };
@@ -73,29 +70,22 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     const currentState = get();
     const uid = overrides?.uid || currentState.uid;
 
-    if (!uid) {
-      return;
-    }
+    if (!uid) return;
 
-    // Set sync status to syncing
     set({ profileSyncStatus: "syncing" });
 
-    const persistableDetails: Partial<AuthState> = {};
+    const persistableDetails: Record<string, unknown> = {};
     PERSISTED_KEYS.forEach((key) => {
       const value =
         overrides && overrides[key] !== undefined
           ? overrides[key]
           : currentState[key];
-      if (value === undefined || value === null) {
-        return;
-      }
-
-      (persistableDetails as Record<string, AuthState[typeof key]>)[key] =
-        value as AuthState[typeof key];
+      if (value === undefined || value === null) return;
+      persistableDetails[key] = value;
     });
 
     try {
-      await updateUserDetailsInFirestore(persistableDetails, uid);
+      await syncAuthProfileServer(uid, persistableDetails);
       set({ profileSyncStatus: "synced" });
     } catch (error) {
       console.error("Failed to sync auth profile:", error);
@@ -103,32 +93,3 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }
   },
 }));
-
-async function updateUserDetailsInFirestore(
-  details: Partial<AuthState>,
-  uid: string
-) {
-  if (uid) {
-    const userRef = doc(db, `users/${uid}`);
-
-    // Sanitize the details object to exclude any functions
-    const sanitizedDetails = { ...details };
-
-    // Remove any unexpected functions or properties
-    Object.keys(sanitizedDetails).forEach((key) => {
-      if (typeof sanitizedDetails[key as keyof AuthState] === "function") {
-        delete sanitizedDetails[key as keyof AuthState];
-      }
-    });
-
-    try {
-      await setDoc(
-        userRef,
-        { ...sanitizedDetails, lastSignIn: serverTimestamp() },
-        { merge: true }
-      );
-    } catch (error) {
-      console.error("Error updating auth details in Firestore:", error);
-    }
-  }
-}

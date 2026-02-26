@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { addDoc, collection, Timestamp } from "firebase/firestore";
-import { db } from "@/firebase/firebaseClient";
 import { generateResponseWithMemory } from "@/actions/generateAIResponse";
+import { saveChatServer } from "@/actions/serverHistory";
 import { readStreamableValue } from "@ai-sdk/rsc";
 import { ChatType } from "@/types/ChatType";
 import { validateContentWithToast } from "@/utils/contentGuard";
 import debounce from "lodash/debounce";
-import { MAX_WORDS_IN_CONTEXT } from "@/constants";
+import { MAX_WORDS_IN_CONTEXT, MAX_STREAMED_CHARS, TRUNCATION_NOTICE, STREAMING_UPDATE_INTERVAL_MS } from "@/constants";
 import useProfileStore from "@/zustand/useProfileStore";
 import toast from "react-hot-toast";
 import { usePaywallStore } from "@/zustand/usePaywallStore";
@@ -133,8 +132,6 @@ export function useChatGeneration(
         xaiApiKey,
         googleApiKey,
       });
-      const MAX_STREAMED_CHARS = 12000;
-      const TRUNCATION_NOTICE = "\n\n[Response truncated due to length]";
       let finishedSummary = "";
       let lastUiUpdate = 0;
 
@@ -148,7 +145,7 @@ export function useChatGeneration(
             break;
           }
           const now = Date.now();
-          if (now - lastUiUpdate > 120) {
+          if (now - lastUiUpdate > STREAMING_UPDATE_INTERVAL_MS) {
             lastUiUpdate = now;
             setStreamedResponse(finishedSummary);
             debouncedScrollToBottom();
@@ -157,7 +154,9 @@ export function useChatGeneration(
       }
       setStreamedResponse(finishedSummary);
 
-      await saveChat(promptToSend, finishedSummary);
+      if (uid) {
+        await saveChatServer(promptToSend, finishedSummary);
+      }
 
       onResponseSaved();
       if (useCredits) {
@@ -184,17 +183,6 @@ export function useChatGeneration(
       console.error("Error generating response:", error);
       setLoadingResponse(false);
       setPendingPrompt(""); // Clear on error too
-    }
-  };
-
-  // Save the prompt and response to Firestore (standardized path: users/{uid}/chats)
-  const saveChat = async (prompt: string, response: string) => {
-    if (uid) {
-      await addDoc(collection(db, "users", uid, "chats"), {
-        prompt,
-        response,
-        timestamp: Timestamp.now(),
-      });
     }
   };
 

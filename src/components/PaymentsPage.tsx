@@ -87,7 +87,7 @@ function PaymentCard({ payment }: { payment: PaymentType }) {
             <div className="text-sm text-gray-500 flex items-center gap-1">
               <Calendar size={14} />
               {payment.createdAt
-                ? payment.createdAt.toDate().toLocaleString(undefined, {
+                ? new Date(payment.createdAt).toLocaleString(undefined, {
                     dateStyle: "medium",
                     timeStyle: "short",
                   })

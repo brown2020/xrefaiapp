@@ -113,7 +113,7 @@ export default function CreditsLedger() {
         </span>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-10">
             <LoadingSpinner size="lg" text="Loading credits ledger..." />

@@ -89,7 +89,7 @@ export function DesignerForm({ onSubmit, active }: DesignerFormProps) {
       </div>
 
       <div className="mt-4">
-        <label htmlFor="topic" className="text-[#041D34] font-semibold">
+        <label htmlFor="topic" className="text-foreground font-semibold">
           Describe what you want to visualize
         </label>
         <textarea

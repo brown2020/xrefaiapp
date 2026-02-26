@@ -12,7 +12,7 @@ import { inputClassName, labelClassName } from "@/components/ui/FormInput";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { ResponseDisplay } from "@/components/ui/ResponseDisplay";
-import { MIN_WORD_COUNT, MAX_WORD_COUNT } from "@/constants";
+import { MIN_WORD_COUNT, MAX_WORD_COUNT, MAX_STREAMED_CHARS, TRUNCATION_NOTICE } from "@/constants";
 import useProfileStore from "@/zustand/useProfileStore";
 import { getTextGenerationCreditsCost } from "@/constants/credits";
 import { usePaywallStore } from "@/zustand/usePaywallStore";
@@ -89,8 +89,6 @@ export default function BasePrompt({
         xaiApiKey: profile.xai_api_key,
         googleApiKey: profile.google_api_key,
       });
-      const MAX_STREAMED_CHARS = 12000;
-      const TRUNCATION_NOTICE = "\n\n[Response truncated due to length]";
       let chunkCount = 0;
 
       for await (const content of readStreamableValue(result)) {

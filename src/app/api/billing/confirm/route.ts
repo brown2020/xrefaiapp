@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
 import Stripe from "stripe";
-import { cookies } from "next/headers";
-import { adminAuth, adminDb, admin } from "@/firebase/firebaseAdmin";
-import { getAuthCookieName } from "@/utils/getAuthCookieName";
+import { adminDb, admin } from "@/firebase/firebaseAdmin";
 import { CREDIT_PACKS } from "@/constants/creditPacks";
+import { coerceCredits } from "@/utils/credits";
+import { requireAuthedUidFromRequest } from "@/utils/requireAuthedRequest";
 
 export const runtime = "nodejs";
 
@@ -74,37 +74,12 @@ function getStripe() {
   return stripe;
 }
 
-function coerceCredits(value: unknown, fallback: number): number {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) return parsed;
-  }
-  return fallback;
-}
-
-async function requireAuthedUid(req: NextRequest): Promise<string> {
-  const cookieName = getAuthCookieName();
-  const token = (await cookies()).get(cookieName)?.value;
-  const bearer = req.headers.get("authorization") || req.headers.get("Authorization");
-  const bearerToken =
-    bearer && bearer.toLowerCase().startsWith("bearer ")
-      ? bearer.slice("bearer ".length).trim()
-      : "";
-
-  const idToken = token || bearerToken;
-  if (!idToken) throw new Error("AUTH_REQUIRED");
-  const decoded = await adminAuth.verifyIdToken(idToken);
-  if (!decoded?.uid) throw new Error("AUTH_REQUIRED");
-  return decoded.uid;
-}
-
 export async function POST(req: NextRequest) {
   let uid: string | null = null;
   let sessionId: string | null = null;
 
   try {
-    uid = await requireAuthedUid(req);
+    uid = await requireAuthedUidFromRequest(req);
 
     const body = (await req.json().catch(() => null)) as
       | { sessionId?: string }

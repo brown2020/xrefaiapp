@@ -1,9 +1,7 @@
 import { NextRequest } from "next/server";
 import Stripe from "stripe";
-import { cookies } from "next/headers";
-import { adminAuth } from "@/firebase/firebaseAdmin";
-import { getAuthCookieName } from "@/utils/getAuthCookieName";
 import { CREDIT_PACKS } from "@/constants/creditPacks";
+import { requireAuthedUidFromRequest } from "@/utils/requireAuthedRequest";
 
 export const runtime = "nodejs";
 
@@ -20,25 +18,9 @@ function getStripe() {
   return stripe;
 }
 
-async function requireAuthedUid(req: NextRequest): Promise<string> {
-  const cookieName = getAuthCookieName();
-  const token = (await cookies()).get(cookieName)?.value;
-  const bearer = req.headers.get("authorization") || req.headers.get("Authorization");
-  const bearerToken =
-    bearer && bearer.toLowerCase().startsWith("bearer ")
-      ? bearer.slice("bearer ".length).trim()
-      : "";
-
-  const idToken = token || bearerToken;
-  if (!idToken) throw new Error("AUTH_REQUIRED");
-  const decoded = await adminAuth.verifyIdToken(idToken);
-  if (!decoded?.uid) throw new Error("AUTH_REQUIRED");
-  return decoded.uid;
-}
-
 export async function POST(req: NextRequest) {
   try {
-    const uid = await requireAuthedUid(req);
+    const uid = await requireAuthedUidFromRequest(req);
 
     const body = (await req.json().catch(() => null)) as
       | { packId?: string; redirectPath?: string }

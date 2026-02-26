@@ -3,6 +3,7 @@
 import crypto from "crypto";
 import { admin, adminDb } from "@/firebase/firebaseAdmin";
 import { requireAuthedUid } from "@/actions/serverAuth";
+import { coerceCredits } from "@/utils/credits";
 
 export type IapConfirmInput = {
   transactionId: string;
@@ -42,15 +43,6 @@ function computeSignature(secret: string, input: IapConfirmInput): string {
   ].join("|");
 
   return crypto.createHmac("sha256", secret).update(payload).digest("hex");
-}
-
-function coerceCredits(value: unknown, fallback: number): number {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) return parsed;
-  }
-  return fallback;
 }
 
 export async function confirmIapPurchase(

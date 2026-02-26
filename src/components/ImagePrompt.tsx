@@ -16,6 +16,9 @@ import { inputClassName, labelClassName } from "@/components/ui/FormInput";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ResponseDisplay } from "@/components/ui/ResponseDisplay";
 import useProfileStore from "@/zustand/useProfileStore";
+import { usePaywallStore } from "@/zustand/usePaywallStore";
+import { CREDITS_COSTS } from "@/constants/credits";
+import { ROUTES } from "@/constants/routes";
 
 const IMAGE_ERROR_MESSAGE =
   "I can't do that. I can't do real people or anything that violates the terms of service. Please try changing the prompt.";
@@ -23,6 +26,8 @@ const IMAGE_ERROR_MESSAGE =
 export default function ImagePrompt() {
   const { saveHistory, uid } = useHistorySaver();
   const profile = useProfileStore((s) => s.profile);
+  const fetchProfile = useProfileStore((s) => s.fetchProfile);
+  const openPaywall = usePaywallStore((s) => s.openPaywall);
   const {
     summary,
     flagged,
@@ -74,6 +79,9 @@ export default function ImagePrompt() {
     if (result.imageUrl && uid) {
       try {
         completeWithSuccess(result.imageUrl);
+        if (profile.useCredits) {
+          await fetchProfile();
+        }
         await saveHistory({
           prompt: finalTopic,
           response: result.imageUrl,
@@ -94,6 +102,11 @@ export default function ImagePrompt() {
       if (result.error === "INSUFFICIENT_CREDITS") {
         toast.dismiss(toastId);
         toast.error("Not enough credits. Please buy more credits in Account.");
+        openPaywall({
+          actionLabel: "Image generation",
+          requiredCredits: CREDITS_COSTS.imageGeneration,
+          redirectPath: ROUTES.tools,
+        });
         completeWithError("Not enough credits");
         return;
       }

@@ -127,13 +127,13 @@ export default function LoginFinishPage() {
   }, [completeSignIn]);
 
   return (
-    <main className="min-h-full flex items-center justify-center px-4 py-10 bg-gray-50/30">
-      <div className="w-full max-w-md bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
+    <main className="min-h-full flex items-center justify-center px-4 py-10 bg-muted/30">
+      <div className="w-full max-w-md bg-card border border-border rounded-2xl shadow-sm p-6">
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-[#041D34]">
+          <h1 className="text-2xl font-bold text-foreground">
             Completing sign-in
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             We&apos;re verifying your email link.
           </p>
         </div>
@@ -157,29 +157,29 @@ export default function LoginFinishPage() {
             }}
             className="space-y-4"
           >
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-muted-foreground">
               For security, please confirm the email address you used to request
               the sign-in link.
             </div>
             <label className="block">
-              <span className="text-sm font-medium text-[#041D34]">Email</span>
+              <span className="text-sm font-medium text-foreground">Email</span>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="mt-1 w-full px-3 py-2 rounded-lg border border-border bg-card text-foreground focus:outline-hidden focus:ring-2 focus:ring-ring/20 focus:border-ring"
                 placeholder="you@example.com"
                 required
               />
             </label>
             <button
               type="submit"
-              className="w-full py-3 px-4 bg-[#192449] text-white font-semibold rounded-xl hover:bg-[#263566] transition-colors"
+              className="w-full py-3 px-4 bg-primary text-primary-foreground font-semibold rounded-xl hover:opacity-90 transition-opacity"
             >
               Continue
             </button>
             <div className="text-center text-sm">
-              <Link href={ROUTES.home} className="text-blue-600 hover:underline">
+              <Link href={ROUTES.home} className="text-primary hover:underline">
                 Back to home
               </Link>
             </div>
@@ -197,7 +197,7 @@ export default function LoginFinishPage() {
                 onClick={() => {
                   setStage("needs_email");
                 }}
-                className="w-full py-3 px-4 bg-[#192449] text-white font-semibold rounded-xl hover:bg-[#263566] transition-colors"
+                className="w-full py-3 px-4 bg-primary text-primary-foreground font-semibold rounded-xl hover:opacity-90 transition-opacity"
               >
                 Try again
               </button>
@@ -207,7 +207,7 @@ export default function LoginFinishPage() {
                   clearStoredEmailLinkDetails();
                   router.replace(ROUTES.home);
                 }}
-                className="w-full py-3 px-4 bg-white text-gray-700 font-semibold rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
+                className="w-full py-3 px-4 bg-card text-foreground font-semibold rounded-xl border border-border hover:bg-muted transition-colors"
               >
                 Start over
               </button>
