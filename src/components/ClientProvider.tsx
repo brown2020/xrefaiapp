@@ -9,7 +9,6 @@ import useAuthToken from "@/hooks/useAuthToken";
 import { useInitializeStores } from "@/zustand/useInitializeStores";
 import { useClientSetup } from "@/hooks/useClientSetup";
 import ErrorBoundary from "./ErrorBoundary";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { PROTECTED_ROUTES, ROUTES } from "@/constants/routes";
 import { getAuthCookieName } from "@/utils/getAuthCookieName";
 import { CreditsPaywallModal } from "@/components/ui/CreditsPaywallModal";
@@ -53,15 +52,6 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
     // Update the ref for next comparison
     wasAuthenticated.current = !!uid;
   }, [loading, uid, pathname, router]);
-
-  if (loading)
-    return (
-      <ErrorBoundary>
-        <div className="flex flex-col items-center justify-center h-full bg-background">
-          <LoadingSpinner size="xl" />
-        </div>
-      </ErrorBoundary>
-    );
 
   return (
     <ErrorBoundary>

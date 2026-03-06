@@ -5,8 +5,8 @@ export type AiProvider = "openai" | "anthropic" | "xai" | "google";
  * safely select a provider + model from a whitelist.
  */
 export type AiModelKey =
-  | "openai:gpt-5.2"
-  | "anthropic:claude-sonnet-4-5-20250929"
+  | "openai:gpt-5.4"
+  | "anthropic:claude-sonnet-4-6"
   | "xai:grok-4"
   | "google:gemini-3-pro-preview";
 
@@ -23,18 +23,18 @@ export type AiModelDefinition = {
 };
 
 export const AI_MODELS: Record<AiModelKey, AiModelDefinition> = {
-  "openai:gpt-5.2": {
-    key: "openai:gpt-5.2",
+  "openai:gpt-5.4": {
+    key: "openai:gpt-5.4",
     provider: "openai",
-    modelId: "gpt-5.2",
-    label: "GPT‑5.2",
+    modelId: "gpt-5.4",
+    label: "GPT‑5.4",
     family: "OpenAI",
   },
-  "anthropic:claude-sonnet-4-5-20250929": {
-    key: "anthropic:claude-sonnet-4-5-20250929",
+  "anthropic:claude-sonnet-4-6": {
+    key: "anthropic:claude-sonnet-4-6",
     provider: "anthropic",
-    modelId: "claude-sonnet-4-5-20250929",
-    label: "Claude Sonnet 4.5",
+    modelId: "claude-sonnet-4-6",
+    label: "Claude Sonnet 4.6",
     family: "Anthropic",
   },
   "xai:grok-4": {
@@ -53,10 +53,9 @@ export const AI_MODELS: Record<AiModelKey, AiModelDefinition> = {
   },
 };
 
-export const DEFAULT_TEXT_MODEL_KEY: AiModelKey = "openai:gpt-5.2";
+export const DEFAULT_TEXT_MODEL_KEY: AiModelKey = "openai:gpt-5.4";
 
-export const listAiModels = (): AiModelDefinition[] =>
-  Object.values(AI_MODELS);
+export const listAiModels = (): AiModelDefinition[] => Object.values(AI_MODELS);
 
 export function isAiModelKey(value: unknown): value is AiModelKey {
   return typeof value === "string" && value in AI_MODELS;
@@ -65,4 +64,3 @@ export function isAiModelKey(value: unknown): value is AiModelKey {
 export function resolveAiModelKey(value: unknown): AiModelKey {
   return isAiModelKey(value) ? value : DEFAULT_TEXT_MODEL_KEY;
 }
-

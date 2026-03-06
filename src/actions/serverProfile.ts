@@ -44,8 +44,69 @@ const PROFILE_DEFAULTS: ServerProfileData = {
   selectedAvatar: "",
   selectedTalkingPhoto: "",
   useCredits: true,
-  text_model: "openai:gpt-5.2",
+  text_model: "openai:gpt-5.4",
 };
+
+const CLIENT_WRITABLE_FIELDS = {
+  contactEmail: "string",
+  displayName: "string",
+  photoUrl: "string",
+  fireworks_api_key: "string",
+  openai_api_key: "string",
+  anthropic_api_key: "string",
+  xai_api_key: "string",
+  google_api_key: "string",
+  stability_api_key: "string",
+  selectedAvatar: "string",
+  selectedTalkingPhoto: "string",
+  useCredits: "boolean",
+  text_model: "model",
+  firstName: "string",
+  lastName: "string",
+  headerUrl: "string",
+} as const;
+
+type ClientWritableProfileField = keyof typeof CLIENT_WRITABLE_FIELDS;
+
+function sanitizeProfileUpdate(
+  fields: Partial<ServerProfileData>,
+): Partial<ServerProfileData> {
+  const sanitized: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(fields) as [
+    ClientWritableProfileField,
+    unknown,
+  ][]) {
+    if (!(key in CLIENT_WRITABLE_FIELDS) || value === undefined) {
+      continue;
+    }
+
+    if (typeof value === "function") {
+      continue;
+    }
+
+    const expectedType = CLIENT_WRITABLE_FIELDS[key];
+    if (expectedType === "boolean") {
+      if (typeof value === "boolean") {
+        sanitized[key] = value;
+      }
+      continue;
+    }
+
+    if (expectedType === "model") {
+      if (typeof value === "string") {
+        sanitized[key] = resolveAiModelKey(value);
+      }
+      continue;
+    }
+
+    if (typeof value === "string") {
+      sanitized[key] = value;
+    }
+  }
+
+  return sanitized as Partial<ServerProfileData>;
+}
 
 export async function fetchProfileServer(authOverrides?: {
   authEmail?: string;
@@ -97,16 +158,14 @@ export async function fetchProfileServer(authOverrides?: {
 }
 
 export async function updateProfileServer(
-  fields: Partial<ServerProfileData>
+  fields: Partial<ServerProfileData>,
 ): Promise<void> {
   const uid = await requireAuthedUid();
   const profileRef = adminDb.doc(`users/${uid}/profile/userData`);
+  const sanitized = sanitizeProfileUpdate(fields);
 
-  const sanitized: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(fields)) {
-    if (typeof value !== "function") {
-      sanitized[key] = value;
-    }
+  if (Object.keys(sanitized).length === 0) {
+    return;
   }
 
   await profileRef.set(sanitized, { merge: true });
@@ -117,31 +176,4 @@ export async function deleteAccountServer(): Promise<void> {
   const profileRef = adminDb.doc(`users/${uid}/profile/userData`);
   await profileRef.delete();
   await admin.auth().deleteUser(uid);
-}
-
-export async function changeCreditsAtomicServer(
-  delta: number
-): Promise<number> {
-  const uid = await requireAuthedUid();
-  const profileRef = adminDb.doc(`users/${uid}/profile/userData`);
-
-  return await adminDb.runTransaction(async (tx) => {
-    const snap = await tx.get(profileRef);
-    const current = coerceCredits(
-      snap.exists ? snap.data()?.credits : 1000,
-      1000
-    );
-
-    const next = current + delta;
-    if (!Number.isFinite(next)) throw new Error("Invalid credits value");
-    if (next < 0) throw new Error("INSUFFICIENT_CREDITS");
-
-    if (!snap.exists) {
-      tx.set(profileRef, { credits: next }, { merge: true });
-    } else {
-      tx.update(profileRef, { credits: next });
-    }
-
-    return next;
-  });
 }

@@ -2,10 +2,11 @@
 
 import { createStreamableValue } from "@ai-sdk/rsc";
 import { ModelMessage, streamText } from "ai";
+import { randomUUID } from "crypto";
 import type { AiModelKey } from "@/ai/models";
 import { getTextModel } from "@/ai/getTextModel";
 import { requireAuthedUid } from "@/actions/serverAuth";
-import { debitCreditsOrThrow } from "@/actions/serverCredits";
+import { creditCredits, debitCreditsOrThrow } from "@/actions/serverCredits";
 import { CREDITS_COSTS, getTextGenerationCreditsCost } from "@/constants/credits";
 import { MAX_WORD_COUNT, MIN_WORD_COUNT } from "@/constants";
 
@@ -40,31 +41,6 @@ type MessageInput = SimpleMessage | ConversationMessage;
  * Unified AI response generator supporting both simple prompts and conversations
  */
 export async function generateAIResponse(input: MessageInput) {
-  // Server-side credit enforcement: if the caller wants to use app keys (credits mode),
-  // require auth and debit credits atomically.
-  //
-  // If `useCredits === false`, the request must supply user API keys and is billed to the user.
-  if (input.useCredits !== false) {
-    const uid = await requireAuthedUid();
-    const cost =
-      input.type === "conversation"
-        ? CREDITS_COSTS.chatMessage
-        : getTextGenerationCreditsCost(
-            Math.max(
-              MIN_WORD_COUNT,
-              Math.min(
-                MAX_WORD_COUNT,
-                Math.floor(Number(input.requestedWordCount ?? MIN_WORD_COUNT))
-              )
-            )
-          );
-    await debitCreditsOrThrow(uid, cost, {
-      reason: input.type === "conversation" ? "chat_message" : "text_generation",
-      tool: input.type === "conversation" ? "chat" : "tools",
-      modelKey: input.modelKey,
-    });
-  }
-
   const model = getTextModel({
     modelKey: input.modelKey,
     useCredits: input.useCredits,
@@ -88,9 +64,71 @@ export async function generateAIResponse(input: MessageInput) {
           })),
         ];
 
-  const result = streamText({ model, messages });
-  const stream = createStreamableValue(result.textStream);
-  return stream.value;
+  // Server-side credit enforcement: if the caller wants to use app keys (credits mode),
+  // require auth and debit credits atomically.
+  //
+  // If `useCredits === false`, the request must supply user API keys and is billed to the user.
+  const useCredits = input.useCredits !== false;
+  const cost =
+    input.type === "conversation"
+      ? CREDITS_COSTS.chatMessage
+      : getTextGenerationCreditsCost(
+          Math.max(
+            MIN_WORD_COUNT,
+            Math.min(
+              MAX_WORD_COUNT,
+              Math.floor(Number(input.requestedWordCount ?? MIN_WORD_COUNT))
+            )
+          )
+        );
+  const refundId = `refund_generation_${randomUUID()}`;
+  let requestSettled = false;
+  let chargedUid = "";
+  let creditsCharged = false;
+
+  const settleFailure = async () => {
+    if (requestSettled || !useCredits || !chargedUid || !creditsCharged) return;
+    requestSettled = true;
+    await creditCredits(chargedUid, cost, {
+      reason: input.type === "conversation" ? "chat_message_refund" : "text_generation_refund",
+      tool: input.type === "conversation" ? "chat" : "tools",
+      modelKey: input.modelKey,
+      deterministicId: refundId,
+    });
+  };
+
+  const settleSuccess = async () => {
+    if (requestSettled) return;
+    requestSettled = true;
+  };
+
+  if (useCredits) {
+    chargedUid = await requireAuthedUid();
+    await debitCreditsOrThrow(chargedUid, cost, {
+      reason: input.type === "conversation" ? "chat_message" : "text_generation",
+      tool: input.type === "conversation" ? "chat" : "tools",
+      modelKey: input.modelKey,
+    });
+    creditsCharged = true;
+  }
+
+  try {
+    const result = streamText({
+      model,
+      messages,
+      onFinish: async () => {
+        await settleSuccess();
+      },
+      onError: async () => {
+        await settleFailure();
+      },
+    });
+    const stream = createStreamableValue(result.textStream);
+    return stream.value;
+  } catch (error) {
+    await settleFailure();
+    throw error;
+  }
 }
 
 /**

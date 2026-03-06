@@ -1,16 +1,22 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { adminBucket } from "@/firebase/firebaseAdmin";
 import { requireAuthedUid } from "@/actions/serverAuth";
-import { debitCreditsOrThrow } from "@/actions/serverCredits";
+import { creditCredits, debitCreditsOrThrow } from "@/actions/serverCredits";
 import { CREDITS_COSTS } from "@/constants/credits";
 
 export async function generateImage(
   message: string,
   options?: { useCredits?: boolean; fireworksApiKey?: string }
 ) {
+  let chargedUid = "";
+  let shouldRefund = false;
+  const refundId = `refund_image_${randomUUID()}`;
+
   try {
     const uid = await requireAuthedUid();
+    chargedUid = uid;
 
     // Credits mode uses app key and debits credits. BYO mode requires a user key.
     const useCredits = options?.useCredits !== false;
@@ -31,6 +37,7 @@ export async function generateImage(
         reason: "image_generation",
         tool: "image",
       });
+      shouldRefund = true;
     }
 
     const response = await fetch(
@@ -75,8 +82,20 @@ export async function generateImage(
     });
 
     const imageUrl = signedUrls[0];
+    shouldRefund = false;
     return { imageUrl };
   } catch (error: unknown) {
+    if (shouldRefund && chargedUid) {
+      try {
+        await creditCredits(chargedUid, CREDITS_COSTS.imageGeneration, {
+          reason: "image_generation_refund",
+          tool: "image",
+          deterministicId: refundId,
+        });
+      } catch (refundError) {
+        console.error("Error refunding image generation credits:", refundError);
+      }
+    }
     if (error instanceof Error) {
       return { error: error.message };
     } else {

@@ -4,6 +4,8 @@ import { deleteCookie, setCookie } from "cookies-next";
 import { debounce } from "lodash";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useAuthStore } from "@/zustand/useAuthStore";
+import useProfileStore from "@/zustand/useProfileStore";
+import { usePaymentsStore } from "@/zustand/usePaymentsStore";
 import { auth } from "@/firebase/firebaseClient";
 import { getAuthCookieName } from "@/utils/getAuthCookieName";
 
@@ -12,6 +14,8 @@ const useAuthToken = (cookieName = getAuthCookieName()) => {
   const setAuthDetails = useAuthStore((state) => state.setAuthDetails);
   const clearAuthDetails = useAuthStore((state) => state.clearAuthDetails);
   const syncAuthProfile = useAuthStore((state) => state.syncAuthProfile);
+  const resetProfile = useProfileStore((state) => state.resetProfile);
+  const resetPayments = usePaymentsStore((state) => state.resetPayments);
 
   const refreshInterval = 50 * 60 * 1000; // 50 minutes
   const lastTokenRefresh = `lastTokenRefresh_${cookieName}`;
@@ -99,16 +103,22 @@ const useAuthToken = (cookieName = getAuthCookieName()) => {
         authPending: false,
       };
       setAuthDetails(authDetails);
-      void syncAuthProfile(authDetails);
-      // Ensure cookie is set and refresh scheduled whenever user is detected/updated
-      void refreshAuthToken().then(scheduleTokenRefresh);
+      void (async () => {
+        await refreshAuthToken();
+        await syncAuthProfile(authDetails);
+        scheduleTokenRefresh();
+      })();
     } else {
+      resetProfile();
+      resetPayments();
       clearAuthDetails();
       deleteCookie(cookieName);
     }
   }, [
     clearAuthDetails,
     cookieName,
+    resetPayments,
+    resetProfile,
     setAuthDetails,
     syncAuthProfile,
     user,

@@ -50,11 +50,6 @@ const PERSISTED_KEYS: (keyof AuthState)[] = [
   "authDisplayName",
   "authPhotoUrl",
   "authEmailVerified",
-  "firebaseUid",
-  "isAdmin",
-  "isAllowed",
-  "isInvited",
-  "premium",
 ];
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
@@ -68,9 +63,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
   syncAuthProfile: async (overrides?: Partial<AuthState>) => {
     const currentState = get();
-    const uid = overrides?.uid || currentState.uid;
-
-    if (!uid) return;
+    if (!(overrides?.uid || currentState.uid)) return;
 
     set({ profileSyncStatus: "syncing" });
 
@@ -85,7 +78,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     });
 
     try {
-      await syncAuthProfileServer(uid, persistableDetails);
+      await syncAuthProfileServer(persistableDetails);
       set({ profileSyncStatus: "synced" });
     } catch (error) {
       console.error("Failed to sync auth profile:", error);

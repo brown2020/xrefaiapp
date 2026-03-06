@@ -47,6 +47,8 @@ export interface IdempotencyResult {
   isNew: boolean;
   /** The idempotency key used */
   key: string;
+  /** Current lifecycle status for the original request */
+  status: "processing" | "completed";
   /** If not new, the timestamp when the original request was processed */
   processedAt?: Date;
 }
@@ -87,13 +89,14 @@ export async function checkAndSetIdempotency(
           expiresAt: new Date(now.getTime() + ttlMs),
           status: "processing",
         });
-        return { isNew: true, key: idempotencyKey };
+        return { isNew: true, key: idempotencyKey, status: "processing" };
       }
 
       // Record exists and hasn't expired - this is a duplicate
       return {
         isNew: false,
         key: idempotencyKey,
+        status: data?.status === "completed" ? "completed" : "processing",
         processedAt,
       };
     }
@@ -106,7 +109,7 @@ export async function checkAndSetIdempotency(
       status: "processing",
     });
 
-    return { isNew: true, key: idempotencyKey };
+    return { isNew: true, key: idempotencyKey, status: "processing" };
   });
 }
 

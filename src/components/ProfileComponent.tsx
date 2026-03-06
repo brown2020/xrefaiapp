@@ -94,6 +94,7 @@ export default function ProfileComponent() {
     setXaiApiKey(profile.xai_api_key);
     setGoogleApiKey(profile.google_api_key);
     setStabilityAPIKey(profile.stability_api_key);
+    setUseCredits(profile.useCredits);
     setTextModel(profile.text_model);
 
     // Hide credits section if in iOS WebView
@@ -105,6 +106,7 @@ export default function ProfileComponent() {
     profile.xai_api_key,
     profile.google_api_key,
     profile.stability_api_key,
+    profile.useCredits,
     profile.text_model,
   ]);
 

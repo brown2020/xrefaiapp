@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useAuthStore } from "./useAuthStore";
 import useProfileStore from "./useProfileStore";
+import { usePaymentsStore } from "./usePaymentsStore";
 
 /** Timeout for waiting for profile sync (5 seconds) */
 const SYNC_TIMEOUT_MS = 5000;
@@ -9,17 +10,21 @@ export const useInitializeStores = () => {
   const uid = useAuthStore((state) => state.uid);
   const profileSyncStatus = useAuthStore((state) => state.profileSyncStatus);
   const fetchProfile = useProfileStore((state) => state.fetchProfile);
+  const resetProfile = useProfileStore((state) => state.resetProfile);
+  const resetPayments = usePaymentsStore((state) => state.resetPayments);
   const hasFetchedRef = useRef(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // Reset fetch flag when uid changes (new user or logout)
     hasFetchedRef.current = false;
+    resetProfile();
+    resetPayments();
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
-  }, [uid]);
+  }, [resetPayments, resetProfile, uid]);
 
   useEffect(() => {
     if (!uid || hasFetchedRef.current) return;

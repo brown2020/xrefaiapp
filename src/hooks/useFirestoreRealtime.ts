@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   collection,
   onSnapshot,
@@ -10,7 +10,6 @@ import {
   DocumentData,
   QueryDocumentSnapshot,
   QueryConstraint,
-  Timestamp,
 } from "firebase/firestore";
 import { db } from "@/firebase/firebaseClient";
 
@@ -39,6 +38,39 @@ interface UseFirestoreRealtimeReturn<T> {
   loadMore: () => Promise<void>;
 }
 
+type FirestoreEntry<T> = {
+  doc: QueryDocumentSnapshot<DocumentData>;
+  item: T;
+};
+
+type FirestoreRealtimeState<T> = {
+  liveEntries: FirestoreEntry<T>[];
+  olderEntries: FirestoreEntry<T>[];
+  nextPageCursor: QueryDocumentSnapshot<DocumentData> | null;
+  hasMore: boolean;
+};
+
+function dedupeEntries<T>(entries: FirestoreEntry<T>[]): FirestoreEntry<T>[] {
+  const seenDocIds = new Set<string>();
+
+  return entries.filter((entry) => {
+    if (seenDocIds.has(entry.doc.id)) {
+      return false;
+    }
+    seenDocIds.add(entry.doc.id);
+    return true;
+  });
+}
+
+function createInitialState<T>(): FirestoreRealtimeState<T> {
+  return {
+    liveEntries: [],
+    olderEntries: [],
+    nextPageCursor: null,
+    hasMore: false,
+  };
+}
+
 /**
  * Generic hook for real-time paginated Firestore queries
  * Uses onSnapshot for live updates with pagination support
@@ -52,11 +84,11 @@ export function useFirestoreRealtime<T>({
   transform,
   onDataChange,
 }: UseFirestoreRealtimeOptions<T>): UseFirestoreRealtimeReturn<T> {
-  const [items, setItems] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [lastDoc, setLastDoc] = useState<Timestamp | null>(null);
-  const [hasMore, setHasMore] = useState(false);
+  const [state, setState] = useState<FirestoreRealtimeState<T>>(() =>
+    createInitialState<T>()
+  );
 
   // Stabilize callbacks via refs so the snapshot listener isn't recreated on every render
   const onDataChangeRef = useRef(onDataChange);
@@ -65,12 +97,24 @@ export function useFirestoreRealtime<T>({
   const transformRef = useRef(transform);
   useEffect(() => { transformRef.current = transform; }, [transform]);
 
+  const items = useMemo(() => {
+    const liveDocIds = new Set(state.liveEntries.map((entry) => entry.doc.id));
+    return [
+      ...state.liveEntries,
+      ...state.olderEntries.filter((entry) => !liveDocIds.has(entry.doc.id)),
+    ].map((entry) => entry.item);
+  }, [state.liveEntries, state.olderEntries]);
+
   useEffect(() => {
     if (!uid) {
-      setItems([]);
+      setState(createInitialState<T>());
       setLoading(false);
+      setLoadingMore(false);
       return;
     }
+
+    setState(createInitialState<T>());
+    setLoading(true);
 
     const q = query(
       collection(db, "users", uid, collectionName),
@@ -81,22 +125,39 @@ export function useFirestoreRealtime<T>({
     const unsub = onSnapshot(
       q,
       (querySnapshot) => {
-        const newItems: T[] = [];
-        let lastTimestamp: Timestamp | null = null;
+        const nextLiveEntries = querySnapshot.docs
+          .filter((doc) => doc.exists())
+          .map((doc) => ({
+            doc,
+            item: transformRef.current(doc),
+          }));
 
-        querySnapshot.forEach((doc) => {
-          if (doc.exists()) {
-            newItems.push(transformRef.current(doc));
-            if (newItems.length === pageSize) {
-              lastTimestamp = doc.data()?.[orderByField] || null;
-            }
-          }
+        setState((prev) => {
+          const nextLiveIds = new Set(
+            nextLiveEntries.map((entry) => entry.doc.id)
+          );
+          const shiftedEntries = prev.liveEntries.filter(
+            (entry) => !nextLiveIds.has(entry.doc.id)
+          );
+          const olderEntries = dedupeEntries([
+            ...shiftedEntries,
+            ...prev.olderEntries.filter((entry) => !nextLiveIds.has(entry.doc.id)),
+          ]);
+          const liveCursor =
+            nextLiveEntries.at(-1)?.doc ?? null;
+
+          return {
+            liveEntries: nextLiveEntries,
+            olderEntries,
+            nextPageCursor:
+              prev.olderEntries.length > 0 ? prev.nextPageCursor : liveCursor,
+            hasMore:
+              prev.olderEntries.length > 0
+                ? prev.hasMore
+                : querySnapshot.size === pageSize,
+          };
         });
-
-        setItems(newItems);
         setLoading(false);
-        setHasMore(querySnapshot.size === pageSize);
-        setLastDoc(lastTimestamp);
         onDataChangeRef.current?.();
       },
       (error) => {
@@ -104,6 +165,7 @@ export function useFirestoreRealtime<T>({
         if (error.code !== "permission-denied") {
           console.error(`Error fetching ${collectionName}:`, error);
         }
+        setLoading(false);
       }
     );
 
@@ -112,53 +174,62 @@ export function useFirestoreRealtime<T>({
 
   // Load more (pagination)
   const loadMore = useCallback(async () => {
-    if (!uid || !lastDoc || loadingMore) return;
+    if (!uid || !state.nextPageCursor || loadingMore || !state.hasMore) return;
 
     setLoadingMore(true);
+    try {
+      const constraints: QueryConstraint[] = [
+        orderBy(orderByField, orderDirection),
+        startAfter(state.nextPageCursor),
+        limit(pageSize),
+      ];
 
-    const constraints: QueryConstraint[] = [
-      orderBy(orderByField, orderDirection),
-      startAfter(lastDoc),
-      limit(pageSize),
-    ];
+      const q = query(
+        collection(db, "users", uid, collectionName),
+        ...constraints
+      );
+      const querySnapshot = await getDocs(q);
+      const fetchedEntries = querySnapshot.docs
+        .filter((doc) => doc.exists())
+        .map((doc) => ({
+          doc,
+          item: transformRef.current(doc),
+        }));
 
-    const q = query(
-      collection(db, "users", uid, collectionName),
-      ...constraints
-    );
-    const querySnapshot = await getDocs(q);
+      setState((prev) => {
+        const liveDocIds = new Set(prev.liveEntries.map((entry) => entry.doc.id));
 
-    const newItems: T[] = [];
-    let newLastTimestamp: Timestamp | null = null;
-
-    querySnapshot.forEach((doc) => {
-      if (doc.exists()) {
-        newItems.push(transformRef.current(doc));
-        if (newItems.length === pageSize) {
-          newLastTimestamp = doc.data()?.[orderByField] || null;
-        }
-      }
-    });
-
-    setItems((prev) => [...prev, ...newItems]);
-    setHasMore(querySnapshot.size === pageSize);
-    setLastDoc(newLastTimestamp);
-    setLoadingMore(false);
+        return {
+          liveEntries: prev.liveEntries,
+          olderEntries: dedupeEntries([
+            ...prev.olderEntries,
+            ...fetchedEntries.filter((entry) => !liveDocIds.has(entry.doc.id)),
+          ]),
+          nextPageCursor: querySnapshot.docs.at(-1) ?? prev.nextPageCursor,
+          hasMore: querySnapshot.size === pageSize,
+        };
+      });
+    } catch (error) {
+      console.error(`Error loading more ${collectionName}:`, error);
+    } finally {
+      setLoadingMore(false);
+    }
   }, [
     uid,
-    lastDoc,
-    loadingMore,
     collectionName,
     orderByField,
     orderDirection,
     pageSize,
+    loadingMore,
+    state.hasMore,
+    state.nextPageCursor,
   ]);
 
   return {
     items,
     loading,
     loadingMore,
-    hasMore,
+    hasMore: state.hasMore,
     loadMore,
   };
 }

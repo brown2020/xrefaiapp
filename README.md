@@ -37,23 +37,23 @@ An AI-powered content generation platform built with **Next.js 16**, **React 19*
 
 ### Core Framework
 
-| Package                                       | Version | Purpose                                                        |
-| --------------------------------------------- | ------- | -------------------------------------------------------------- |
-| [Next.js](https://nextjs.org/)                | 16.x    | React framework with App Router and Turbopack                  |
-| [React](https://react.dev/)                   | 19.x    | UI library with latest features                                |
-| [TypeScript](https://www.typescriptlang.org/) | 5.x     | Type safety and developer experience                           |
+| Package                                       | Version | Purpose                                       |
+| --------------------------------------------- | ------- | --------------------------------------------- |
+| [Next.js](https://nextjs.org/)                | 16.x    | React framework with App Router and Turbopack |
+| [React](https://react.dev/)                   | 19.x    | UI library with latest features               |
+| [TypeScript](https://www.typescriptlang.org/) | 5.x     | Type safety and developer experience          |
 
 ### AI & Machine Learning
 
-| Package                                                  | Version | Purpose                                      |
-| -------------------------------------------------------- | ------- | -------------------------------------------- |
-| [Vercel AI SDK](https://sdk.vercel.ai/)                  | 6.x     | Streaming AI responses and model integration |
-| [@ai-sdk/react](https://ai-sdk.dev/docs/ai-sdk-ui)       | 3.x     | UI hooks for streaming chat                  |
-| [@ai-sdk/openai](https://sdk.vercel.ai/providers/openai) | 3.x     | OpenAI provider for text generation          |
-| [@ai-sdk/anthropic](https://sdk.vercel.ai/providers/anthropic) | 3.x | Anthropic provider                           |
-| [@ai-sdk/xai](https://sdk.vercel.ai/providers/xai)       | 3.x     | xAI provider                                 |
-| [@ai-sdk/google](https://sdk.vercel.ai/providers/google) | 3.x     | Google provider                              |
-| [@ai-sdk/rsc](https://sdk.vercel.ai/docs/ai-sdk-rsc)     | 2.x     | Server Actions streaming                     |
+| Package                                                        | Version | Purpose                                      |
+| -------------------------------------------------------------- | ------- | -------------------------------------------- |
+| [Vercel AI SDK](https://sdk.vercel.ai/)                        | 6.x     | Streaming AI responses and model integration |
+| [@ai-sdk/react](https://ai-sdk.dev/docs/ai-sdk-ui)             | 3.x     | UI hooks for streaming chat                  |
+| [@ai-sdk/openai](https://sdk.vercel.ai/providers/openai)       | 3.x     | OpenAI provider for text generation          |
+| [@ai-sdk/anthropic](https://sdk.vercel.ai/providers/anthropic) | 3.x     | Anthropic provider                           |
+| [@ai-sdk/xai](https://sdk.vercel.ai/providers/xai)             | 3.x     | xAI provider                                 |
+| [@ai-sdk/google](https://sdk.vercel.ai/providers/google)       | 3.x     | Google provider                              |
+| [@ai-sdk/rsc](https://sdk.vercel.ai/docs/ai-sdk-rsc)           | 2.x     | Server Actions streaming                     |
 
 ### Backend & Database
 
@@ -304,7 +304,7 @@ import { openai } from "@ai-sdk/openai";
 export async function POST(req: Request) {
   const { messages } = await req.json();
   const result = streamText({
-    model: openai("gpt-4.1"),
+    model: openai("gpt-5.4"),
     messages,
   });
 
@@ -350,12 +350,12 @@ Fetches and returns HTML content from the specified URL for summarization.
 
 ### API Routes
 
-| Endpoint                     | Purpose                            | Input                           |
-| ---------------------------- | ---------------------------------- | ------------------------------- |
-| `POST /api/chat`             | Streaming chat responses           | `messages`, `history`, `model`  |
-| `POST /api/billing/checkout` | Start Stripe checkout session      | `packId`, `redirectPath`        |
-| `POST /api/billing/confirm`  | Confirm Stripe checkout session    | `sessionId`                     |
-| `GET /api/proxy`             | Web scraping proxy                 | `url`                           |
+| Endpoint                     | Purpose                         | Input                          |
+| ---------------------------- | ------------------------------- | ------------------------------ |
+| `POST /api/chat`             | Streaming chat responses        | `messages`, `history`, `model` |
+| `POST /api/billing/checkout` | Start Stripe checkout session   | `packId`, `redirectPath`       |
+| `POST /api/billing/confirm`  | Confirm Stripe checkout session | `sessionId`                    |
+| `GET /api/proxy`             | Web scraping proxy              | `url`                          |
 
 ### Server Actions
 
@@ -381,7 +381,6 @@ We welcome contributions! Here's how to get started:
    ```
 
 3. **Make your changes**
-
    - Follow the existing code style
    - Add TypeScript types for new code
    - Test your changes locally

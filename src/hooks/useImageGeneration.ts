@@ -9,13 +9,19 @@ import useProfileStore from "@/zustand/useProfileStore";
 import { usePaywallStore } from "@/zustand/usePaywallStore";
 import { CREDITS_COSTS } from "@/constants/credits";
 import { ROUTES } from "@/constants/routes";
+import { useShallow } from "zustand/react/shallow";
 
 const IMAGE_ERROR_MESSAGE =
   "I can't do that. I can't do real people or anything that violates the terms of service. Please try changing the prompt.";
 
 export function useImageGeneration(uid: string | null) {
   const { saveHistory } = useHistorySaver();
-  const profile = useProfileStore((s) => s.profile);
+  const generationConfig = useProfileStore(
+    useShallow((s) => ({
+      useCredits: s.profile.useCredits,
+      fireworksApiKey: s.profile.fireworks_api_key,
+    }))
+  );
   const fetchProfile = useProfileStore((s) => s.fetchProfile);
   const openPaywall = usePaywallStore((s) => s.openPaywall);
   const {
@@ -45,8 +51,8 @@ export function useImageGeneration(uid: string | null) {
     let result: { imageUrl?: string; error?: string } = {};
     try {
       result = await generateImage(generatedPrompt, {
-        useCredits: profile.useCredits,
-        fireworksApiKey: profile.fireworks_api_key,
+        useCredits: generationConfig.useCredits,
+        fireworksApiKey: generationConfig.fireworksApiKey,
       });
     } catch (error) {
       console.error("Error generating image:", error);
@@ -59,7 +65,7 @@ export function useImageGeneration(uid: string | null) {
     if (result.imageUrl && uid) {
       try {
         completeWithSuccess(result.imageUrl);
-        if (profile.useCredits) {
+        if (generationConfig.useCredits) {
           await fetchProfile();
         }
         await saveHistory({

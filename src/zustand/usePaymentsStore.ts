@@ -24,6 +24,7 @@ interface PaymentsStoreState {
   payments: PaymentType[];
   paymentsLoading: boolean;
   paymentsError: string | null;
+  resetPayments: () => void;
   fetchPayments: () => Promise<void>;
   addPayment: (payment: Omit<PaymentType, "createdAt">) => Promise<void>;
   checkIfPaymentProcessed: (paymentId: string) => Promise<PaymentType | null>;
@@ -48,11 +49,14 @@ export const usePaymentsStore = create<PaymentsStoreState>((set) => ({
   paymentsLoading: false,
   paymentsError: null,
 
+  resetPayments: () =>
+    set({ payments: [], paymentsLoading: false, paymentsError: null }),
+
   fetchPayments: async () => {
     const uid = useAuthStore.getState().uid;
     if (!uid) return;
 
-    set({ paymentsLoading: true });
+    set({ paymentsLoading: true, paymentsError: null });
 
     try {
       const serverPayments = await fetchPaymentsServer();
@@ -68,7 +72,7 @@ export const usePaymentsStore = create<PaymentsStoreState>((set) => ({
     const uid = useAuthStore.getState().uid;
     if (!uid) return;
 
-    set({ paymentsLoading: true });
+    set({ paymentsLoading: true, paymentsError: null });
 
     try {
       const created = await addPaymentServer({

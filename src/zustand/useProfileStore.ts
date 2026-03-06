@@ -6,7 +6,6 @@ import {
   fetchProfileServer,
   updateProfileServer,
   deleteAccountServer,
-  changeCreditsAtomicServer,
 } from "@/actions/serverProfile";
 
 export interface ProfileType {
@@ -47,17 +46,18 @@ const defaultProfile: ProfileType = {
   selectedAvatar: "",
   selectedTalkingPhoto: "",
   useCredits: true,
-  text_model: "openai:gpt-5.2",
+  text_model: "openai:gpt-5.4",
 };
 
 interface ProfileState {
   profile: ProfileType;
   fetchProfile: () => Promise<void>;
+  resetProfile: () => void;
   updateProfile: (newProfile: Partial<ProfileType>) => Promise<void>;
-  minusCredits: (amount: number) => Promise<boolean>;
-  addCredits: (amount: number) => Promise<void>;
   deleteAccount: () => Promise<void>;
 }
+
+let profileUpdateQueue: Promise<void> = Promise.resolve();
 
 const useProfileStore = create<ProfileState>((set, get) => ({
   profile: defaultProfile,
@@ -65,7 +65,10 @@ const useProfileStore = create<ProfileState>((set, get) => ({
   fetchProfile: async () => {
     const { uid, authEmail, authDisplayName, authPhotoUrl, authEmailVerified } =
       useAuthStore.getState();
-    if (!uid) return;
+    if (!uid) {
+      set({ profile: defaultProfile });
+      return;
+    }
 
     try {
       const profile = await fetchProfileServer({
@@ -80,23 +83,34 @@ const useProfileStore = create<ProfileState>((set, get) => ({
     }
   },
 
+  resetProfile: () => {
+    set({ profile: defaultProfile });
+  },
+
   updateProfile: async (newProfile: Partial<ProfileType>) => {
     const uid = useAuthStore.getState().uid;
-    if (!uid) return;
+    if (!uid || Object.keys(newProfile).length === 0) return;
 
-    const previousProfile = get().profile;
-    const updatedProfile = { ...previousProfile, ...newProfile };
+    const updatedProfile = { ...get().profile, ...newProfile };
 
     set({ profile: updatedProfile });
 
-    try {
-      await updateProfileServer(newProfile);
-      toast.success("Profile updated successfully");
-    } catch (error) {
-      set({ profile: previousProfile });
-      toast.error("Failed to update profile. Changes have been reverted.");
-      handleProfileError("updating profile", error);
-    }
+    const runUpdate = async () => {
+      try {
+        await updateProfileServer(newProfile);
+        toast.success("Profile updated successfully");
+      } catch (error) {
+        toast.error("Failed to update profile. Re-syncing your profile.");
+        await get().fetchProfile();
+        handleProfileError("updating profile", error);
+        throw error;
+      }
+    };
+
+    const queuedUpdate = profileUpdateQueue.then(runUpdate, runUpdate);
+    profileUpdateQueue = queuedUpdate.catch(() => undefined);
+
+    return queuedUpdate;
   },
 
   deleteAccount: async () => {
@@ -107,39 +121,6 @@ const useProfileStore = create<ProfileState>((set, get) => ({
       await deleteAccountServer();
     } catch (error) {
       handleProfileError("deleting account", error);
-    }
-  },
-
-  minusCredits: async (amount: number) => {
-    if (!Number.isFinite(amount) || amount <= 0) return false;
-
-    try {
-      const profile = get().profile;
-      const newCredits = await changeCreditsAtomicServer(-amount);
-      set({ profile: { ...profile, credits: newCredits } });
-      return true;
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        (error.message === "INSUFFICIENT_CREDITS" ||
-          error.message.toLowerCase().includes("insufficient"))
-      ) {
-        return false;
-      }
-      handleProfileError("using credits", error);
-      return false;
-    }
-  },
-
-  addCredits: async (amount: number) => {
-    if (!Number.isFinite(amount) || amount <= 0) return;
-
-    try {
-      const profile = get().profile;
-      const newCredits = await changeCreditsAtomicServer(amount);
-      set({ profile: { ...profile, credits: newCredits } });
-    } catch (error) {
-      handleProfileError("adding credits", error);
     }
   },
 }));

@@ -1,10 +1,11 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { generateText } from "ai";
 import type { AiModelKey } from "@/ai/models";
 import { getTextModel } from "@/ai/getTextModel";
 import { requireAuthedUid } from "@/actions/serverAuth";
-import { debitCreditsOrThrow } from "@/actions/serverCredits";
+import { creditCredits, debitCreditsOrThrow } from "@/actions/serverCredits";
 import { CREDITS_COSTS } from "@/constants/credits";
 
 export const suggestTags = async (
@@ -19,16 +20,12 @@ export const suggestTags = async (
     googleApiKey?: string;
   }
 ): Promise<string | { error: string }> => {
-  try {
-    if ((options?.useCredits ?? true) !== false) {
-      const uid = await requireAuthedUid();
-      await debitCreditsOrThrow(uid, CREDITS_COSTS.tagSuggestion, {
-        reason: "tag_suggestion",
-        tool: "tags",
-        modelKey: options?.modelKey,
-      });
-    }
+  const useCredits = (options?.useCredits ?? true) !== false;
+  let chargedUid = "";
+  let shouldRefund = false;
+  const refundId = `refund_tags_${randomUUID()}`;
 
+  try {
     const model = getTextModel({
       modelKey: options?.modelKey,
       useCredits: options?.useCredits,
@@ -37,6 +34,16 @@ export const suggestTags = async (
       xaiApiKey: options?.xaiApiKey,
       googleApiKey: options?.googleApiKey,
     });
+
+    if (useCredits) {
+      chargedUid = await requireAuthedUid();
+      await debitCreditsOrThrow(chargedUid, CREDITS_COSTS.tagSuggestion, {
+        reason: "tag_suggestion",
+        tool: "tags",
+        modelKey: options?.modelKey,
+      });
+      shouldRefund = true;
+    }
 
     const { text } = await generateText({
       model,
@@ -48,8 +55,21 @@ export const suggestTags = async (
       maxRetries: 2,
     });
 
+    shouldRefund = false;
     return text;
   } catch (error: unknown) {
+    if (shouldRefund && chargedUid) {
+      try {
+        await creditCredits(chargedUid, CREDITS_COSTS.tagSuggestion, {
+          reason: "tag_suggestion_refund",
+          tool: "tags",
+          modelKey: options?.modelKey,
+          deterministicId: refundId,
+        });
+      } catch (refundError) {
+        console.error("Error refunding tag suggestion credits:", refundError);
+      }
+    }
     const errorMessage =
       error instanceof Error ? error.message : "An unknown error occurred";
     console.error("Error suggesting tags:", error);

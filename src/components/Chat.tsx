@@ -19,12 +19,22 @@ import { saveChatServer } from "@/actions/serverHistory";
 import { usePaywallStore } from "@/zustand/usePaywallStore";
 import { CREDITS_COSTS } from "@/constants/credits";
 import toast from "react-hot-toast";
+import { useShallow } from "zustand/react/shallow";
 
 export default function Chat() {
   const uid = useAuthStore((s) => s.uid);
   // Subscribe ONLY to the photo URL (avoid re-renders on credit changes).
   const profilePhotoUrl = useProfileStore((s) => s.profile.photoUrl);
-  const profile = useProfileStore((s) => s.profile);
+  const generationConfig = useProfileStore(
+    useShallow((s) => ({
+      useCredits: s.profile.useCredits,
+      textModel: s.profile.text_model,
+      openaiApiKey: s.profile.openai_api_key,
+      anthropicApiKey: s.profile.anthropic_api_key,
+      xaiApiKey: s.profile.xai_api_key,
+      googleApiKey: s.profile.google_api_key,
+    }))
+  );
   const fetchProfile = useProfileStore((s) => s.fetchProfile);
   const openPaywall = usePaywallStore((s) => s.openPaywall);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -59,7 +69,7 @@ export default function Chat() {
       if (uid && prompt && response) {
         await saveChatServer(prompt, response);
         markResponseSaved();
-        if (profile.useCredits) {
+        if (generationConfig.useCredits) {
           await fetchProfile();
         }
       }
@@ -78,6 +88,14 @@ export default function Chat() {
           requiredCredits: CREDITS_COSTS.chatMessage,
           redirectPath: ROUTES.chat,
         });
+        return;
+      }
+      if (
+        error instanceof Error &&
+        (error.message.includes("CHAT_REQUEST_IN_PROGRESS") ||
+          error.message.includes("DUPLICATE_CHAT_REQUEST"))
+      ) {
+        toast.error("That chat request is already being handled. Please wait a moment.");
         return;
       }
       toast.error("Chat request failed. Please try again.");
@@ -115,16 +133,16 @@ export default function Chat() {
       {
         body: {
           history: historyForRequest,
-          modelKey: profile.text_model,
-          useCredits: profile.useCredits,
-          openaiApiKey: profile.openai_api_key,
-          anthropicApiKey: profile.anthropic_api_key,
-          xaiApiKey: profile.xai_api_key,
-          googleApiKey: profile.google_api_key,
+          modelKey: generationConfig.textModel,
+          useCredits: generationConfig.useCredits,
+          openaiApiKey: generationConfig.openaiApiKey,
+          anthropicApiKey: generationConfig.anthropicApiKey,
+          xaiApiKey: generationConfig.xaiApiKey,
+          googleApiKey: generationConfig.googleApiKey,
         },
       }
     );
-  }, [historyForRequest, input, profile, sendMessage]);
+  }, [generationConfig, historyForRequest, input, sendMessage]);
 
   const MAX_VISIBLE_CHATS = 80;
   // Memoize reversed chat list to avoid recalculating on every render

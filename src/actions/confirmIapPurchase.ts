@@ -72,12 +72,21 @@ export async function confirmIapPurchase(
   const paymentRef = adminDb.doc(
     `users/${uid}/payments/iap_${input.transactionId}`
   );
+  const globalClaimRef = adminDb.doc(`iapTransactions/${input.transactionId}`);
   const profileRef = adminDb.doc(`users/${uid}/profile/userData`);
   const ledgerRef = adminDb.doc(
     `users/${uid}/creditsLedger/iap_${input.transactionId}`
   );
 
   return await adminDb.runTransaction(async (tx) => {
+    const globalClaimSnap = await tx.get(globalClaimRef);
+    if (globalClaimSnap.exists) {
+      const claimedByUid = String(globalClaimSnap.data()?.uid || "");
+      if (claimedByUid && claimedByUid !== uid) {
+        throw new Error("IAP_ALREADY_CLAIMED");
+      }
+    }
+
     const existingPaymentSnap = await tx.get(paymentRef);
     if (existingPaymentSnap.exists) {
       const profileSnap = await tx.get(profileRef);
@@ -100,6 +109,18 @@ export async function confirmIapPurchase(
     );
     const nextCredits = currentCredits + input.credits;
     if (!Number.isFinite(nextCredits)) throw new Error("Invalid credits value");
+
+    tx.set(
+      globalClaimRef,
+      {
+        uid,
+        platform: input.platform,
+        productId: input.productId,
+        transactionId: input.transactionId,
+        claimedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
 
     tx.set(
       paymentRef,

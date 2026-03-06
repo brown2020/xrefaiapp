@@ -18,9 +18,19 @@ import useProfileStore from "@/zustand/useProfileStore";
 import { usePaywallStore } from "@/zustand/usePaywallStore";
 import { getTextGenerationCreditsCost } from "@/constants/credits";
 import { ROUTES } from "@/constants/routes";
+import { useShallow } from "zustand/react/shallow";
 
 export default function SummarizeTopic() {
-  const profile = useProfileStore((s) => s.profile);
+  const generationConfig = useProfileStore(
+    useShallow((s) => ({
+      useCredits: s.profile.useCredits,
+      textModel: s.profile.text_model,
+      openaiApiKey: s.profile.openai_api_key,
+      anthropicApiKey: s.profile.anthropic_api_key,
+      xaiApiKey: s.profile.xai_api_key,
+      googleApiKey: s.profile.google_api_key,
+    }))
+  );
   const fetchProfile = useProfileStore((s) => s.fetchProfile);
   const openPaywall = usePaywallStore((s) => s.openPaywall);
   const { saveHistory, uid } = useHistorySaver();
@@ -83,13 +93,13 @@ export default function SummarizeTopic() {
 
     try {
       const result = await generateResponse(systemPrompt, newPrompt, {
-        modelKey: profile.text_model,
-        useCredits: profile.useCredits,
+        modelKey: generationConfig.textModel,
+        useCredits: generationConfig.useCredits,
         requestedWordCount: wordnum,
-        openaiApiKey: profile.openai_api_key,
-        anthropicApiKey: profile.anthropic_api_key,
-        xaiApiKey: profile.xai_api_key,
-        googleApiKey: profile.google_api_key,
+        openaiApiKey: generationConfig.openaiApiKey,
+        anthropicApiKey: generationConfig.anthropicApiKey,
+        xaiApiKey: generationConfig.xaiApiKey,
+        googleApiKey: generationConfig.googleApiKey,
       });
       let chunkCount = 0;
 
@@ -102,7 +112,7 @@ export default function SummarizeTopic() {
       }
 
       completeWithSuccess(finishedSummary);
-      if (profile.useCredits) {
+      if (generationConfig.useCredits) {
         await fetchProfile();
       }
 

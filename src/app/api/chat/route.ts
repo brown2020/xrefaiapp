@@ -2,7 +2,7 @@ import { ModelMessage, streamText, type UIMessage } from "ai";
 import type { AiModelKey } from "@/ai/models";
 import { getTextModel } from "@/ai/getTextModel";
 import { requireAuthedUid } from "@/actions/serverAuth";
-import { debitCreditsOrThrow } from "@/actions/serverCredits";
+import { creditCredits, debitCreditsOrThrow } from "@/actions/serverCredits";
 import { CREDITS_COSTS } from "@/constants/credits";
 import {
   generateIdempotencyKey,
@@ -81,41 +81,12 @@ export async function POST(req: Request) {
     }
 
     const uid = await requireAuthedUid();
+    const useCredits = body.useCredits !== false;
 
     // Check rate limit before processing
     const rateLimitResponse = await rateLimitMiddleware(uid, "chat");
     if (rateLimitResponse) {
       return rateLimitResponse;
-    }
-
-    // Generate or use client-provided idempotency key to prevent duplicate charges
-    const idempotencyKey = body.idempotencyKey
-      ? generateClientIdempotencyKey(uid, body.idempotencyKey)
-      : generateIdempotencyKey(uid, { userText, modelKey: body.modelKey });
-
-    if (body.useCredits !== false) {
-      // Check idempotency to prevent double-charging on retries
-      const idempotencyResult = await checkAndSetIdempotency(uid, idempotencyKey);
-
-      if (!idempotencyResult.isNew) {
-        // This request was already processed - don't charge again
-        // But still generate the response (user might have lost connection)
-        console.log(`Idempotent request detected for user ${uid}, skipping credit debit`);
-      } else {
-        // New request - charge credits
-        try {
-          await debitCreditsOrThrow(uid, CREDITS_COSTS.chatMessage, {
-            reason: "chat_message",
-            tool: "chat",
-            modelKey: body.modelKey,
-          });
-          await markIdempotencyComplete(uid, idempotencyKey);
-        } catch (error) {
-          // If debit fails, allow retry
-          await markIdempotencyFailed(uid, idempotencyKey);
-          throw error;
-        }
-      }
     }
 
     const model = getTextModel({
@@ -127,12 +98,90 @@ export async function POST(req: Request) {
       googleApiKey: body.googleApiKey,
     });
 
-    const result = streamText({
-      model,
-      messages: buildMessages(body.history, userText),
-    });
+    // Generate or use client-provided idempotency key to prevent duplicate charges
+    const idempotencyKey = body.idempotencyKey
+      ? generateClientIdempotencyKey(uid, body.idempotencyKey)
+      : generateIdempotencyKey(uid, { userText, modelKey: body.modelKey });
 
-    return result.toUIMessageStreamResponse();
+    let requestSettled = false;
+    let creditsCharged = false;
+
+    const settleFailure = async () => {
+      if (requestSettled) return;
+      requestSettled = true;
+
+      if (useCredits) {
+        if (creditsCharged) {
+          await creditCredits(uid, CREDITS_COSTS.chatMessage, {
+            reason: "chat_message_refund",
+            tool: "chat",
+            modelKey: body.modelKey,
+            refId: idempotencyKey,
+            deterministicId: `refund_chat_${idempotencyKey}`,
+          });
+        }
+        await markIdempotencyFailed(uid, idempotencyKey);
+      }
+    };
+
+    const settleSuccess = async () => {
+      if (requestSettled) return;
+      requestSettled = true;
+
+      if (useCredits) {
+        await markIdempotencyComplete(uid, idempotencyKey);
+      }
+    };
+
+    if (useCredits) {
+      // Check idempotency to prevent double-charging on retries
+      const idempotencyResult = await checkAndSetIdempotency(uid, idempotencyKey);
+
+      if (!idempotencyResult.isNew) {
+        const errorCode =
+          idempotencyResult.status === "completed"
+            ? "DUPLICATE_CHAT_REQUEST"
+            : "CHAT_REQUEST_IN_PROGRESS";
+        return Response.json({ error: errorCode }, { status: 409 });
+      }
+
+      // New request - charge credits
+      try {
+        await debitCreditsOrThrow(uid, CREDITS_COSTS.chatMessage, {
+          reason: "chat_message",
+          tool: "chat",
+          modelKey: body.modelKey,
+          refId: idempotencyKey,
+        });
+        creditsCharged = true;
+      } catch (error) {
+        await markIdempotencyFailed(uid, idempotencyKey);
+        throw error;
+      }
+    }
+
+    try {
+      const result = streamText({
+        model,
+        messages: buildMessages(body.history, userText),
+        onFinish: async () => {
+          await settleSuccess();
+        },
+        onError: async (event) => {
+          const streamError =
+            typeof event === "object" && event !== null && "error" in event
+              ? (event as { error?: unknown }).error
+              : event;
+          console.error("Chat stream error:", streamError);
+          await settleFailure();
+        },
+      });
+
+      return result.toUIMessageStreamResponse();
+    } catch (error) {
+      await settleFailure();
+      throw error;
+    }
   } catch (error) {
     if (error instanceof Error && error.message === "AUTH_REQUIRED") {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
