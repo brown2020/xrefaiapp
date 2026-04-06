@@ -22,7 +22,7 @@ export async function fetchPaymentsServer(): Promise<ServerPayment[]> {
     .orderBy("createdAt", "desc")
     .get();
 
-  return snap.docs.map((doc) => {
+  return snap.docs.map((doc: any) => {
     const data = doc.data();
     const ts = data.createdAt;
     return {

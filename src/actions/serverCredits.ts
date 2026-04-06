@@ -56,7 +56,7 @@ export async function debitCreditsOrThrow(
   if (!Number.isFinite(amount) || amount <= 0) return getCredits(uid);
 
   const profileRef = adminDb.doc(`users/${uid}/profile/userData`);
-  return await adminDb.runTransaction(async (tx) => {
+  return await adminDb.runTransaction(async (tx: any) => {
     const snap = await tx.get(profileRef);
     const current = coerceCredits(snap.exists ? snap.data()?.credits : 0, 0);
     const next = current - amount;
@@ -87,7 +87,7 @@ export async function creditCredits(
   if (!Number.isFinite(amount) || amount <= 0) return getCredits(uid);
 
   const profileRef = adminDb.doc(`users/${uid}/profile/userData`);
-  return await adminDb.runTransaction(async (tx) => {
+  return await adminDb.runTransaction(async (tx: any) => {
     const snap = await tx.get(profileRef);
     const current = coerceCredits(snap.exists ? snap.data()?.credits : 0, 0);
     const next = current + amount;

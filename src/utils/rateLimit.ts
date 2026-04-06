@@ -57,7 +57,7 @@ export async function checkRateLimit(
   const rateLimitRef = adminDb.doc(`users/${uid}/rateLimit/${endpoint}`);
 
   try {
-    const result = await adminDb.runTransaction(async (tx) => {
+    const result = await adminDb.runTransaction(async (tx: any) => {
       const snap = await tx.get(rateLimitRef);
       const data = snap.exists ? snap.data() : null;
 
@@ -179,7 +179,7 @@ export async function cleanupRateLimitData(uid: string): Promise<void> {
   const batch = adminDb.batch();
   let hasUpdates = false;
 
-  snapshot.docs.forEach((doc) => {
+  snapshot.docs.forEach((doc: any) => {
     const data = doc.data();
     const requests: number[] = data?.requests || [];
     const validRequests = requests.filter((timestamp) => timestamp > cutoff);

@@ -78,7 +78,7 @@ export async function confirmIapPurchase(
     `users/${uid}/creditsLedger/iap_${input.transactionId}`
   );
 
-  return await adminDb.runTransaction(async (tx) => {
+  return await adminDb.runTransaction(async (tx: any) => {
     const globalClaimSnap = await tx.get(globalClaimRef);
     if (globalClaimSnap.exists) {
       const claimedByUid = String(globalClaimSnap.data()?.uid || "");
