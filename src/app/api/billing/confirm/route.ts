@@ -19,7 +19,7 @@ async function tryAcquirePaymentLock(uid: string, sessionId: string): Promise<bo
   const now = Date.now();
 
   try {
-    await adminDb.runTransaction(async (tx) => {
+    await adminDb.runTransaction(async (tx: any) => {
       const lockSnap = await tx.get(lockRef);
 
       if (lockSnap.exists) {
@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
     const profileRef = adminDb.doc(`users/${uid}/profile/userData`);
     const ledgerRef = adminDb.doc(`users/${uid}/creditsLedger/stripe_checkout_${sessionId}`);
 
-    const res = await adminDb.runTransaction(async (tx) => {
+    const res = await adminDb.runTransaction(async (tx: any) => {
       const existingPaymentSnap = await tx.get(paymentRef);
       if (existingPaymentSnap.exists) {
         const existing = existingPaymentSnap.data() as { status?: string; amount?: number };

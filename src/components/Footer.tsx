@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Twitter, Facebook, Instagram } from "lucide-react";
+import { X as Twitter, Share as Facebook, Camera as Instagram } from "lucide-react";
 import {
   FOOTER_MENU_ITEMS,
   FOOTER_HIDDEN_ROUTES,
