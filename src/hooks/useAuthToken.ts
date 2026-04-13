@@ -45,7 +45,7 @@ const useAuthToken = (cookieName = getAuthCookieName()) => {
       } else {
         console.error("Error refreshing token");
       }
-      deleteCookie(cookieName);
+      deleteCookie(cookieName, { path: "/" });
     }
   }, [cookieName, lastTokenRefresh]);
 
@@ -113,7 +113,7 @@ const useAuthToken = (cookieName = getAuthCookieName()) => {
       resetProfile();
       resetPayments();
       clearAuthDetails();
-      deleteCookie(cookieName);
+      deleteCookie(cookieName, { path: "/" });
     }
   }, [
     clearAuthDetails,

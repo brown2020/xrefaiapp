@@ -79,7 +79,7 @@ export default function AuthComponent() {
 
   const handleSignOut = async () => {
     try {
-      deleteCookie(getAuthCookieName());
+      deleteCookie(getAuthCookieName(), { path: "/" });
       await signOut(auth);
       clearAuthDetails();
     } catch (error) {
