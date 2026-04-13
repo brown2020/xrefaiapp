@@ -78,11 +78,11 @@ export async function confirmIapPurchase(
     `users/${uid}/creditsLedger/iap_${input.transactionId}`
   );
 
-  return await adminDb.runTransaction(async (tx: any) => {
+  return await adminDb.runTransaction(async (tx) => {
     const globalClaimSnap = await tx.get(globalClaimRef);
     if (globalClaimSnap.exists) {
-      const claimedByUid = String(globalClaimSnap.data()?.uid || "");
-      if (claimedByUid && claimedByUid !== uid) {
+      const claimedByUid = String(globalClaimSnap.data()?.uid ?? "");
+      if (claimedByUid !== uid) {
         throw new Error("IAP_ALREADY_CLAIMED");
       }
     }

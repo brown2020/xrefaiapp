@@ -26,26 +26,6 @@ export function coerceCredits(value: unknown, fallback: number): number {
 }
 
 /**
- * Validates that a credit amount is valid for debiting.
- *
- * @param amount - The amount to validate
- * @returns True if the amount is valid for debiting
- */
-export function isValidDebitAmount(amount: number): boolean {
-  return Number.isFinite(amount) && amount > 0;
-}
-
-/**
- * Validates that a credit amount is valid for crediting.
- *
- * @param amount - The amount to validate
- * @returns True if the amount is valid for crediting
- */
-export function isValidCreditAmount(amount: number): boolean {
-  return Number.isFinite(amount) && amount > 0;
-}
-
-/**
  * Calculates the new balance after a credit operation.
  * Throws if the result would be invalid (negative for debit, non-finite).
  *

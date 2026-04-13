@@ -99,7 +99,7 @@ export async function fulfillStripePaymentIntent(paymentIntentId: string): Promi
     `users/${uid}/creditsLedger/stripe_${paymentIntent.id}`
   );
 
-  const res = await adminDb.runTransaction(async (tx: any) => {
+  const res = await adminDb.runTransaction(async (tx) => {
     const existingPaymentSnap = await tx.get(paymentRef);
     if (existingPaymentSnap.exists) {
       const existing = existingPaymentSnap.data() as { status?: string; amount?: number };
