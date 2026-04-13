@@ -77,6 +77,7 @@ export default function LoginFinishPage() {
           secure: isSecure,
           sameSite: "lax",
           path: "/",
+          maxAge: 60 * 60 * 24 * 7,
         });
 
         setAuthDetails({

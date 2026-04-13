@@ -34,6 +34,7 @@ const useAuthToken = (cookieName = getAuthCookieName()) => {
         secure: isSecure,
         sameSite: "lax",
         path: "/",
+        maxAge: 60 * 60 * 24 * 7, // 7 days — cookie persists across browser restarts; token is refreshed every 50 min
       });
       if (!window.ReactNativeWebView) {
         window.localStorage.setItem(lastTokenRefresh, Date.now().toString());

@@ -2,12 +2,18 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { X as Twitter, Share as Facebook, Camera as Instagram } from "lucide-react";
+import { X as Twitter, Share as Facebook, Camera as Instagram, LogOut } from "lucide-react";
+import { signOut } from "firebase/auth";
+import { deleteCookie } from "cookies-next";
 import {
   FOOTER_MENU_ITEMS,
   FOOTER_HIDDEN_ROUTES,
   ROUTES,
 } from "@/constants/routes";
+import { useAuthStore } from "@/zustand/useAuthStore";
+import { auth } from "@/firebase/firebaseClient";
+import { getAuthCookieName } from "@/utils/getAuthCookieName";
+import toast from "react-hot-toast";
 
 function FooterLink({ label, href }: { label: string; href: string }) {
   return (
@@ -41,20 +47,41 @@ function SocialIcon({
 
 export default function Footer() {
   const pathname = usePathname();
+  const uid = useAuthStore((s) => s.uid);
+  const clearAuthDetails = useAuthStore((s) => s.clearAuthDetails);
 
-  // Don't show footer on functional pages to maximize vertical space
   if (FOOTER_HIDDEN_ROUTES.some((path) => pathname?.startsWith(path))) {
     return null;
   }
+
+  const handleSignOut = async () => {
+    try {
+      deleteCookie(getAuthCookieName());
+      await signOut(auth);
+      clearAuthDetails();
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast.error("An error occurred while signing out.");
+    }
+  };
 
   return (
     <footer className="bg-muted border-t border-border">
       <div className="container flex flex-col sm:flex-row items-center justify-between px-5 py-5 mx-auto z-10 text-muted-foreground gap-4 sm:gap-0">
         {/* Left Menu */}
-        <nav className="flex gap-4 sm:gap-6 order-2 sm:order-1 lg:w-[33%]">
+        <nav className="flex flex-wrap gap-4 sm:gap-6 order-2 sm:order-1 lg:w-[33%]">
           {FOOTER_MENU_ITEMS.map((item) => (
             <FooterLink key={item.href} label={item.label} href={item.href} />
           ))}
+          {uid && (
+            <button
+              onClick={handleSignOut}
+              className="flex items-center gap-1 text-foreground hover:text-red-600 navbar-link transition-colors"
+            >
+              <LogOut size={14} />
+              <span>Sign Out</span>
+            </button>
+          )}
         </nav>
 
         {/* Social Media Icons */}

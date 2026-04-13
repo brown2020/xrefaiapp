@@ -3,10 +3,23 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Menu, MessageSquare, Grid2X2, History, User } from "lucide-react";
+import {
+  Menu,
+  MessageSquare,
+  Grid2X2,
+  History,
+  User,
+  LogOut,
+} from "lucide-react";
+import { signOut } from "firebase/auth";
+import { deleteCookie } from "cookies-next";
 import { NAV_MENU_ITEMS, ROUTES } from "@/constants/routes";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui";
 import { CreditsBadge } from "@/components/ui/CreditsBadge";
+import { useAuthStore } from "@/zustand/useAuthStore";
+import { auth } from "@/firebase/firebaseClient";
+import { getAuthCookieName } from "@/utils/getAuthCookieName";
+import toast from "react-hot-toast";
 
 type MenuItem = {
   label: string;
@@ -32,6 +45,19 @@ const menuItems: MenuItem[] = NAV_MENU_ITEMS.map((item) => ({
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const uid = useAuthStore((s) => s.uid);
+  const clearAuthDetails = useAuthStore((s) => s.clearAuthDetails);
+
+  const handleSignOut = async () => {
+    try {
+      deleteCookie(getAuthCookieName());
+      await signOut(auth);
+      clearAuthDetails();
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast.error("An error occurred while signing out.");
+    }
+  };
 
   return (
     <div className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur-md">
@@ -62,6 +88,16 @@ export default function Header() {
               ))}
             </nav>
             <CreditsBadge />
+            {uid && (
+              <button
+                onClick={handleSignOut}
+                className="px-3 py-2 navbar-link font-semibold flex items-center gap-2 text-base text-foreground hover:text-red-600 transition-colors"
+                aria-label="Sign out"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden lg:inline">Sign Out</span>
+              </button>
+            )}
           </div>
 
           {/* Mobile Menu (accessible sheet) */}
@@ -95,6 +131,17 @@ export default function Header() {
                       </Link>
                     </SheetClose>
                   ))}
+                  {uid && (
+                    <SheetClose>
+                      <button
+                        onClick={handleSignOut}
+                        className="transition-all whitespace-nowrap flex h-12 gap-2 w-full items-center justify-start px-3 rounded-lg navbar-link font-semibold text-red-600 hover:bg-red-50"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>Sign Out</span>
+                      </button>
+                    </SheetClose>
+                  )}
                 </nav>
               </SheetContent>
             </Sheet>

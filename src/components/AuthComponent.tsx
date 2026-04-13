@@ -10,11 +10,13 @@ import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
 } from "firebase/auth";
+import { deleteCookie } from "cookies-next";
 
 import Link from "next/link";
 import { LockIcon, MailIcon, XIcon, ArrowRight } from "lucide-react";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { auth } from "@/firebase/firebaseClient";
+import { getAuthCookieName } from "@/utils/getAuthCookieName";
 import toast from "react-hot-toast";
 
 import googleLogo from "@/app/assets/google.svg";
@@ -77,6 +79,7 @@ export default function AuthComponent() {
 
   const handleSignOut = async () => {
     try {
+      deleteCookie(getAuthCookieName());
       await signOut(auth);
       clearAuthDetails();
     } catch (error) {

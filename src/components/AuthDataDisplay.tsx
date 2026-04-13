@@ -1,5 +1,6 @@
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { signOut } from "firebase/auth";
+import { deleteCookie } from "cookies-next";
 import { auth, db, storage } from "@/firebase/firebaseClient";
 import useProfileStore from "@/zustand/useProfileStore";
 import { ChangeEvent, useEffect, useState } from "react";
@@ -9,6 +10,7 @@ import { doc } from "firebase/firestore";
 import Image from "next/image";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { inputClassName, labelClassName } from "@/components/ui/FormInput";
+import { getAuthCookieName } from "@/utils/getAuthCookieName";
 import toast from "react-hot-toast";
 
 export default function AuthDataDisplay() {
@@ -77,12 +79,12 @@ export default function AuthDataDisplay() {
 
   const logoutUser = async () => {
     try {
+      deleteCookie(getAuthCookieName());
       await signOut(auth);
       clearAuthDetails();
     } catch (error) {
       console.error("Error signing out:", error);
       toast.error("An error occurred while signing out.");
-    } finally {
     }
   };
 
