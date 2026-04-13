@@ -54,21 +54,6 @@ export function isErrorWithMessage(error: unknown): error is Error {
 }
 
 /**
- * Type guard to check if an error has a code property.
- *
- * @param error - The error to check
- * @returns True if error has a code property
- */
-export function hasErrorCode(error: unknown): error is { code: string } {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    typeof (error as { code: unknown }).code === "string"
-  );
-}
-
-/**
  * Checks if an error is an insufficient credits error.
  *
  * @param error - The error to check

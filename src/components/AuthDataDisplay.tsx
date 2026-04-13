@@ -88,25 +88,6 @@ export default function AuthDataDisplay() {
     }
   };
 
-  // const handleDeleteClick = () => {
-  //   setShowDeleteModal(true);
-  // };
-
-  // const onDeleteConfirm = useCallback(async () => {
-  //   setLoadingDelete(true);
-  //   setShowDeleteModal(false);
-  //   try {
-  //     await deleteAccount();
-  //     await signOut(auth);
-  //     clearAuthDetails();
-  //     toast.success("Account deleted successfully.");
-  //     router.replace("/");
-  //   } catch (error) {
-  //     setLoadingDelete(false);
-  //     console.error("Error on deletion of account:", error);
-  //   }
-  // }, [deleteAccount, clearAuthDetails, router]);
-
   return (
     <>
       <div className="bg-[#ffffff] border border-[#81878D] rounded-2xl mb-4">

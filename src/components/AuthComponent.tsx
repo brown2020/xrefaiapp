@@ -398,7 +398,7 @@ function AuthButton({
   onClick,
 }: {
   label: string;
-  logo: string;
+  logo: string | import("next/image").StaticImageData;
   onClick: () => void;
 }) {
   return (

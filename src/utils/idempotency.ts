@@ -72,7 +72,7 @@ export async function checkAndSetIdempotency(
 ): Promise<IdempotencyResult> {
   const idempotencyRef = adminDb.doc(`users/${uid}/idempotency/${idempotencyKey}`);
 
-  return await adminDb.runTransaction(async (tx: any) => {
+  return await adminDb.runTransaction(async (tx) => {
     const snap = await tx.get(idempotencyRef);
 
     if (snap.exists) {
@@ -171,7 +171,7 @@ export async function cleanupExpiredIdempotencyRecords(
   }
 
   const batch = adminDb.batch();
-  snapshot.docs.forEach((doc: any) => {
+  snapshot.docs.forEach((doc) => {
     batch.delete(doc.ref);
   });
   await batch.commit();
