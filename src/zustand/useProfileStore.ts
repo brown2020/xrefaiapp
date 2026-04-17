@@ -91,17 +91,19 @@ const useProfileStore = create<ProfileState>((set, get) => ({
     const uid = useAuthStore.getState().uid;
     if (!uid || Object.keys(newProfile).length === 0) return;
 
-    const updatedProfile = { ...get().profile, ...newProfile };
-
-    set({ profile: updatedProfile });
+    // Capture previous state for genuine rollback on failure.
+    const previousProfile = get().profile;
+    const optimisticProfile = { ...previousProfile, ...newProfile };
+    set({ profile: optimisticProfile });
 
     const runUpdate = async () => {
       try {
         await updateProfileServer(newProfile);
-        toast.success("Profile updated successfully");
       } catch (error) {
-        toast.error("Failed to update profile. Re-syncing your profile.");
-        await get().fetchProfile();
+        // Rollback to the exact previous client state rather than refetching,
+        // so in-progress edits in other fields aren't clobbered.
+        set({ profile: previousProfile });
+        toast.error("Failed to update profile. Changes reverted.");
         handleProfileError("updating profile", error);
         throw error;
       }
@@ -121,6 +123,7 @@ const useProfileStore = create<ProfileState>((set, get) => ({
       await deleteAccountServer();
     } catch (error) {
       handleProfileError("deleting account", error);
+      throw error;
     }
   },
 }));

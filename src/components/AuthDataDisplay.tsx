@@ -1,12 +1,13 @@
+"use client";
+
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { signOut } from "firebase/auth";
 import { deleteCookie } from "cookies-next";
-import { auth, db, storage } from "@/firebase/firebaseClient";
+import { auth, storage } from "@/firebase/firebaseClient";
 import useProfileStore from "@/zustand/useProfileStore";
 import { ChangeEvent, useEffect, useState } from "react";
 import { resizeImage } from "@/utils/resizeImage";
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
-import { doc } from "firebase/firestore";
 import Image from "next/image";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { inputClassName, labelClassName } from "@/components/ui/FormInput";
@@ -19,61 +20,65 @@ export default function AuthDataDisplay() {
   const clearAuthDetails = useAuthStore((s) => s.clearAuthDetails);
   const profile = useProfileStore((s) => s.profile);
   const updateProfile = useProfileStore((s) => s.updateProfile);
-  const [newProfile, setNewProfile] = useState(profile);
-  const [loading, setLoading] = useState(false);
+  const [firstName, setFirstName] = useState(profile.firstName ?? "");
+  const [lastName, setLastName] = useState(profile.lastName ?? "");
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    setNewProfile(profile);
-  }, [profile]);
+    setFirstName(profile.firstName ?? "");
+    setLastName(profile.lastName ?? "");
+  }, [profile.firstName, profile.lastName]);
 
   const handlePhotoChange = async (e: ChangeEvent<HTMLInputElement>) => {
-    try {
-      setLoading(true);
-      const files = e.target.files;
-      if (!files || !files[0]) throw new Error("No file selected");
+    const files = e.target.files;
+    if (!files || !files[0]) return;
+    if (!uid) {
+      toast.error("Please sign in to upload a photo.");
+      return;
+    }
 
+    setUploading(true);
+    try {
       const resizedBlob = await resizeImage(files[0]);
       const storageRef = ref(storage, `users/${uid}/profile.png`);
-      await uploadBytesResumable(storageRef, resizedBlob);
+      const snapshot = await uploadBytesResumable(storageRef, resizedBlob);
+      const updatedUrl = await getDownloadURL(snapshot.ref);
 
-      if (!storageRef) throw new Error("Error uploading file");
-
-      const updatedUrl = await getDownloadURL(storageRef);
-      setNewProfile({ ...newProfile, photoUrl: updatedUrl });
+      // Persist immediately so the upload isn't orphaned if the user closes
+      // the tab before clicking "Save Profile Changes".
+      await updateProfile({ photoUrl: updatedUrl });
+      toast.success("Photo updated");
     } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error("Error uploading file: ", error.message);
-      } else {
-        console.error("An unknown error occurred during file upload.");
-      }
+      const message = error instanceof Error ? error.message : "Upload failed";
+      console.error("Error uploading profile photo:", message);
+      toast.error("Could not upload your photo. Please try again.");
     } finally {
-      setLoading(false);
+      setUploading(false);
+      // Allow re-uploading the same file.
+      e.target.value = "";
     }
   };
 
   const hasChanges =
-    newProfile.firstName !== profile.firstName ||
-    newProfile.lastName !== profile.lastName ||
-    newProfile.contactEmail !== profile.contactEmail ||
-    newProfile.photoUrl !== profile.photoUrl;
+    firstName !== (profile.firstName ?? "") ||
+    lastName !== (profile.lastName ?? "");
 
   const handleSubmit = async () => {
-    try {
-      if (!uid) throw new Error("No user found");
-      const userRef = uid ? doc(db, "users", uid) : null;
-      if (!userRef) throw new Error("Error saving to Firestore");
+    if (!uid) {
+      toast.error("Please sign in to save changes.");
+      return;
+    }
+    if (!hasChanges) return;
 
-      updateProfile({
-        firstName: newProfile.firstName || "",
-        lastName: newProfile.lastName || "",
-        photoUrl: newProfile.photoUrl || "",
-      });
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error("Error saving to Firestore:", error.message);
-      } else {
-        console.error("An unknown error occurred while saving to Firestore.");
-      }
+    setSaving(true);
+    try {
+      await updateProfile({ firstName, lastName });
+      toast.success("Profile saved");
+    } catch (error) {
+      console.error("Error saving profile:", error);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -88,169 +93,112 @@ export default function AuthDataDisplay() {
     }
   };
 
-  // const handleDeleteClick = () => {
-  //   setShowDeleteModal(true);
-  // };
-
-  // const onDeleteConfirm = useCallback(async () => {
-  //   setLoadingDelete(true);
-  //   setShowDeleteModal(false);
-  //   try {
-  //     await deleteAccount();
-  //     await signOut(auth);
-  //     clearAuthDetails();
-  //     toast.success("Account deleted successfully.");
-  //     router.replace("/");
-  //   } catch (error) {
-  //     setLoadingDelete(false);
-  //     console.error("Error on deletion of account:", error);
-  //   }
-  // }, [deleteAccount, clearAuthDetails, router]);
-
   return (
-    <>
-      <div className="bg-[#ffffff] border border-[#81878D] rounded-2xl mb-4">
-        <div className="flex flex-col p-5 space-y-3">
-          <div className="flex flex-col space-y-1">
-            <div className="text-base text-[#041D34] font-semibold">
-              Login email
-            </div>
-            <div className="text-[#0B3C68] border-b pb-3 border-[#B8D2FA] text-word">
-              {authEmail}
-            </div>
+    <div className="bg-[#ffffff] border border-[#81878D] rounded-2xl mb-4">
+      <div className="flex flex-col p-5 space-y-3">
+        <div className="flex flex-col space-y-1">
+          <div className="text-base text-[#041D34] font-semibold">
+            Login email
           </div>
-          <div className="flex flex-col space-y-1">
-            <div className="text-base text-[#041D34] font-semibold">
-              User ID
-            </div>
-            <div className="text-[#0B3C68] border-b pb-3 border-[#B8D2FA] text-word">
-              {uid}
-            </div>
+          <div className="text-[#0B3C68] border-b pb-3 border-[#B8D2FA] text-word">
+            {authEmail}
           </div>
-          <div className="flex flex-col space-y-1">
-            <div className="text-base text-[#041D34] mb-1 font-semibold">
-              Profile
-            </div>
-            <div className="">
-              <div className="flex flex-col md:flex-row md:items-start md:space-x-4">
-                {/* <!-- Profile Image --> */}
-                <div className="shrink-0 mb-4 md:mb-0">
-                  <div className="relative w-44	aspect-square ">
-                    {newProfile.photoUrl && (
-                      <Image
-                        width={512}
-                        height={512}
-                        src={newProfile.photoUrl}
-                        alt="User"
-                        className="object-cover rounded-md "
-                        priority={true}
-                      />
-                    )}
-                    {!newProfile.photoUrl && (
-                      <div className="flex h-full items-center justify-center bg-gray-300 rounded-md">
-                        <span>Click to upload</span>
-                      </div>
-                    )}
-                    {loading && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-gray-700/50 rounded-md">
-                        <LoadingSpinner size="md" />
-                      </div>
-                    )}
-
-                    <div className="absolute z-10 top-0 left-0 h-full w-full opacity-0 bg-black hover:opacity-50 cursor-pointer">
-                      <input
-                        className="opacity-0 h-full w-full cursor-pointer"
-                        type="file"
-                        accept="image/*"
-                        onChange={handlePhotoChange}
-                      />
+        </div>
+        <div className="flex flex-col space-y-1">
+          <div className="text-base text-[#041D34] font-semibold">User ID</div>
+          <div className="text-[#0B3C68] border-b pb-3 border-[#B8D2FA] text-word">
+            {uid}
+          </div>
+        </div>
+        <div className="flex flex-col space-y-1">
+          <div className="text-base text-[#041D34] mb-1 font-semibold">
+            Profile
+          </div>
+          <div>
+            <div className="flex flex-col md:flex-row md:items-start md:space-x-4">
+              <div className="shrink-0 mb-4 md:mb-0">
+                <div className="relative w-44 aspect-square">
+                  {profile.photoUrl ? (
+                    <Image
+                      width={512}
+                      height={512}
+                      src={profile.photoUrl}
+                      alt="User profile"
+                      className="object-cover rounded-md"
+                      priority
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center bg-gray-300 rounded-md">
+                      <span>Click to upload</span>
                     </div>
-                  </div>
+                  )}
+                  {uploading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gray-700/50 rounded-md">
+                      <LoadingSpinner size="md" />
+                    </div>
+                  )}
+
+                  <label className="absolute z-10 top-0 left-0 h-full w-full opacity-0 bg-black hover:opacity-50 cursor-pointer">
+                    <span className="sr-only">Upload profile photo</span>
+                    <input
+                      className="opacity-0 h-full w-full cursor-pointer"
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      disabled={uploading}
+                    />
+                  </label>
                 </div>
-                {/* <!-- Form Inputs --> */}
-                <div className="grow space-y-3">
-                  <div>
-                    <label className={labelClassName}>First Name</label>
-                    <input
-                      type="text"
-                      id="first-name"
-                      value={newProfile.firstName}
-                      onChange={(e) =>
-                        setNewProfile({
-                          ...newProfile,
-                          firstName: e.target.value,
-                        })
-                      }
-                      className={inputClassName}
-                      placeholder="Enter your First Name"
-                    />
-                  </div>
-                  <div>
-                    <label className={labelClassName}>Last Name</label>
-                    <input
-                      type="text"
-                      id="last-name"
-                      value={newProfile.lastName}
-                      onChange={(e) =>
-                        setNewProfile({
-                          ...newProfile,
-                          lastName: e.target.value,
-                        })
-                      }
-                      className={inputClassName}
-                      placeholder="Enter your Last Name"
-                    />
-                  </div>
-                  {/* <div>
-                    <label className="text-base text-[#041D34] mb-1 font-semibold">Contact Email</label>
-                    <input
-                      type="email"
-                      id="contact-email"
-                      value={newProfile.contactEmail}
-                      onChange={(e) =>
-                        setNewProfile({ ...newProfile, contactEmail: e.target.value })
-                      }
-                      className="mt-2 w-full border border-[#ECECEC] bg-[#F5F5F5] text-[#0B3C68] rounded-md px-3 py-3 placeholder:text-[#BBBEC9]"
-                      placeholder="Enter your Email"
-                    />
-                  </div> */}
-                  {/* <!-- Save Button --> */}
-                  <div className="w-full sm:flex sm:flex-row flex flex-col gap-2 items-center justify-end mt-5!">
-                    <button
-                      type="button"
-                      disabled={!hasChanges}
-                      onClick={handleSubmit}
-                      className="w-56 text-white px-3 py-2 custom-write bottom bg-[#192449] opacity-100! hover:bg-[#83A873] rounded-3xl! font-bold transition-transform duration-300 ease-in-out"
-                    >
-                      Save Profile Changes
-                    </button>
-                    <button
-                      onClick={logoutUser}
-                      className="w-56 text-white px-3 py-2 custom-write bottom bg-[#192449] opacity-100! hover:bg-[#83A873] rounded-3xl! font-bold transition-transform duration-300 ease-in-out"
-                    >
-                      Logout
-                    </button>
-                    {/* <div className="mt-0!  credits-block sm:flex sm:flex-row flex flex-col justify-center items-center gap-2"> */}
-                    {/* <button
-                        onClick={handleDeleteClick}
-                        className="font-bold bg-[#FF5356] hover:bg-[#c0373a] rounded-3xl text-white w-56 block px-3 py-2"
-                      >
-                        
-                        {loadingDelete ? "Deleting..." : "Delete Account"}
-                      </button>
-                      <DeleteConfirmModal
-                        showDeleteModal={showDeleteModal}
-                        onHideModal={() => setShowDeleteModal(false)}
-                        onDeleteConfirm={onDeleteConfirm}
-                      /> */}
-                    {/* </div> */}
-                  </div>
+              </div>
+              <div className="grow space-y-3">
+                <div>
+                  <label htmlFor="first-name" className={labelClassName}>
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    id="first-name"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className={inputClassName}
+                    placeholder="Enter your First Name"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="last-name" className={labelClassName}>
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    id="last-name"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className={inputClassName}
+                    placeholder="Enter your Last Name"
+                  />
+                </div>
+                <div className="w-full sm:flex sm:flex-row flex flex-col gap-2 items-center justify-end mt-5!">
+                  <button
+                    type="button"
+                    disabled={!hasChanges || saving}
+                    onClick={handleSubmit}
+                    className="w-56 text-white px-3 py-2 custom-write bottom bg-[#192449] opacity-100! hover:bg-[#83A873] rounded-3xl! font-bold transition-transform duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {saving ? "Saving..." : "Save Profile Changes"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={logoutUser}
+                    className="w-56 text-white px-3 py-2 custom-write bottom bg-[#192449] opacity-100! hover:bg-[#83A873] rounded-3xl! font-bold transition-transform duration-300 ease-in-out"
+                  >
+                    Logout
+                  </button>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

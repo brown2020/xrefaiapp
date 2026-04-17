@@ -34,8 +34,9 @@ export default function DeleteAccount() {
       toast.success("Account deleted successfully.");
       router.replace(ROUTES.home);
     } catch (error) {
-      setLoadingDelete(false);
       console.error("Error on deletion of account:", error);
+      toast.error("Could not delete your account. Please try again.");
+      setLoadingDelete(false);
     }
   }, [deleteAccount, clearAuthDetails, router]);
 

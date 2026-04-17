@@ -4,38 +4,39 @@ import { adminDb, admin } from "@/firebase/firebaseAdmin";
 import { CREDIT_PACKS } from "@/constants/creditPacks";
 import { coerceCredits } from "@/utils/credits";
 import { requireAuthedUidFromRequest } from "@/utils/requireAuthedRequest";
+import { PAYMENT_LOCK_TTL_MS } from "@/constants";
 
 export const runtime = "nodejs";
-
-/** Lock TTL in milliseconds (30 seconds) */
-const PAYMENT_LOCK_TTL_MS = 30_000;
 
 /**
  * Attempts to acquire a distributed lock for payment processing.
  * Returns true if lock acquired, false if another request is processing.
+ *
+ * Uses `Date.now()` (a number) rather than a server timestamp so that the
+ * freshly-written `acquiredAt` is immediately comparable within the same
+ * transaction — `serverTimestamp()` resolves to null locally until commit,
+ * which previously made the expiry check unreliable.
  */
 async function tryAcquirePaymentLock(uid: string, sessionId: string): Promise<boolean> {
   const lockRef = adminDb.doc(`users/${uid}/locks/payment_${sessionId}`);
   const now = Date.now();
 
   try {
-    await adminDb.runTransaction(async (tx: any) => {
+    await adminDb.runTransaction(async (tx: FirebaseFirestore.Transaction) => {
       const lockSnap = await tx.get(lockRef);
 
       if (lockSnap.exists) {
-        const lockData = lockSnap.data();
-        const acquiredAt = lockData?.acquiredAt?.toMillis?.() || lockData?.acquiredAt || 0;
+        const lockData = lockSnap.data() as { acquiredAt?: number } | undefined;
+        const acquiredAt = Number(lockData?.acquiredAt ?? 0);
 
-        // If lock exists and hasn't expired, fail to acquire
-        if (now - acquiredAt < PAYMENT_LOCK_TTL_MS) {
+        if (Number.isFinite(acquiredAt) && now - acquiredAt < PAYMENT_LOCK_TTL_MS) {
           throw new Error("LOCK_HELD");
         }
-        // Lock expired, we can take over
       }
 
-      // Acquire the lock
       tx.set(lockRef, {
-        acquiredAt: admin.firestore.FieldValue.serverTimestamp(),
+        acquiredAt: now,
+        acquiredAtServer: admin.firestore.FieldValue.serverTimestamp(),
         uid,
         sessionId,
       });
@@ -49,9 +50,6 @@ async function tryAcquirePaymentLock(uid: string, sessionId: string): Promise<bo
   }
 }
 
-/**
- * Releases the payment processing lock.
- */
 async function releasePaymentLock(uid: string, sessionId: string): Promise<void> {
   const lockRef = adminDb.doc(`users/${uid}/locks/payment_${sessionId}`);
   try {
@@ -68,7 +66,7 @@ function requireEnv(name: string): string {
 }
 
 let stripe: Stripe | null = null;
-function getStripe() {
+function getStripe(): Stripe {
   if (stripe) return stripe;
   stripe = new Stripe(requireEnv("STRIPE_SECRET_KEY"));
   return stripe;
@@ -77,6 +75,7 @@ function getStripe() {
 export async function POST(req: NextRequest) {
   let uid: string | null = null;
   let sessionId: string | null = null;
+  let lockAcquired = false;
 
   try {
     uid = await requireAuthedUidFromRequest(req);
@@ -89,8 +88,7 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "Missing sessionId" }, { status: 400 });
     }
 
-    // Acquire distributed lock to prevent concurrent processing
-    const lockAcquired = await tryAcquirePaymentLock(uid, sessionId);
+    lockAcquired = await tryAcquirePaymentLock(uid, sessionId);
     if (!lockAcquired) {
       return Response.json(
         { error: "Payment processing in progress", status: "processing" },
@@ -120,7 +118,6 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "Unknown packId on session metadata" }, { status: 400 });
     }
 
-    // Defensive: ensure Stripe total matches expected pack price.
     const amountTotal = checkoutSession.amount_total ?? 0;
     if (amountTotal !== pack.amountCents) {
       return Response.json(
@@ -133,71 +130,79 @@ export async function POST(req: NextRequest) {
     const profileRef = adminDb.doc(`users/${uid}/profile/userData`);
     const ledgerRef = adminDb.doc(`users/${uid}/creditsLedger/stripe_checkout_${sessionId}`);
 
-    const res = await adminDb.runTransaction(async (tx: any) => {
-      const existingPaymentSnap = await tx.get(paymentRef);
-      if (existingPaymentSnap.exists) {
-        const existing = existingPaymentSnap.data() as { status?: string; amount?: number };
-        if (existing?.status === "paid" || existing?.status === "succeeded") {
-          const profileSnap = await tx.get(profileRef);
-          const currentCredits = coerceCredits(profileSnap.exists ? profileSnap.data()?.credits : 0, 0);
-          return { alreadyProcessed: true, creditsAdded: 0, creditsBalance: currentCredits };
+    const res = await adminDb.runTransaction(
+      async (tx: FirebaseFirestore.Transaction) => {
+        const existingPaymentSnap = await tx.get(paymentRef);
+        if (existingPaymentSnap.exists) {
+          const existing = existingPaymentSnap.data() as
+            | { status?: string; amount?: number }
+            | undefined;
+          if (existing?.status === "paid" || existing?.status === "succeeded") {
+            const profileSnap = await tx.get(profileRef);
+            const currentCredits = coerceCredits(
+              profileSnap.exists ? profileSnap.data()?.credits : 0,
+              0
+            );
+            return { alreadyProcessed: true, creditsAdded: 0, creditsBalance: currentCredits };
+          }
         }
+
+        const profileSnap = await tx.get(profileRef);
+        const currentCredits = coerceCredits(
+          profileSnap.exists ? profileSnap.data()?.credits : 0,
+          0
+        );
+        const nextCredits = currentCredits + pack.credits;
+        if (!Number.isFinite(nextCredits)) throw new Error("Invalid credits value");
+
+        tx.set(
+          paymentRef,
+          {
+            id: `checkout_${sessionId}`,
+            amount: amountTotal,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            status: checkoutSession.payment_status,
+            mode: "stripe_checkout",
+            platform: "web",
+            productId: pack.id,
+            currency: "USD",
+            stripeCheckoutSessionId: checkoutSession.id,
+            stripePaymentIntentId:
+              typeof checkoutSession.payment_intent === "object" &&
+              checkoutSession.payment_intent !== null &&
+              "id" in checkoutSession.payment_intent
+                ? (checkoutSession.payment_intent as Stripe.PaymentIntent).id
+                : (typeof checkoutSession.payment_intent === "string"
+                    ? checkoutSession.payment_intent
+                    : null),
+          },
+          { merge: true }
+        );
+
+        tx.set(profileRef, { credits: nextCredits }, { merge: true });
+
+        tx.set(
+          ledgerRef,
+          {
+            type: "credit",
+            amount: pack.credits,
+            reason: "purchase",
+            tool: "stripe",
+            modelKey: null,
+            refId: checkoutSession.id,
+            balanceAfter: nextCredits,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
+
+        return {
+          alreadyProcessed: false,
+          creditsAdded: pack.credits,
+          creditsBalance: nextCredits,
+        };
       }
-
-      const profileSnap = await tx.get(profileRef);
-      const currentCredits = coerceCredits(profileSnap.exists ? profileSnap.data()?.credits : 0, 0);
-      const nextCredits = currentCredits + pack.credits;
-      if (!Number.isFinite(nextCredits)) throw new Error("Invalid credits value");
-
-      // Record payment (idempotent doc id).
-      tx.set(
-        paymentRef,
-        {
-          id: `checkout_${sessionId}`,
-          amount: amountTotal,
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          status: checkoutSession.payment_status,
-          mode: "stripe_checkout",
-          platform: "web",
-          productId: pack.id,
-          currency: "USD",
-          stripeCheckoutSessionId: checkoutSession.id,
-          stripePaymentIntentId:
-            typeof checkoutSession.payment_intent === "object" &&
-            checkoutSession.payment_intent !== null &&
-            "id" in checkoutSession.payment_intent
-              ? (checkoutSession.payment_intent as Stripe.PaymentIntent).id
-              : checkoutSession.payment_intent ?? null,
-        },
-        { merge: true }
-      );
-
-      // Increment credits.
-      tx.set(profileRef, { credits: nextCredits }, { merge: true });
-
-      // Add auditable credit ledger entry (idempotent id).
-      tx.set(
-        ledgerRef,
-        {
-          type: "credit",
-          amount: pack.credits,
-          reason: "purchase",
-          tool: "stripe",
-          modelKey: null,
-          refId: checkoutSession.id,
-          balanceAfter: nextCredits,
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
-
-      return { alreadyProcessed: false, creditsAdded: pack.credits, creditsBalance: nextCredits };
-    });
-
-    // Release lock after successful processing
-    if (uid && sessionId) {
-      await releasePaymentLock(uid, sessionId);
-    }
+    );
 
     return Response.json(
       {
@@ -208,16 +213,14 @@ export async function POST(req: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    // Release lock on error
-    if (uid && sessionId) {
-      await releasePaymentLock(uid, sessionId);
-    }
-
     if (error instanceof Error && error.message === "AUTH_REQUIRED") {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
     console.error("Error confirming Stripe checkout session:", error);
     return Response.json({ error: "Failed to confirm purchase" }, { status: 500 });
+  } finally {
+    if (lockAcquired && uid && sessionId) {
+      await releasePaymentLock(uid, sessionId);
+    }
   }
 }
-

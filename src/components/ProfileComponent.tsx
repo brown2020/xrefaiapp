@@ -1,7 +1,7 @@
 "use client";
 
 import useProfileStore from "@/zustand/useProfileStore";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { isIOSReactNativeWebView } from "@/utils/platform";
 import { usePaymentsStore } from "@/zustand/usePaymentsStore";
 import { inputClassName, labelClassName } from "@/components/ui/FormInput";
@@ -9,45 +9,55 @@ import { ChevronDown, Eye, EyeOff } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { AI_MODELS, listAiModels, resolveAiModelKey } from "@/ai/models";
 import { InlineSpinner } from "@/components/ui/LoadingSpinner";
-import { CREDIT_PACKS, DEFAULT_CREDIT_PACK_ID, formatDollarsFromCents, getCreditPack } from "@/constants/creditPacks";
+import {
+  CREDIT_PACKS,
+  DEFAULT_CREDIT_PACK_ID,
+  formatDollarsFromCents,
+  getCreditPack,
+} from "@/constants/creditPacks";
 import { confirmIapPurchase } from "@/actions/confirmIapPurchase";
+import toast from "react-hot-toast";
 
 export default function ProfileComponent() {
   const profile = useProfileStore((state) => state.profile);
   const updateProfile = useProfileStore((state) => state.updateProfile);
-  const [fireworksApiKey, setFireworksApiKey] = useState(
-    profile.fireworks_api_key
-  );
-  const [openaiApiKey, setOpenaiApiKey] = useState(profile.openai_api_key);
-  const [anthropicApiKey, setAnthropicApiKey] = useState(
-    profile.anthropic_api_key
-  );
-  const [xaiApiKey, setXaiApiKey] = useState(profile.xai_api_key);
-  const [googleApiKey, setGoogleApiKey] = useState(profile.google_api_key);
-  const [stabilityAPIKey, setStabilityAPIKey] = useState(
-    profile.stability_api_key
-  );
-  const [useCredits, setUseCredits] = useState(profile.useCredits);
-  const [textModel, setTextModel] = useState(profile.text_model);
-  const [showCreditsSection, setShowCreditsSection] = useState(true); // State to control visibility of credits section
-  const [isSavingApiKeys, setIsSavingApiKeys] = useState(false);
-  const [visibleKeys, setVisibleKeys] = useState<Record<string, boolean>>({});
-  const [selectedPackId, setSelectedPackId] = useState<string>(DEFAULT_CREDIT_PACK_ID);
   const fetchProfile = useProfileStore((state) => state.fetchProfile);
   const fetchPayments = usePaymentsStore((state) => state.fetchPayments);
 
+  const [fireworksApiKey, setFireworksApiKey] = useState(profile.fireworks_api_key);
+  const [openaiApiKey, setOpenaiApiKey] = useState(profile.openai_api_key);
+  const [anthropicApiKey, setAnthropicApiKey] = useState(profile.anthropic_api_key);
+  const [xaiApiKey, setXaiApiKey] = useState(profile.xai_api_key);
+  const [googleApiKey, setGoogleApiKey] = useState(profile.google_api_key);
+  const [stabilityAPIKey, setStabilityAPIKey] = useState(profile.stability_api_key);
+  const [showCreditsSection, setShowCreditsSection] = useState(true);
+  const [isSavingApiKeys, setIsSavingApiKeys] = useState(false);
+  const [visibleKeys, setVisibleKeys] = useState<Record<string, boolean>>({});
+  const [selectedPackId, setSelectedPackId] =
+    useState<string>(DEFAULT_CREDIT_PACK_ID);
+
+  // Track whether the user has edited each API-key field so we don't clobber
+  // in-progress typing when the profile refreshes (e.g. after a credit debit).
+  const isDirtyRef = useRef({
+    fireworks: false,
+    openai: false,
+    anthropic: false,
+    xai: false,
+    google: false,
+    stability: false,
+  });
+
+  useEffect(() => {
+    setShowCreditsSection(!isIOSReactNativeWebView());
+  }, []);
+
   useEffect(() => {
     const handleMessageFromRN = async (event: MessageEvent) => {
-      // Critical: only accept IAP messages inside the native WebView.
-      // On the normal web app, `window.postMessage` is user-controllable and
-      // would allow free credit minting.
       if (!isIOSReactNativeWebView() || !window.ReactNativeWebView) return;
 
       const message = event.data;
       if (message?.type === "IAP_SUCCESS") {
-        const transactionId = String(
-          message.transactionId || message.message || ""
-        );
+        const transactionId = String(message.transactionId || message.message || "");
         const signature = String(message.signature || "");
         const credits =
           typeof message.credits === "number" && Number.isFinite(message.credits)
@@ -79,26 +89,20 @@ export default function ProfileComponent() {
       }
     };
 
-    // Listen for messages from the RN WebView
     window.addEventListener("message", handleMessageFromRN);
-
-    return () => {
-      window.removeEventListener("message", handleMessageFromRN);
-    };
+    return () => window.removeEventListener("message", handleMessageFromRN);
   }, [fetchPayments, fetchProfile]);
 
+  // Sync individual key inputs from the profile only when the user hasn't
+  // actively edited that particular field.
   useEffect(() => {
-    setFireworksApiKey(profile.fireworks_api_key);
-    setOpenaiApiKey(profile.openai_api_key);
-    setAnthropicApiKey(profile.anthropic_api_key);
-    setXaiApiKey(profile.xai_api_key);
-    setGoogleApiKey(profile.google_api_key);
-    setStabilityAPIKey(profile.stability_api_key);
-    setUseCredits(profile.useCredits);
-    setTextModel(profile.text_model);
-
-    // Hide credits section if in iOS WebView
-    setShowCreditsSection(!isIOSReactNativeWebView());
+    if (!isDirtyRef.current.fireworks) setFireworksApiKey(profile.fireworks_api_key);
+    if (!isDirtyRef.current.openai) setOpenaiApiKey(profile.openai_api_key);
+    if (!isDirtyRef.current.anthropic) setAnthropicApiKey(profile.anthropic_api_key);
+    if (!isDirtyRef.current.xai) setXaiApiKey(profile.xai_api_key);
+    if (!isDirtyRef.current.google) setGoogleApiKey(profile.google_api_key);
+    if (!isDirtyRef.current.stability)
+      setStabilityAPIKey(profile.stability_api_key);
   }, [
     profile.fireworks_api_key,
     profile.openai_api_key,
@@ -106,8 +110,6 @@ export default function ProfileComponent() {
     profile.xai_api_key,
     profile.google_api_key,
     profile.stability_api_key,
-    profile.useCredits,
-    profile.text_model,
   ]);
 
   const handleApiKeyChange = async () => {
@@ -131,6 +133,16 @@ export default function ProfileComponent() {
         google_api_key: googleApiKey,
         stability_api_key: stabilityAPIKey,
       });
+      // Reset dirty flags on successful save so subsequent profile refreshes can sync.
+      isDirtyRef.current = {
+        fireworks: false,
+        openai: false,
+        anthropic: false,
+        xai: false,
+        google: false,
+        stability: false,
+      };
+      toast.success("API keys saved");
     } catch (error) {
       console.error("Error updating API keys:", error);
     } finally {
@@ -142,18 +154,16 @@ export default function ProfileComponent() {
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {
     const next = resolveAiModelKey(e.target.value);
-    setTextModel(next);
     await updateProfile({ text_model: next });
   };
 
   const handleCreditsChange = async (
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {
-    setUseCredits(e.target.value === "credits");
     await updateProfile({ useCredits: e.target.value === "credits" });
   };
 
-  const normalizedModelKey = resolveAiModelKey(textModel);
+  const normalizedModelKey = resolveAiModelKey(profile.text_model);
   const selectedProvider = AI_MODELS[normalizedModelKey].provider;
   const hasSelectedProviderKey =
     selectedProvider === "openai"
@@ -165,6 +175,14 @@ export default function ProfileComponent() {
           : Boolean(googleApiKey);
   const areApiKeysAvailable = Boolean(fireworksApiKey && hasSelectedProviderKey);
 
+  // If the user is in apikeys mode but keys become unavailable, force credits mode
+  // so the backend doesn't receive `useCredits: false` with no API key.
+  useEffect(() => {
+    if (!areApiKeysAvailable && !profile.useCredits) {
+      void updateProfile({ useCredits: true });
+    }
+  }, [areApiKeysAvailable, profile.useCredits, updateProfile]);
+
   const handleBuyClick = useCallback(() => {
     if (showCreditsSection) {
       const pack = getCreditPack(selectedPackId);
@@ -175,6 +193,10 @@ export default function ProfileComponent() {
       window.ReactNativeWebView?.postMessage("INIT_IAP");
     }
   }, [selectedPackId, showCreditsSection]);
+
+  // Effective select value — if apikeys isn't available, always show "credits"
+  const useCreditsSelectValue =
+    profile.useCredits || !areApiKeysAvailable ? "credits" : "apikeys";
 
   return (
     <div className="flex flex-col gap-4 ">
@@ -235,7 +257,10 @@ export default function ProfileComponent() {
           id="fireworks-api-key"
           label="Fireworks API Key"
           value={fireworksApiKey}
-          onChange={setFireworksApiKey}
+          onChange={(v) => {
+            isDirtyRef.current.fireworks = true;
+            setFireworksApiKey(v);
+          }}
           isVisible={Boolean(visibleKeys["fireworks"])}
           onToggleVisibility={() =>
             setVisibleKeys((p) => ({ ...p, fireworks: !p.fireworks }))
@@ -246,7 +271,10 @@ export default function ProfileComponent() {
           id="openai-api-key"
           label="OpenAI API Key"
           value={openaiApiKey}
-          onChange={setOpenaiApiKey}
+          onChange={(v) => {
+            isDirtyRef.current.openai = true;
+            setOpenaiApiKey(v);
+          }}
           isVisible={Boolean(visibleKeys["openai"])}
           onToggleVisibility={() =>
             setVisibleKeys((p) => ({ ...p, openai: !p.openai }))
@@ -257,7 +285,10 @@ export default function ProfileComponent() {
           id="anthropic-api-key"
           label="Anthropic API Key (optional)"
           value={anthropicApiKey}
-          onChange={setAnthropicApiKey}
+          onChange={(v) => {
+            isDirtyRef.current.anthropic = true;
+            setAnthropicApiKey(v);
+          }}
           isVisible={Boolean(visibleKeys["anthropic"])}
           onToggleVisibility={() =>
             setVisibleKeys((p) => ({ ...p, anthropic: !p.anthropic }))
@@ -268,7 +299,10 @@ export default function ProfileComponent() {
           id="xai-api-key"
           label="xAI API Key (optional)"
           value={xaiApiKey}
-          onChange={setXaiApiKey}
+          onChange={(v) => {
+            isDirtyRef.current.xai = true;
+            setXaiApiKey(v);
+          }}
           isVisible={Boolean(visibleKeys["xai"])}
           onToggleVisibility={() =>
             setVisibleKeys((p) => ({ ...p, xai: !p.xai }))
@@ -279,7 +313,10 @@ export default function ProfileComponent() {
           id="google-api-key"
           label="Google API Key (optional)"
           value={googleApiKey}
-          onChange={setGoogleApiKey}
+          onChange={(v) => {
+            isDirtyRef.current.google = true;
+            setGoogleApiKey(v);
+          }}
           isVisible={Boolean(visibleKeys["google"])}
           onToggleVisibility={() =>
             setVisibleKeys((p) => ({ ...p, google: !p.google }))
@@ -290,7 +327,10 @@ export default function ProfileComponent() {
           id="stability-api-key"
           label="Stability API Key"
           value={stabilityAPIKey}
-          onChange={setStabilityAPIKey}
+          onChange={(v) => {
+            isDirtyRef.current.stability = true;
+            setStabilityAPIKey(v);
+          }}
           isVisible={Boolean(visibleKeys["stability"])}
           onToggleVisibility={() =>
             setVisibleKeys((p) => ({ ...p, stability: !p.stability }))
@@ -324,7 +364,7 @@ export default function ProfileComponent() {
         <div className="relative">
           <select
             id="text-model"
-            value={textModel}
+            value={normalizedModelKey}
             onChange={handleTextModelChange}
             className={`${inputClassName} appearance-none`}
           >
@@ -353,7 +393,7 @@ export default function ProfileComponent() {
         <div className="credit-option relative">
           <select
             id="toggle-use-credits"
-            value={useCredits ? "credits" : "apikeys"}
+            value={useCreditsSelectValue}
             onChange={handleCreditsChange}
             className={`${inputClassName} appearance-none`}
             disabled={!areApiKeysAvailable}

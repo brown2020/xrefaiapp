@@ -13,12 +13,19 @@ import { inputClassName, labelClassName } from "@/components/ui/FormInput";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { ResponseDisplay } from "@/components/ui/ResponseDisplay";
-import { MIN_WORD_COUNT, MAX_WORD_COUNT } from "@/constants";
+import {
+  MIN_WORD_COUNT,
+  MAX_WORD_COUNT,
+  MAX_STREAMED_CHARS,
+  TRUNCATION_NOTICE,
+} from "@/constants";
 import useProfileStore from "@/zustand/useProfileStore";
 import { usePaywallStore } from "@/zustand/usePaywallStore";
 import { getTextGenerationCreditsCost } from "@/constants/credits";
 import { ROUTES } from "@/constants/routes";
 import { useShallow } from "zustand/react/shallow";
+import { isInsufficientCreditsError } from "@/utils/errors";
+import { createClientIdempotencyKey } from "@/utils/clientIdempotencyKey";
 
 export default function SummarizeTopic() {
   const generationConfig = useProfileStore(
@@ -34,11 +41,7 @@ export default function SummarizeTopic() {
   const fetchProfile = useProfileStore((s) => s.fetchProfile);
   const openPaywall = usePaywallStore((s) => s.openPaywall);
   const { saveHistory, uid } = useHistorySaver();
-  const {
-    scrapeWebsite,
-    progress: scrapeProgress,
-    resetProgress,
-  } = useWebsiteScraper();
+  const { scrapeWebsite, resetProgress } = useWebsiteScraper();
   const {
     summary,
     flagged,
@@ -60,36 +63,40 @@ export default function SummarizeTopic() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!validateContentWithToast(topic || siteUrl)) {
-      return;
-    }
+    if (!validateContentWithToast(topic || siteUrl)) return;
 
-    let wordnum = Number(words || "30");
-    if (wordnum < MIN_WORD_COUNT) wordnum = MIN_WORD_COUNT;
-    if (wordnum > MAX_WORD_COUNT) wordnum = MAX_WORD_COUNT;
+    const wordsParsed = Number.parseFloat(words || "30");
+    const wordnum = Number.isFinite(wordsParsed)
+      ? Math.min(
+          MAX_WORD_COUNT,
+          Math.max(MIN_WORD_COUNT, Math.floor(wordsParsed))
+        )
+      : 30;
 
-    let newPrompt = "Summarize this topic";
+    startGeneration();
+    resetProgress();
+
     let scrapedContent = "";
-
     if (siteUrl) {
+      // Scrape BEFORE starting generation so a failure doesn't debit credits.
+      setProgress(30);
       scrapedContent = await scrapeWebsite(siteUrl);
-      setProgress(scrapeProgress);
-      if (scrapedContent) {
-        newPrompt += ` based on the content from the website ${siteUrl}`;
-        newPrompt += ` in approximately ${wordnum} words: ${scrapedContent}`;
-      } else {
-        newPrompt += ` in approximately ${wordnum} words: ${topic}`;
+      if (!scrapedContent && !topic) {
+        completeWithError(
+          "Couldn't read that website. Try again or add a focus topic."
+        );
+        return;
       }
-    } else {
-      newPrompt += ` in approximately ${wordnum} words: ${topic}`;
+      setProgress(60);
     }
+
+    const newPrompt = siteUrl && scrapedContent
+      ? `Summarize this topic based on the content from the website ${siteUrl} in approximately ${wordnum} words: ${scrapedContent}`
+      : `Summarize this topic in approximately ${wordnum} words: ${topic}`;
 
     const systemPrompt = "Summarize this topic";
     let finishedSummary = "";
     const cost = getTextGenerationCreditsCost(wordnum);
-
-    startGeneration();
-    resetProgress();
 
     try {
       const result = await generateResponse(systemPrompt, newPrompt, {
@@ -100,15 +107,20 @@ export default function SummarizeTopic() {
         anthropicApiKey: generationConfig.anthropicApiKey,
         xaiApiKey: generationConfig.xaiApiKey,
         googleApiKey: generationConfig.googleApiKey,
+        idempotencyKey: createClientIdempotencyKey(),
       });
       let chunkCount = 0;
 
       for await (const content of readStreamableValue(result)) {
-        if (content) {
-          finishedSummary = content.trim();
-          chunkCount++;
-          setProgress(70 + (chunkCount / wordnum) * 30);
+        if (!content) continue;
+        finishedSummary = content.trim();
+        if (finishedSummary.length > MAX_STREAMED_CHARS) {
+          finishedSummary =
+            finishedSummary.slice(0, MAX_STREAMED_CHARS) + TRUNCATION_NOTICE;
+          break;
         }
+        chunkCount++;
+        setProgress(Math.min(70 + (chunkCount / wordnum) * 30, 95));
       }
 
       completeWithSuccess(finishedSummary);
@@ -128,11 +140,7 @@ export default function SummarizeTopic() {
 
       toast.success("Summary generated successfully");
     } catch (error) {
-      if (
-        error instanceof Error &&
-        (error.message === "INSUFFICIENT_CREDITS" ||
-          error.message.toLowerCase().includes("insufficient"))
-      ) {
+      if (isInsufficientCreditsError(error)) {
         toast.error(
           `Not enough credits (need ${cost}). Please buy more credits in Account.`
         );
@@ -142,6 +150,17 @@ export default function SummarizeTopic() {
           redirectPath: ROUTES.tools,
         });
         completeWithError("Not enough credits");
+        return;
+      }
+      if (
+        error instanceof Error &&
+        (error.message === "DUPLICATE_REQUEST" ||
+          error.message === "REQUEST_IN_PROGRESS")
+      ) {
+        toast.error(
+          "That request is already being handled. Please wait a moment."
+        );
+        completeWithError("Duplicate request");
         return;
       }
       completeWithError(

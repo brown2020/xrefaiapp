@@ -9,9 +9,11 @@ interface ValidationResult {
 }
 
 /**
- * Validates content for restricted words in iOS WebView environment
- * @param content - The content to validate
- * @returns Validation result with error message if invalid
+ * Validates content for restricted words in iOS WebView environment.
+ *
+ * NOTE: This is a UX-only filter running on the client in a narrow context
+ * (iOS WebView). The server does NOT re-apply this list. If broader
+ * moderation is needed in the future, move it to the server side.
  */
 export function validateContent(content: string): ValidationResult {
   if (isIOSReactNativeWebView() && checkRestrictedWords(content)) {
@@ -25,9 +27,7 @@ export function validateContent(content: string): ValidationResult {
 
 /**
  * Validates content and shows non-blocking feedback if invalid.
- * Returns true if content is valid, false otherwise
- * @param content - The content to validate
- * @returns boolean indicating if content is valid
+ * Returns true if content is valid, false otherwise.
  */
 export function validateContentWithToast(content: string): boolean {
   const result = validateContent(content);
@@ -36,12 +36,4 @@ export function validateContentWithToast(content: string): boolean {
     return false;
   }
   return true;
-}
-
-/**
- * Backwards-compatible alias (kept to avoid churn).
- * Prefer `validateContentWithToast`.
- */
-export function validateContentWithAlert(content: string): boolean {
-  return validateContentWithToast(content);
 }

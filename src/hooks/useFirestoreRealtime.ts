@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   collection,
   onSnapshot,
@@ -14,19 +14,12 @@ import {
 import { db } from "@/firebase/firebaseClient";
 
 interface UseFirestoreRealtimeOptions<T> {
-  /** User ID for the collection path */
   uid: string | null;
-  /** Sub-collection name under users/{uid}/ */
   collectionName: string;
-  /** Field to order by */
   orderByField?: string;
-  /** Order direction */
   orderDirection?: "asc" | "desc";
-  /** Number of items per page */
   pageSize?: number;
-  /** Transform function to map document data to your type */
   transform: (doc: QueryDocumentSnapshot<DocumentData>) => T;
-  /** Callback when new data arrives */
   onDataChange?: () => void;
 }
 
@@ -44,19 +37,24 @@ type FirestoreEntry<T> = {
 };
 
 type FirestoreRealtimeState<T> = {
+  /** Entries from the live first-page subscription (newest-first). */
   liveEntries: FirestoreEntry<T>[];
+  /** Entries loaded via pagination (older than the live page). */
   olderEntries: FirestoreEntry<T>[];
+  /**
+   * Cursor for the NEXT call to `loadMore`. Points at the last live document
+   * on initial load, then advances as older pages are fetched. Stays stable
+   * even when new live documents arrive so pagination keeps working.
+   */
   nextPageCursor: QueryDocumentSnapshot<DocumentData> | null;
+  /** Whether there are more older documents to fetch via `loadMore`. */
   hasMore: boolean;
 };
 
 function dedupeEntries<T>(entries: FirestoreEntry<T>[]): FirestoreEntry<T>[] {
   const seenDocIds = new Set<string>();
-
   return entries.filter((entry) => {
-    if (seenDocIds.has(entry.doc.id)) {
-      return false;
-    }
+    if (seenDocIds.has(entry.doc.id)) return false;
     seenDocIds.add(entry.doc.id);
     return true;
   });
@@ -72,8 +70,8 @@ function createInitialState<T>(): FirestoreRealtimeState<T> {
 }
 
 /**
- * Generic hook for real-time paginated Firestore queries
- * Uses onSnapshot for live updates with pagination support
+ * Generic hook for real-time paginated Firestore queries.
+ * Uses `onSnapshot` for live updates with `getDocs`-based pagination.
  */
 export function useFirestoreRealtime<T>({
   uid,
@@ -89,13 +87,21 @@ export function useFirestoreRealtime<T>({
   const [state, setState] = useState<FirestoreRealtimeState<T>>(() =>
     createInitialState<T>()
   );
+  /**
+   * Tracks whether we've received the first snapshot — only then do we know
+   * the "live window" size and thus whether more old docs may exist.
+   */
+  const initializedRef = useRef(false);
 
-  // Stabilize callbacks via refs so the snapshot listener isn't recreated on every render
   const onDataChangeRef = useRef(onDataChange);
-  useEffect(() => { onDataChangeRef.current = onDataChange; }, [onDataChange]);
+  useEffect(() => {
+    onDataChangeRef.current = onDataChange;
+  }, [onDataChange]);
 
   const transformRef = useRef(transform);
-  useEffect(() => { transformRef.current = transform; }, [transform]);
+  useEffect(() => {
+    transformRef.current = transform;
+  }, [transform]);
 
   const items = useMemo(() => {
     const liveDocIds = new Set(state.liveEntries.map((entry) => entry.doc.id));
@@ -107,12 +113,14 @@ export function useFirestoreRealtime<T>({
 
   useEffect(() => {
     if (!uid) {
+      initializedRef.current = false;
       setState(createInitialState<T>());
       setLoading(false);
       setLoadingMore(false);
       return;
     }
 
+    initializedRef.current = false;
     setState(createInitialState<T>());
     setLoading(true);
 
@@ -143,25 +151,32 @@ export function useFirestoreRealtime<T>({
             ...shiftedEntries,
             ...prev.olderEntries.filter((entry) => !nextLiveIds.has(entry.doc.id)),
           ]);
-          const liveCursor =
-            nextLiveEntries.at(-1)?.doc ?? null;
+
+          const isFirstSnapshot = !initializedRef.current;
+          const liveCursor = nextLiveEntries.at(-1)?.doc ?? null;
+
+          // Only SEED the cursor/hasMore on the very first snapshot, or when
+          // we have not yet paginated. Once pagination starts, later live
+          // updates must not clobber the cursor (it advances through older
+          // pages and live changes never point there).
+          const shouldSeedCursor =
+            isFirstSnapshot ||
+            (prev.olderEntries.length === 0 && prev.nextPageCursor === null);
 
           return {
             liveEntries: nextLiveEntries,
             olderEntries,
-            nextPageCursor:
-              prev.olderEntries.length > 0 ? prev.nextPageCursor : liveCursor,
-            hasMore:
-              prev.olderEntries.length > 0
-                ? prev.hasMore
-                : querySnapshot.size === pageSize,
+            nextPageCursor: shouldSeedCursor ? liveCursor : prev.nextPageCursor,
+            hasMore: shouldSeedCursor
+              ? querySnapshot.size === pageSize
+              : prev.hasMore,
           };
         });
+        initializedRef.current = true;
         setLoading(false);
         onDataChangeRef.current?.();
       },
       (error) => {
-        // Ignore permission errors during sign-out
         if (error.code !== "permission-denied") {
           console.error(`Error fetching ${collectionName}:`, error);
         }
@@ -172,7 +187,6 @@ export function useFirestoreRealtime<T>({
     return () => unsub();
   }, [uid, collectionName, orderByField, orderDirection, pageSize]);
 
-  // Load more (pagination)
   const loadMore = useCallback(async () => {
     if (!uid || !state.nextPageCursor || loadingMore || !state.hasMore) return;
 
@@ -198,6 +212,7 @@ export function useFirestoreRealtime<T>({
 
       setState((prev) => {
         const liveDocIds = new Set(prev.liveEntries.map((entry) => entry.doc.id));
+        const lastFetched = querySnapshot.docs.at(-1);
 
         return {
           liveEntries: prev.liveEntries,
@@ -205,7 +220,7 @@ export function useFirestoreRealtime<T>({
             ...prev.olderEntries,
             ...fetchedEntries.filter((entry) => !liveDocIds.has(entry.doc.id)),
           ]),
-          nextPageCursor: querySnapshot.docs.at(-1) ?? prev.nextPageCursor,
+          nextPageCursor: lastFetched ?? prev.nextPageCursor,
           hasMore: querySnapshot.size === pageSize,
         };
       });

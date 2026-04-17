@@ -1,7 +1,9 @@
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import toast from "react-hot-toast";
 
 const MAX_SCRAPED_CHARS = 20_000;
+/** Cap the raw HTML we try to parse so large pages don't hang the browser. */
+const MAX_HTML_BYTES = 1_000_000;
 
 function normalizeUrl(value: string): string {
   if (!value) return "";
@@ -40,7 +42,9 @@ export function useWebsiteScraper() {
       }
       setProgress(20);
 
-      const res = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`);
+      const res = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`, {
+        credentials: "include",
+      });
       setProgress(50);
 
       if (!res.ok) {
@@ -48,7 +52,9 @@ export function useWebsiteScraper() {
       }
 
       const html = await res.text();
-      const text = extractTextFromHtml(html);
+      const truncatedHtml =
+        html.length > MAX_HTML_BYTES ? html.slice(0, MAX_HTML_BYTES) : html;
+      const text = extractTextFromHtml(truncatedHtml);
 
       return text.length > MAX_SCRAPED_CHARS
         ? text.slice(0, MAX_SCRAPED_CHARS).trim()

@@ -5,21 +5,40 @@ import { adminBucket } from "@/firebase/firebaseAdmin";
 import { requireAuthedUid } from "@/actions/serverAuth";
 import { creditCredits, debitCreditsOrThrow } from "@/actions/serverCredits";
 import { CREDITS_COSTS } from "@/constants/credits";
+import {
+  checkAndSetIdempotency,
+  generateClientIdempotencyKey,
+  generateIdempotencyKey,
+  markIdempotencyComplete,
+  markIdempotencyFailed,
+} from "@/utils/idempotency";
+
+type GenerateImageOptions = {
+  useCredits?: boolean;
+  fireworksApiKey?: string;
+  /** Optional client-provided idempotency key to prevent double-charge on retries. */
+  idempotencyKey?: string;
+};
+
+type GenerateImageResult =
+  | { imageUrl: string; error?: undefined }
+  | { imageUrl?: undefined; error: string };
 
 export async function generateImage(
   message: string,
-  options?: { useCredits?: boolean; fireworksApiKey?: string }
-) {
-  let chargedUid = "";
-  let shouldRefund = false;
+  options?: GenerateImageOptions
+): Promise<GenerateImageResult> {
+  const useCredits = options?.useCredits !== false;
   const refundId = `refund_image_${randomUUID()}`;
+
+  let chargedUid = "";
+  let creditsCharged = false;
+  let idempotencyKey = "";
 
   try {
     const uid = await requireAuthedUid();
     chargedUid = uid;
 
-    // Credits mode uses app key and debits credits. BYO mode requires a user key.
-    const useCredits = options?.useCredits !== false;
     const apiKey = useCredits
       ? (process.env.FIREWORKS_API_KEY || "").trim()
       : (options?.fireworksApiKey || "").trim();
@@ -33,11 +52,30 @@ export async function generateImage(
     }
 
     if (useCredits) {
-      await debitCreditsOrThrow(uid, CREDITS_COSTS.imageGeneration, {
-        reason: "image_generation",
-        tool: "image",
-      });
-      shouldRefund = true;
+      idempotencyKey = options?.idempotencyKey
+        ? generateClientIdempotencyKey(uid, options.idempotencyKey)
+        : generateIdempotencyKey(uid, { message, tool: "image" });
+
+      const idempotencyResult = await checkAndSetIdempotency(uid, idempotencyKey);
+      if (!idempotencyResult.isNew) {
+        return {
+          error:
+            idempotencyResult.status === "completed"
+              ? "DUPLICATE_REQUEST"
+              : "REQUEST_IN_PROGRESS",
+        };
+      }
+
+      try {
+        await debitCreditsOrThrow(uid, CREDITS_COSTS.imageGeneration, {
+          reason: "image_generation",
+          tool: "image",
+        });
+        creditsCharged = true;
+      } catch (error) {
+        await markIdempotencyFailed(uid, idempotencyKey).catch(() => undefined);
+        throw error;
+      }
     }
 
     const response = await fetch(
@@ -69,7 +107,7 @@ export async function generateImage(
     }
 
     const imageData = await response.arrayBuffer();
-    const filename = `generated/${uid}/${Date.now()}.jpg`;
+    const filename = `generated/${uid}/${Date.now()}_${randomUUID()}.jpg`;
     const file = adminBucket.file(filename);
 
     await file.save(Buffer.from(imageData), {
@@ -82,24 +120,31 @@ export async function generateImage(
     });
 
     const imageUrl = signedUrls[0];
-    shouldRefund = false;
+
+    if (useCredits && idempotencyKey) {
+      await markIdempotencyComplete(chargedUid, idempotencyKey).catch(() => undefined);
+    }
+
     return { imageUrl };
   } catch (error: unknown) {
-    if (shouldRefund && chargedUid) {
-      try {
-        await creditCredits(chargedUid, CREDITS_COSTS.imageGeneration, {
-          reason: "image_generation_refund",
-          tool: "image",
-          deterministicId: refundId,
-        });
-      } catch (refundError) {
-        console.error("Error refunding image generation credits:", refundError);
+    if (useCredits && chargedUid) {
+      if (creditsCharged) {
+        try {
+          await creditCredits(chargedUid, CREDITS_COSTS.imageGeneration, {
+            reason: "image_generation_refund",
+            tool: "image",
+            deterministicId: refundId,
+          });
+        } catch (refundError) {
+          console.error("Error refunding image generation credits:", refundError);
+        }
+      }
+      if (idempotencyKey) {
+        await markIdempotencyFailed(chargedUid, idempotencyKey).catch(() => undefined);
       }
     }
-    if (error instanceof Error) {
-      return { error: error.message };
-    } else {
-      return { error: "An unknown error occurred" };
-    }
+    const message =
+      error instanceof Error ? error.message : "An unknown error occurred";
+    return { error: message };
   }
 }

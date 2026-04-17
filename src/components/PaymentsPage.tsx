@@ -94,7 +94,10 @@ function PaymentCard({ payment }: { payment: PaymentType }) {
                 : "N/A"}
             </div>
             <div className="text-xs text-gray-400 mt-0.5">
-              ID: {payment.id.slice(0, 16)}...
+              ID:{" "}
+              {payment.id.length > 16
+                ? `${payment.id.slice(0, 16)}…`
+                : payment.id}
             </div>
           </div>
         </div>

@@ -14,14 +14,22 @@ type PaywallState = {
   closePaywall: () => void;
 };
 
+const DEFAULT_CONTEXT: PaywallContext = { redirectPath: ROUTES.account };
+
+/**
+ * `closePaywall` intentionally does NOT reset `context`. This avoids a
+ * visual flicker when the modal is about to close: if another caller
+ * opens the paywall with a different context immediately after, or the
+ * close animation runs for a beat, the prior context stays consistent.
+ * The next `openPaywall` will replace it.
+ */
 export const usePaywallStore = create<PaywallState>((set) => ({
   isOpen: false,
-  context: { redirectPath: ROUTES.account },
+  context: DEFAULT_CONTEXT,
   openPaywall: (context) =>
     set({
       isOpen: true,
-      context: { redirectPath: ROUTES.account, ...context },
+      context: { ...DEFAULT_CONTEXT, ...context },
     }),
-  closePaywall: () => set({ isOpen: false, context: { redirectPath: ROUTES.account } }),
+  closePaywall: () => set({ isOpen: false }),
 }));
-

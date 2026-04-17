@@ -1,13 +1,20 @@
 import admin from "firebase-admin";
 import { getApps } from "firebase-admin/app";
 
-const privateKey = process.env.FIREBASE_PRIVATE_KEY;
-
+/**
+ * Firebase Admin SDK singleton.
+ *
+ * Initializes lazily on first use so that:
+ * - App Router build / prerender steps don't crash if creds are missing.
+ * - Route handlers that don't touch Firestore never fail at module load.
+ */
 const adminCredentials = {
   type: process.env.FIREBASE_TYPE,
   projectId: process.env.FIREBASE_PROJECT_ID,
   privateKeyId: process.env.FIREBASE_PRIVATE_KEY_ID,
-  privateKey: privateKey ? privateKey.replace(/\\n/g, "\n") : undefined,
+  privateKey: process.env.FIREBASE_PRIVATE_KEY
+    ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n")
+    : undefined,
   clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
   clientId: process.env.FIREBASE_CLIENT_ID,
   authUri: process.env.FIREBASE_AUTH_URI,
@@ -16,24 +23,52 @@ const adminCredentials = {
   clientCertsUrl: process.env.FIREBASE_CLIENT_CERTS_URL,
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let adminBucket: any, adminDb: any, adminAuth: any;
-
-try {
-  if (!getApps().length) {
-    admin.initializeApp({
-      credential: admin.credential.cert(adminCredentials as admin.ServiceAccount),
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGEBUCKET,
-    });
+let initialized = false;
+function ensureInitialized(): void {
+  if (initialized || getApps().length > 0) {
+    initialized = true;
+    return;
   }
-  adminBucket = admin.storage().bucket();
-  adminDb = admin.firestore();
-  adminAuth = admin.auth();
-} catch (e) {
-  console.warn("Firebase Admin initialization failed (expected in build):", e);
-  adminBucket = {};
-  adminDb = {};
-  adminAuth = {};
+  admin.initializeApp({
+    credential: admin.credential.cert(adminCredentials as admin.ServiceAccount),
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGEBUCKET,
+  });
+  initialized = true;
 }
 
-export { adminBucket, adminDb, adminAuth, admin };
+export const adminDb: admin.firestore.Firestore = new Proxy(
+  {} as admin.firestore.Firestore,
+  {
+    get(_, prop) {
+      ensureInitialized();
+      const db = admin.firestore();
+      const value = (db as unknown as Record<string | symbol, unknown>)[prop];
+      return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(db) : value;
+    },
+  }
+);
+
+export const adminAuth: admin.auth.Auth = new Proxy({} as admin.auth.Auth, {
+  get(_, prop) {
+    ensureInitialized();
+    const auth = admin.auth();
+    const value = (auth as unknown as Record<string | symbol, unknown>)[prop];
+    return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(auth) : value;
+  },
+});
+
+export const adminBucket = new Proxy(
+  {} as ReturnType<ReturnType<typeof admin.storage>["bucket"]>,
+  {
+    get(_, prop) {
+      ensureInitialized();
+      const bucket = admin.storage().bucket();
+      const value = (bucket as unknown as Record<string | symbol, unknown>)[prop];
+      return typeof value === "function"
+        ? (value as (...args: unknown[]) => unknown).bind(bucket)
+        : value;
+    },
+  }
+);
+
+export { admin };

@@ -14,16 +14,17 @@ import { ROUTES } from "@/constants/routes";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { validateContentWithToast } from "@/utils/contentGuard";
-import { MAX_WORDS_IN_CONTEXT } from "@/constants";
+import { MAX_WORDS_IN_CONTEXT, MAX_VISIBLE_CHATS } from "@/constants";
 import { saveChatServer } from "@/actions/serverHistory";
 import { usePaywallStore } from "@/zustand/usePaywallStore";
 import { CREDITS_COSTS } from "@/constants/credits";
 import toast from "react-hot-toast";
 import { useShallow } from "zustand/react/shallow";
+import { getMessageText, calculateWordCount } from "@/utils/messages";
+import { isInsufficientCreditsError } from "@/utils/errors";
 
 export default function Chat() {
   const uid = useAuthStore((s) => s.uid);
-  // Subscribe ONLY to the photo URL (avoid re-renders on credit changes).
   const profilePhotoUrl = useProfileStore((s) => s.profile.photoUrl);
   const generationConfig = useProfileStore(
     useShallow((s) => ({
@@ -39,6 +40,7 @@ export default function Chat() {
   const openPaywall = usePaywallStore((s) => s.openPaywall);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
+  const isSubmittingRef = useRef(false);
 
   const {
     chatlist,
@@ -62,26 +64,33 @@ export default function Chat() {
     transport,
     experimental_throttle: 100,
     onFinish: async ({ message, messages: allMessages }) => {
-      const latestUser = [...allMessages].reverse().find((m) => m.role === "user");
+      const latestUser = [...allMessages]
+        .reverse()
+        .find((m) => m.role === "user");
       const prompt = latestUser ? getMessageText(latestUser) : "";
       const response = getMessageText(message);
 
       if (uid && prompt && response) {
-        await saveChatServer(prompt, response);
-        markResponseSaved();
-        if (generationConfig.useCredits) {
-          await fetchProfile();
+        try {
+          await saveChatServer(prompt, response);
+          markResponseSaved();
+          if (generationConfig.useCredits) {
+            await fetchProfile();
+          }
+          // Only clear the streaming messages AFTER the save succeeds so a
+          // failed save doesn't drop the message entirely.
+          setMessages([]);
+        } catch (error) {
+          console.error("Failed to save chat:", error);
+          toast.error("Message sent but could not be saved to history.");
+          // Keep the streaming messages visible so the user can copy/retry.
         }
+      } else {
+        setMessages([]);
       }
-
-      setMessages([]);
     },
     onError: (error) => {
-      if (
-        error instanceof Error &&
-        (error.message === "INSUFFICIENT_CREDITS" ||
-          error.message.toLowerCase().includes("insufficient"))
-      ) {
+      if (isInsufficientCreditsError(error)) {
         toast.error("Not enough credits. Please buy more credits in Account.");
         openPaywall({
           actionLabel: "Chat message",
@@ -95,7 +104,9 @@ export default function Chat() {
         (error.message.includes("CHAT_REQUEST_IN_PROGRESS") ||
           error.message.includes("DUPLICATE_CHAT_REQUEST"))
       ) {
-        toast.error("That chat request is already being handled. Please wait a moment.");
+        toast.error(
+          "That chat request is already being handled. Please wait a moment."
+        );
         return;
       }
       toast.error("Chat request failed. Please try again.");
@@ -104,69 +115,86 @@ export default function Chat() {
 
   const isLoading = status === "submitted" || status === "streaming";
 
+  /**
+   * Build the conversation history to send to the server, trimmed to the
+   * word budget while keeping the MOST RECENT messages (the prior
+   * implementation kept the oldest, which dropped recent context).
+   * `chatlist` comes newest-first from Firestore; we walk in that order
+   * and `unshift` to preserve chronological order.
+   */
   const historyForRequest = useMemo(() => {
-    const history: Array<{ prompt: string; response: string }> = [];
+    const picked: Array<{ prompt: string; response: string }> = [];
     let wordCount = 0;
-    for (let i = 0; i < chatlist.length; i++) {
-      const chat = chatlist[i];
-      const promptWords = chat.prompt.split(" ").length;
-      const responseWords = chat.response.split(" ").length;
-      if (wordCount + promptWords + responseWords <= MAX_WORDS_IN_CONTEXT) {
-        history.push({ prompt: chat.prompt, response: chat.response });
-        wordCount += promptWords + responseWords;
-      } else {
-        break;
-      }
+    for (const chat of chatlist) {
+      const words =
+        calculateWordCount(chat.prompt) + calculateWordCount(chat.response);
+      if (wordCount + words > MAX_WORDS_IN_CONTEXT) break;
+      picked.unshift({ prompt: chat.prompt, response: chat.response });
+      wordCount += words;
     }
-    return history.reverse();
+    return picked;
   }, [chatlist]);
 
   const handleSendPrompt = useCallback(async () => {
+    if (isSubmittingRef.current) return;
     if (!input.trim()) return;
     if (!validateContentWithToast(input)) return;
 
+    isSubmittingRef.current = true;
     const inputValue = input.trim();
     setInput("");
 
-    await sendMessage(
-      { text: inputValue },
-      {
-        body: {
-          history: historyForRequest,
-          modelKey: generationConfig.textModel,
-          useCredits: generationConfig.useCredits,
-          openaiApiKey: generationConfig.openaiApiKey,
-          anthropicApiKey: generationConfig.anthropicApiKey,
-          xaiApiKey: generationConfig.xaiApiKey,
-          googleApiKey: generationConfig.googleApiKey,
-        },
-      }
-    );
+    try {
+      // Generate a unique client idempotency key so the server can
+      // deduplicate retries without blocking legitimate duplicates.
+      const idempotencyKey =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+      await sendMessage(
+        { text: inputValue },
+        {
+          body: {
+            history: historyForRequest,
+            modelKey: generationConfig.textModel,
+            useCredits: generationConfig.useCredits,
+            openaiApiKey: generationConfig.openaiApiKey,
+            anthropicApiKey: generationConfig.anthropicApiKey,
+            xaiApiKey: generationConfig.xaiApiKey,
+            googleApiKey: generationConfig.googleApiKey,
+            idempotencyKey,
+          },
+        }
+      );
+    } finally {
+      isSubmittingRef.current = false;
+    }
   }, [generationConfig, historyForRequest, input, sendMessage]);
 
-  const MAX_VISIBLE_CHATS = 80;
-  // Memoize reversed chat list to avoid recalculating on every render
-  const reversedChatlist = useMemo(
-    () => chatlist.slice().reverse(),
-    [chatlist]
+  // Memoize reversed chat list to avoid recalculating on every render.
+  const reversedChatlist = useMemo(() => chatlist.slice().reverse(), [chatlist]);
+  const visibleChatlist = useMemo(
+    () =>
+      reversedChatlist.length <= MAX_VISIBLE_CHATS
+        ? reversedChatlist
+        : reversedChatlist.slice(-MAX_VISIBLE_CHATS),
+    [reversedChatlist]
   );
-  const visibleChatlist = useMemo(() => {
-    if (reversedChatlist.length <= MAX_VISIBLE_CHATS) {
-      return reversedChatlist;
-    }
-    return reversedChatlist.slice(-MAX_VISIBLE_CHATS);
-  }, [reversedChatlist]);
 
+  // Use reverse-iterate `findLast` for O(1) instead of copying + reversing.
   const streamingUserText = useMemo(() => {
-    const latestUser = [...messages].reverse().find((m) => m.role === "user");
-    return latestUser ? getMessageText(latestUser) : "";
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "user") return getMessageText(messages[i]);
+    }
+    return "";
   }, [messages]);
 
   const streamingAssistantText = useMemo(() => {
-    const latestAssistant = [...messages]
-      .reverse()
-      .find((m) => m.role === "assistant");
-    return latestAssistant ? getMessageText(latestAssistant) : "";
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "assistant") return getMessageText(messages[i]);
+    }
+    return "";
   }, [messages]);
 
   return (
@@ -184,7 +212,6 @@ export default function Chat() {
               followButtonClassName="hidden"
             >
               <div className="max-w-4xl mx-auto pt-8 pb-4">
-                {/* Load More Button */}
                 {lastKey && (
                   <div className="flex justify-center mb-8">
                     <button
@@ -200,7 +227,6 @@ export default function Chat() {
                   </div>
                 )}
 
-                {/* Chat List */}
                 <div className="flex flex-col space-y-2">
                   {!isLoading && reversedChatlist.length === 0 && (
                     <div className="py-10">
@@ -245,7 +271,9 @@ export default function Chat() {
                           <button
                             type="button"
                             onClick={() =>
-                              setInput("Help me write a blog post outline about:")
+                              setInput(
+                                "Help me write a blog post outline about:"
+                              )
                             }
                             className="inline-flex items-center justify-center px-5 py-2.5 bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition-opacity"
                           >
@@ -278,10 +306,8 @@ export default function Chat() {
                     </div>
                   ))}
 
-                  {/* Show pending user message and streaming response */}
                   {isLoading && streamingUserText && (
                     <div className="flex flex-col">
-                      {/* User's pending message */}
                       <ChatMessage
                         message={{
                           id: "pending",
@@ -292,7 +318,6 @@ export default function Chat() {
                         profilePhoto={profilePhotoUrl}
                         isUser={true}
                       />
-                      {/* AI streaming response */}
                       <StreamingResponse content={streamingAssistantText} />
                     </div>
                   )}
@@ -314,20 +339,4 @@ export default function Chat() {
       )}
     </div>
   );
-}
-
-function getMessageText(message: {
-  content?: string;
-  parts?: Array<{ type: string; text?: string }>;
-}) {
-  if (message.parts?.length) {
-    let text = "";
-    for (const part of message.parts) {
-      if (part.type === "text" && typeof part.text === "string") {
-        text += part.text;
-      }
-    }
-    return text;
-  }
-  return typeof message.content === "string" ? message.content : "";
 }

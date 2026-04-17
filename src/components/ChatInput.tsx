@@ -1,3 +1,6 @@
+"use client";
+
+import { useRef } from "react";
 import TextareaAutosize from "react-textarea-autosize";
 import { Send } from "lucide-react";
 import { InlineSpinner } from "@/components/ui/LoadingSpinner";
@@ -5,7 +8,7 @@ import { InlineSpinner } from "@/components/ui/LoadingSpinner";
 interface ChatInputProps {
   value: string;
   onChange: (value: string) => void;
-  onSubmit: () => Promise<void>;
+  onSubmit: () => Promise<void> | void;
   isLoading: boolean;
 }
 
@@ -15,12 +18,26 @@ export default function ChatInput({
   onSubmit,
   isLoading,
 }: ChatInputProps) {
+  // Guard against two rapid submissions (double-Enter, rapid click) before
+  // the parent's `isLoading` state has a chance to propagate.
+  const isSubmittingRef = useRef(false);
+
+  const doSubmit = async () => {
+    if (isSubmittingRef.current) return;
+    if (isLoading) return;
+    if (!value.trim()) return;
+    isSubmittingRef.current = true;
+    try {
+      await onSubmit();
+    } finally {
+      isSubmittingRef.current = false;
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (value.trim() && !isLoading) {
-        onSubmit();
-      }
+      void doSubmit();
     }
   };
 
@@ -36,11 +53,13 @@ export default function ChatInput({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
+            disabled={isLoading}
           />
 
           <div className="absolute right-2 bottom-2">
             <button
-              onClick={() => !isLoading && value.trim() && onSubmit()}
+              type="button"
+              onClick={() => void doSubmit()}
               disabled={isLoading || !value.trim()}
               className={`p-2 rounded-xl flex items-center justify-center transition-all duration-200 cursor-pointer ${
                 value.trim() && !isLoading

@@ -68,8 +68,14 @@ const CLIENT_WRITABLE_FIELDS = {
 
 type ClientWritableProfileField = keyof typeof CLIENT_WRITABLE_FIELDS;
 
+/**
+ * Maximum length of a string field written from the client. Protects
+ * Firestore from oversized documents and prevents abuse.
+ */
+const MAX_STRING_FIELD_LENGTH = 4_000;
+
 function sanitizeProfileUpdate(
-  fields: Partial<ServerProfileData>,
+  fields: Partial<ServerProfileData>
 ): Partial<ServerProfileData> {
   const sanitized: Record<string, unknown> = {};
 
@@ -77,31 +83,22 @@ function sanitizeProfileUpdate(
     ClientWritableProfileField,
     unknown,
   ][]) {
-    if (!(key in CLIENT_WRITABLE_FIELDS) || value === undefined) {
-      continue;
-    }
-
-    if (typeof value === "function") {
-      continue;
-    }
+    if (!(key in CLIENT_WRITABLE_FIELDS) || value === undefined) continue;
+    if (typeof value === "function") continue;
 
     const expectedType = CLIENT_WRITABLE_FIELDS[key];
     if (expectedType === "boolean") {
-      if (typeof value === "boolean") {
-        sanitized[key] = value;
-      }
+      if (typeof value === "boolean") sanitized[key] = value;
       continue;
     }
 
     if (expectedType === "model") {
-      if (typeof value === "string") {
-        sanitized[key] = resolveAiModelKey(value);
-      }
+      if (typeof value === "string") sanitized[key] = resolveAiModelKey(value);
       continue;
     }
 
     if (typeof value === "string") {
-      sanitized[key] = value;
+      sanitized[key] = value.slice(0, MAX_STRING_FIELD_LENGTH);
     }
   }
 
@@ -123,7 +120,7 @@ export async function fetchProfileServer(authOverrides?: {
   const authPhotoUrl = authOverrides?.authPhotoUrl ?? "";
   const authEmailVerified = authOverrides?.authEmailVerified ?? false;
   const authFirstName = authDisplayName?.split(" ")[0] || "";
-  const authLastName = authDisplayName?.split(" ")[1] || "";
+  const authLastName = authDisplayName?.split(" ").slice(1).join(" ") || "";
 
   if (snap.exists) {
     const data = snap.data() as Partial<ServerProfileData>;
@@ -135,7 +132,7 @@ export async function fetchProfileServer(authOverrides?: {
       displayName: data.displayName || authDisplayName || "",
       photoUrl: data.photoUrl || authPhotoUrl || "",
       emailVerified: data.emailVerified ?? authEmailVerified,
-      credits: coerceCredits(data.credits, 1000),
+      credits: coerceCredits(data.credits, PROFILE_DEFAULTS.credits),
       firstName: data.firstName || authFirstName || "",
       lastName: data.lastName || authLastName || "",
       headerUrl: data.headerUrl || "",
@@ -158,15 +155,13 @@ export async function fetchProfileServer(authOverrides?: {
 }
 
 export async function updateProfileServer(
-  fields: Partial<ServerProfileData>,
+  fields: Partial<ServerProfileData>
 ): Promise<void> {
   const uid = await requireAuthedUid();
   const profileRef = adminDb.doc(`users/${uid}/profile/userData`);
   const sanitized = sanitizeProfileUpdate(fields);
 
-  if (Object.keys(sanitized).length === 0) {
-    return;
-  }
+  if (Object.keys(sanitized).length === 0) return;
 
   await profileRef.set(sanitized, { merge: true });
 }

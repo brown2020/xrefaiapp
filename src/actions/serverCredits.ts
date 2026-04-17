@@ -1,5 +1,5 @@
 import { admin, adminDb } from "@/firebase/firebaseAdmin";
-import { coerceCredits } from "@/utils/credits";
+import { calculateNewBalance, coerceCredits } from "@/utils/credits";
 
 type CreditsLedgerType = "debit" | "credit";
 
@@ -27,7 +27,7 @@ function writeLedgerEntry(
     balanceAfter?: number;
   },
   options?: { deterministicId?: string }
-) {
+): void {
   const ref = options?.deterministicId
     ? adminDb.doc(`users/${uid}/creditsLedger/${options.deterministicId}`)
     : adminDb.collection(`users/${uid}/creditsLedger`).doc();
@@ -36,12 +36,15 @@ function writeLedgerEntry(
     ref,
     {
       type: entry.type,
-      amount: entry.amount,
+      amount: Math.max(0, Math.floor(entry.amount)),
       reason: entry.reason,
       tool: entry.tool ?? null,
       modelKey: entry.modelKey ?? null,
       refId: entry.refId ?? null,
-      balanceAfter: typeof entry.balanceAfter === "number" ? entry.balanceAfter : null,
+      balanceAfter:
+        typeof entry.balanceAfter === "number"
+          ? Math.max(0, Math.floor(entry.balanceAfter))
+          : null,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     },
     { merge: true }
@@ -55,19 +58,20 @@ export async function debitCreditsOrThrow(
 ): Promise<number> {
   if (!Number.isFinite(amount) || amount <= 0) return getCredits(uid);
 
+  const normalizedAmount = Math.ceil(amount);
   const profileRef = adminDb.doc(`users/${uid}/profile/userData`);
-  return await adminDb.runTransaction(async (tx: any) => {
+
+  return await adminDb.runTransaction(async (tx: FirebaseFirestore.Transaction) => {
     const snap = await tx.get(profileRef);
     const current = coerceCredits(snap.exists ? snap.data()?.credits : 0, 0);
-    const next = current - amount;
-    if (!Number.isFinite(next)) throw new Error("Invalid credits value");
-    if (next < 0) throw new Error("INSUFFICIENT_CREDITS");
+    const next = calculateNewBalance(current, -normalizedAmount);
+
     tx.set(profileRef, { credits: next }, { merge: true });
 
     if (meta) {
       writeLedgerEntry(tx, uid, {
         type: "debit",
-        amount,
+        amount: normalizedAmount,
         reason: meta.reason,
         tool: meta.tool,
         modelKey: meta.modelKey,
@@ -86,12 +90,14 @@ export async function creditCredits(
 ): Promise<number> {
   if (!Number.isFinite(amount) || amount <= 0) return getCredits(uid);
 
+  const normalizedAmount = Math.floor(amount);
   const profileRef = adminDb.doc(`users/${uid}/profile/userData`);
-  return await adminDb.runTransaction(async (tx: any) => {
+
+  return await adminDb.runTransaction(async (tx: FirebaseFirestore.Transaction) => {
     const snap = await tx.get(profileRef);
     const current = coerceCredits(snap.exists ? snap.data()?.credits : 0, 0);
-    const next = current + amount;
-    if (!Number.isFinite(next)) throw new Error("Invalid credits value");
+    const next = calculateNewBalance(current, normalizedAmount);
+
     tx.set(profileRef, { credits: next }, { merge: true });
 
     if (meta) {
@@ -100,7 +106,7 @@ export async function creditCredits(
         uid,
         {
           type: "credit",
-          amount,
+          amount: normalizedAmount,
           reason: meta.reason,
           tool: meta.tool,
           modelKey: meta.modelKey,
@@ -119,4 +125,3 @@ export async function getCredits(uid: string): Promise<number> {
   const snap = await profileRef.get();
   return coerceCredits(snap.exists ? snap.data()?.credits : 0, 0);
 }
-

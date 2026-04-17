@@ -70,6 +70,19 @@ export const STREAMING_THROTTLE_MS = 100;
 export const STREAMING_UPDATE_INTERVAL_MS = 120;
 
 // ============================================================================
+// Markdown Rendering Limits
+// ============================================================================
+
+/** Max characters before we skip markdown parsing and render as plain text */
+export const MAX_MARKDOWN_CHARS = 8000;
+
+/** Max line count before we skip markdown parsing */
+export const MAX_MARKDOWN_LINES = 400;
+
+/** Max list-item markers before we skip markdown parsing */
+export const MAX_MARKDOWN_MARKERS = 300;
+
+// ============================================================================
 // UI Display Limits
 // ============================================================================
 

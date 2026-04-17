@@ -13,7 +13,12 @@ const copyViaInputFallback = (text: string): boolean => {
 
   document.body.appendChild(input);
   input.select();
-  const successful = document.execCommand("copy");
+  let successful: boolean;
+  try {
+    successful = document.execCommand("copy");
+  } catch {
+    successful = false;
+  }
   document.body.removeChild(input);
 
   return successful;
@@ -38,11 +43,8 @@ export async function copyToClipboard(
     }
 
     const successful = copyViaInputFallback(text);
-    if (successful) {
-      toast.success(successMessage);
-    } else {
-      toast.error("Failed to copy to clipboard");
-    }
+    if (successful) toast.success(successMessage);
+    else toast.error("Failed to copy to clipboard");
     return successful;
   } catch (error) {
     console.error("Copy failed:", error);
@@ -62,7 +64,8 @@ export async function copyImageToClipboard(
 }
 
 /**
- * Download an image from a URL
+ * Download an image from a URL. Generates a unique filename to avoid
+ * collisions when multiple downloads happen in the same second.
  */
 export async function downloadImage(imageUrl: string | URL): Promise<void> {
   if (!isBrowser()) return;
@@ -82,11 +85,14 @@ export async function downloadImage(imageUrl: string | URL): Promise<void> {
     const blobUrl = window.URL.createObjectURL(await response.blob());
     const link = document.createElement("a");
 
+    const uniqueSuffix =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID().slice(0, 8)
+        : Math.random().toString(36).slice(2, 10);
+    const timestamp = new Date().toISOString().replace(/[-:.]/g, "");
+
     link.href = blobUrl;
-    link.setAttribute(
-      "download",
-      `image_${new Date().toISOString().replace(/[-:.]/g, "")}.png`
-    );
+    link.setAttribute("download", `image_${timestamp}_${uniqueSuffix}.png`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -98,9 +104,3 @@ export async function downloadImage(imageUrl: string | URL): Promise<void> {
     toast.error("Failed to download image");
   }
 }
-
-
-
-
-
-

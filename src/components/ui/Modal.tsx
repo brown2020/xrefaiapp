@@ -28,48 +28,55 @@ export function Modal({
   maxWidth = "md",
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  // Track the element under the mousedown so we can distinguish "click
+  // outside the modal" from "mousedown inside then drag-release outside"
+  // (e.g. text selection that ends off the modal).
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
 
-  // Close on click outside
+  // Close on click outside, but only when the press STARTED outside the modal.
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        modalRef.current &&
-        !modalRef.current.contains(event.target as Node)
-      ) {
+    if (!isOpen) return;
+
+    const handleMouseDown = (event: MouseEvent) => {
+      mouseDownTargetRef.current = event.target;
+    };
+    const handleMouseUp = (event: MouseEvent) => {
+      const startTarget = mouseDownTargetRef.current;
+      mouseDownTargetRef.current = null;
+      if (!(startTarget instanceof Node)) return;
+      if (!modalRef.current) return;
+
+      const startedInside = modalRef.current.contains(startTarget);
+      const endedInside =
+        event.target instanceof Node && modalRef.current.contains(event.target);
+
+      if (!startedInside && !endedInside) {
         onClose();
       }
     };
 
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      // Prevent body scroll when modal is open
-      document.body.style.overflow = "hidden";
-    }
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("mouseup", handleMouseUp);
+    document.body.style.overflow = "hidden";
 
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("mouseup", handleMouseUp);
       document.body.style.overflow = "";
     };
   }, [isOpen, onClose]);
 
   // Close on Escape key
   useEffect(() => {
+    if (!isOpen) return;
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
+      if (event.key === "Escape") onClose();
     };
-
-    if (isOpen) {
-      document.addEventListener("keydown", handleEscape);
-    }
-
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || typeof window === "undefined") return null;
 
   const modalContent = (
     <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-20000 p-4">
@@ -82,6 +89,7 @@ export function Modal({
       >
         {showCloseButton && (
           <button
+            type="button"
             onClick={onClose}
             className="absolute top-0 right-0 p-2 hover:bg-muted bg-muted rounded-full m-2 transition-colors"
             aria-label="Close modal"
@@ -104,8 +112,6 @@ export function Modal({
     </div>
   );
 
-  // Use portal to render modal at document body level
-  if (typeof window === "undefined") return null;
   return createPortal(modalContent, document.body);
 }
 
@@ -147,12 +153,14 @@ export function ConfirmModal({
       <p className="text-muted-foreground mb-6">{message}</p>
       <div className="flex justify-end gap-3">
         <button
+          type="button"
           onClick={onClose}
           className="px-4 py-2 bg-muted hover:opacity-90 text-foreground rounded-lg transition-colors"
         >
           {cancelText}
         </button>
         <button
+          type="button"
           onClick={onConfirm}
           className={`px-4 py-2 rounded-lg transition-colors ${confirmClasses}`}
         >

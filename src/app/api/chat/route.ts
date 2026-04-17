@@ -12,6 +12,7 @@ import {
   markIdempotencyFailed,
 } from "@/utils/idempotency";
 import { rateLimitMiddleware } from "@/utils/rateLimit";
+import { getMessageText } from "@/utils/messages";
 
 export const runtime = "nodejs";
 
@@ -31,22 +32,6 @@ type ChatRequestBody = {
 };
 
 const SYSTEM_PROMPT = "The user will ask you questions. Respond in a helpful way.";
-
-function getMessageText(message: UIMessage): string {
-  if (message.parts?.length) {
-    let text = "";
-    for (const part of message.parts) {
-      if (
-        part.type === "text" &&
-        typeof (part as { text?: string }).text === "string"
-      ) {
-        text += (part as { text: string }).text;
-      }
-    }
-    return text;
-  }
-  return "";
-}
 
 function buildMessages(
   history: ChatHistoryItem[] | undefined,
@@ -83,7 +68,6 @@ export async function POST(req: Request) {
     const uid = await requireAuthedUid();
     const useCredits = body.useCredits !== false;
 
-    // Check rate limit before processing
     const rateLimitResponse = await rateLimitMiddleware(uid, "chat");
     if (rateLimitResponse) {
       return rateLimitResponse;
@@ -98,19 +82,21 @@ export async function POST(req: Request) {
       googleApiKey: body.googleApiKey,
     });
 
-    // Generate or use client-provided idempotency key to prevent duplicate charges
     const idempotencyKey = body.idempotencyKey
       ? generateClientIdempotencyKey(uid, body.idempotencyKey)
       : generateIdempotencyKey(uid, { userText, modelKey: body.modelKey });
 
     let requestSettled = false;
     let creditsCharged = false;
+    let successfullyStreamed = false;
 
     const settleFailure = async () => {
       if (requestSettled) return;
       requestSettled = true;
 
-      if (useCredits) {
+      if (!useCredits) return;
+
+      try {
         if (creditsCharged) {
           await creditCredits(uid, CREDITS_COSTS.chatMessage, {
             reason: "chat_message_refund",
@@ -120,21 +106,28 @@ export async function POST(req: Request) {
             deterministicId: `refund_chat_${idempotencyKey}`,
           });
         }
+      } catch (refundError) {
+        console.error("Chat refund failed:", refundError);
+      }
+      try {
         await markIdempotencyFailed(uid, idempotencyKey);
+      } catch (idError) {
+        console.error("Idempotency failure mark failed:", idError);
       }
     };
 
     const settleSuccess = async () => {
       if (requestSettled) return;
       requestSettled = true;
-
-      if (useCredits) {
+      if (!useCredits) return;
+      try {
         await markIdempotencyComplete(uid, idempotencyKey);
+      } catch (error) {
+        console.error("Idempotency completion mark failed:", error);
       }
     };
 
     if (useCredits) {
-      // Check idempotency to prevent double-charging on retries
       const idempotencyResult = await checkAndSetIdempotency(uid, idempotencyKey);
 
       if (!idempotencyResult.isNew) {
@@ -145,7 +138,6 @@ export async function POST(req: Request) {
         return Response.json({ error: errorCode }, { status: 409 });
       }
 
-      // New request - charge credits
       try {
         await debitCreditsOrThrow(uid, CREDITS_COSTS.chatMessage, {
           reason: "chat_message",
@@ -155,16 +147,27 @@ export async function POST(req: Request) {
         });
         creditsCharged = true;
       } catch (error) {
-        await markIdempotencyFailed(uid, idempotencyKey);
+        await markIdempotencyFailed(uid, idempotencyKey).catch(() => undefined);
         throw error;
       }
     }
+
+    // Abort controller wired to the incoming request: if the client
+    // disconnects mid-stream we refund the credit and clear the idempotency
+    // marker so the user can retry.
+    const abortController = new AbortController();
+    const forwardAbort = () => {
+      if (!abortController.signal.aborted) abortController.abort();
+    };
+    req.signal.addEventListener("abort", forwardAbort, { once: true });
 
     try {
       const result = streamText({
         model,
         messages: buildMessages(body.history, userText),
+        abortSignal: abortController.signal,
         onFinish: async () => {
+          successfullyStreamed = true;
           await settleSuccess();
         },
         onError: async (event) => {
@@ -174,6 +177,13 @@ export async function POST(req: Request) {
               : event;
           console.error("Chat stream error:", streamError);
           await settleFailure();
+        },
+        onAbort: async () => {
+          if (!successfullyStreamed) {
+            await settleFailure();
+          } else {
+            await settleSuccess();
+          }
         },
       });
 

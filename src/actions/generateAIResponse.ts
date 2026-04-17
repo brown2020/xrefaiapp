@@ -9,6 +9,13 @@ import { requireAuthedUid } from "@/actions/serverAuth";
 import { creditCredits, debitCreditsOrThrow } from "@/actions/serverCredits";
 import { CREDITS_COSTS, getTextGenerationCreditsCost } from "@/constants/credits";
 import { MAX_WORD_COUNT, MIN_WORD_COUNT } from "@/constants";
+import {
+  checkAndSetIdempotency,
+  generateClientIdempotencyKey,
+  generateIdempotencyKey,
+  markIdempotencyComplete,
+  markIdempotencyFailed,
+} from "@/utils/idempotency";
 
 interface SimpleMessage {
   type: "simple";
@@ -21,6 +28,7 @@ interface SimpleMessage {
   anthropicApiKey?: string;
   xaiApiKey?: string;
   googleApiKey?: string;
+  idempotencyKey?: string;
 }
 
 interface ConversationMessage {
@@ -33,12 +41,20 @@ interface ConversationMessage {
   anthropicApiKey?: string;
   xaiApiKey?: string;
   googleApiKey?: string;
+  idempotencyKey?: string;
 }
 
 type MessageInput = SimpleMessage | ConversationMessage;
 
 /**
- * Unified AI response generator supporting both simple prompts and conversations
+ * Unified AI response generator supporting both simple prompts and conversations.
+ *
+ * Credit-safety contract:
+ * - Credits are debited BEFORE the stream starts.
+ * - An idempotency key gates the debit so a retry (same content or same
+ *   client-supplied key) is a no-op.
+ * - If the stream errors or is aborted, credits are refunded and the
+ *   idempotency record is cleared so the user can retry cleanly.
  */
 export async function generateAIResponse(input: MessageInput) {
   const model = getTextModel({
@@ -64,10 +80,6 @@ export async function generateAIResponse(input: MessageInput) {
           })),
         ];
 
-  // Server-side credit enforcement: if the caller wants to use app keys (credits mode),
-  // require auth and debit credits atomically.
-  //
-  // If `useCredits === false`, the request must supply user API keys and is billed to the user.
   const useCredits = input.useCredits !== false;
   const cost =
     input.type === "conversation"
@@ -81,49 +93,137 @@ export async function generateAIResponse(input: MessageInput) {
             )
           )
         );
-  const refundId = `refund_generation_${randomUUID()}`;
-  let requestSettled = false;
+
   let chargedUid = "";
   let creditsCharged = false;
+  let idempotencyKey = "";
+  let settled = false;
+
+  const payloadForIdempotency =
+    input.type === "simple"
+      ? {
+          type: "simple" as const,
+          systemPrompt: input.systemPrompt,
+          userPrompt: input.userPrompt,
+          modelKey: input.modelKey,
+        }
+      : {
+          type: "conversation" as const,
+          systemPrompt: input.systemPrompt,
+          messages: input.messages,
+          modelKey: input.modelKey,
+        };
 
   const settleFailure = async () => {
-    if (requestSettled || !useCredits || !chargedUid || !creditsCharged) return;
-    requestSettled = true;
-    await creditCredits(chargedUid, cost, {
-      reason: input.type === "conversation" ? "chat_message_refund" : "text_generation_refund",
-      tool: input.type === "conversation" ? "chat" : "tools",
-      modelKey: input.modelKey,
-      deterministicId: refundId,
-    });
+    if (settled) return;
+    settled = true;
+    if (!useCredits || !chargedUid) return;
+
+    if (creditsCharged) {
+      try {
+        await creditCredits(chargedUid, cost, {
+          reason:
+            input.type === "conversation"
+              ? "chat_message_refund"
+              : "text_generation_refund",
+          tool: input.type === "conversation" ? "chat" : "tools",
+          modelKey: input.modelKey,
+          deterministicId: `refund_generation_${idempotencyKey || randomUUID()}`,
+        });
+      } catch (refundError) {
+        console.error("Generation refund failed:", refundError);
+      }
+    }
+    if (idempotencyKey) {
+      await markIdempotencyFailed(chargedUid, idempotencyKey).catch(() => undefined);
+    }
   };
 
   const settleSuccess = async () => {
-    if (requestSettled) return;
-    requestSettled = true;
+    if (settled) return;
+    settled = true;
+    if (!useCredits || !chargedUid || !idempotencyKey) return;
+    try {
+      await markIdempotencyComplete(chargedUid, idempotencyKey);
+    } catch (error) {
+      console.error("Idempotency completion mark failed:", error);
+    }
   };
 
   if (useCredits) {
     chargedUid = await requireAuthedUid();
-    await debitCreditsOrThrow(chargedUid, cost, {
-      reason: input.type === "conversation" ? "chat_message" : "text_generation",
-      tool: input.type === "conversation" ? "chat" : "tools",
-      modelKey: input.modelKey,
-    });
-    creditsCharged = true;
+    idempotencyKey = input.idempotencyKey
+      ? generateClientIdempotencyKey(chargedUid, input.idempotencyKey)
+      : generateIdempotencyKey(chargedUid, payloadForIdempotency);
+
+    const idempotencyResult = await checkAndSetIdempotency(chargedUid, idempotencyKey);
+    if (!idempotencyResult.isNew) {
+      if (idempotencyResult.status === "completed") {
+        throw new Error("DUPLICATE_REQUEST");
+      }
+      throw new Error("REQUEST_IN_PROGRESS");
+    }
+
+    try {
+      await debitCreditsOrThrow(chargedUid, cost, {
+        reason: input.type === "conversation" ? "chat_message" : "text_generation",
+        tool: input.type === "conversation" ? "chat" : "tools",
+        modelKey: input.modelKey,
+        refId: idempotencyKey,
+      });
+      creditsCharged = true;
+    } catch (error) {
+      await markIdempotencyFailed(chargedUid, idempotencyKey).catch(() => undefined);
+      throw error;
+    }
   }
+
+  const abortController = new AbortController();
 
   try {
     const result = streamText({
       model,
       messages,
-      onFinish: async () => {
-        await settleSuccess();
+      abortSignal: abortController.signal,
+      onFinish: () => {
+        void settleSuccess();
       },
-      onError: async () => {
-        await settleFailure();
+      onError: (event) => {
+        const streamError =
+          typeof event === "object" && event !== null && "error" in event
+            ? (event as { error?: unknown }).error
+            : event;
+        console.error("Generation stream error:", streamError);
+        void settleFailure();
+      },
+      onAbort: () => {
+        void settleFailure();
       },
     });
-    const stream = createStreamableValue(result.textStream);
+
+    // `createStreamableValue` exposes an RSC-friendly iterable. Use
+    // `append()` so the consumer sees progressively-growing cumulative
+    // text (each `readStreamableValue` iteration yields the full response
+    // so far, matching what every caller expects when they do
+    // `finishedSummary = content.trim()`).
+    //
+    // Wrapping the pump in try/catch lets us:
+    //   - propagate underlying stream errors via `stream.error`.
+    //   - call `settleFailure` if the provider yields no finishing signal.
+    const stream = createStreamableValue<string>();
+    (async () => {
+      try {
+        for await (const chunk of result.textStream) {
+          stream.append(chunk);
+        }
+        stream.done();
+      } catch (error) {
+        console.error("Generation stream pump error:", error);
+        stream.error(error);
+        await settleFailure();
+      }
+    })();
+
     return stream.value;
   } catch (error) {
     await settleFailure();
@@ -145,6 +245,7 @@ export async function generateResponse(
     anthropicApiKey?: string;
     xaiApiKey?: string;
     googleApiKey?: string;
+    idempotencyKey?: string;
   }
 ) {
   return generateAIResponse({
@@ -168,6 +269,7 @@ export async function generateResponseWithMemory(
     anthropicApiKey?: string;
     xaiApiKey?: string;
     googleApiKey?: string;
+    idempotencyKey?: string;
   }
 ) {
   const messages: Array<{ role: "user" | "assistant"; content: string }> = [];
@@ -188,9 +290,3 @@ export async function generateResponseWithMemory(
     ...options,
   });
 }
-
-
-
-
-
-

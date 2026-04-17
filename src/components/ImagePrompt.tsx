@@ -56,9 +56,7 @@ export default function ImagePrompt() {
       ? `${topic}. In the style of ${selectedPainter}`
       : topic;
 
-    if (!validateContentWithToast(finalTopic)) {
-      return;
-    }
+    if (!validateContentWithToast(finalTopic)) return;
 
     if (!uid) {
       toast.error("Please sign in to generate images.");
@@ -68,7 +66,7 @@ export default function ImagePrompt() {
     startGeneration();
     const toastId = toast.loading("Working on the design...");
 
-    let result: { imageUrl?: string; error?: string } = {};
+    let result: { imageUrl?: string; error?: string };
     try {
       result = await generateImage(finalTopic, {
         useCredits: generationConfig.useCredits,
@@ -82,44 +80,56 @@ export default function ImagePrompt() {
       return;
     }
 
-    if (result.imageUrl && uid) {
+    if (result.imageUrl) {
       try {
         completeWithSuccess(result.imageUrl);
-        if (generationConfig.useCredits) {
-          await fetchProfile();
+        if (generationConfig.useCredits) await fetchProfile();
+
+        try {
+          await saveHistory({
+            prompt: finalTopic,
+            response: result.imageUrl,
+            topic: finalTopic,
+            words: "image",
+            xrefs: [],
+          });
+        } catch (historyError) {
+          console.error("Error saving image history:", historyError);
+          toast.error("Image generated but couldn't be saved to history.");
         }
-        await saveHistory({
-          prompt: finalTopic,
-          response: result.imageUrl,
-          topic: finalTopic,
-          words: "image",
-          xrefs: [],
-        });
 
         toast.dismiss(toastId);
         toast.success("Image generated successfully!");
       } catch (error) {
-        console.error("Error while saving history:", error);
+        console.error("Error while finalizing image generation:", error);
         toast.dismiss(toastId);
         toast.error("Error generating design...");
         completeWithError("Error saving to history");
       }
-    } else {
-      if (result.error === "INSUFFICIENT_CREDITS") {
-        toast.dismiss(toastId);
-        toast.error("Not enough credits. Please buy more credits in Account.");
-        openPaywall({
-          actionLabel: "Image generation",
-          requiredCredits: CREDITS_COSTS.imageGeneration,
-          redirectPath: ROUTES.tools,
-        });
-        completeWithError("Not enough credits");
-        return;
-      }
-      completeWithError(IMAGE_ERROR_MESSAGE);
-      toast.dismiss(toastId);
-      toast.error("Issue with design...");
+      return;
     }
+
+    toast.dismiss(toastId);
+    if (result.error === "INSUFFICIENT_CREDITS") {
+      toast.error("Not enough credits. Please buy more credits in Account.");
+      openPaywall({
+        actionLabel: "Image generation",
+        requiredCredits: CREDITS_COSTS.imageGeneration,
+        redirectPath: ROUTES.tools,
+      });
+      completeWithError("Not enough credits");
+      return;
+    }
+    if (
+      result.error === "DUPLICATE_REQUEST" ||
+      result.error === "REQUEST_IN_PROGRESS"
+    ) {
+      toast.error("That request is already being handled. Please wait a moment.");
+      completeWithError("Duplicate request");
+      return;
+    }
+    completeWithError(IMAGE_ERROR_MESSAGE);
+    toast.error("Issue with design...");
   };
 
   return (
@@ -142,6 +152,7 @@ export default function ImagePrompt() {
             id="topic-field"
             rows={4}
             placeholder="Enter a freestyle prompt with any information or ideas you want to visualize"
+            value={topic}
             onChange={(e) => setTopic(e.target.value)}
           />
         </label>

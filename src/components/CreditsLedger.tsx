@@ -12,6 +12,7 @@ import {
 import { db } from "@/firebase/firebaseClient";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { coerceCredits } from "@/utils/credits";
 
 type CreditsLedgerEntryType = "debit" | "credit";
 
@@ -26,15 +27,6 @@ type CreditsLedgerEntry = {
   balanceAfter: number | null;
   createdAt: Timestamp | null;
 };
-
-function coerceNumber(value: unknown, fallback: number): number {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) return parsed;
-  }
-  return fallback;
-}
 
 function formatDate(ts: Timestamp | null): string {
   if (!ts) return "Pending…";
@@ -77,7 +69,7 @@ export default function CreditsLedger() {
           return {
             id: doc.id,
             type: (d.type as CreditsLedgerEntryType) ?? "debit",
-            amount: coerceNumber(d.amount, 0),
+            amount: coerceCredits(d.amount, 0),
             reason: (d.reason as string) ?? "",
             tool: (d.tool as string) ?? null,
             modelKey: (d.modelKey as string) ?? null,
@@ -188,4 +180,3 @@ export default function CreditsLedger() {
     </div>
   );
 }
-

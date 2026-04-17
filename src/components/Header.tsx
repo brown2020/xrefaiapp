@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Menu,
@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { signOut } from "firebase/auth";
 import { deleteCookie } from "cookies-next";
-import { NAV_MENU_ITEMS, ROUTES } from "@/constants/routes";
+import { NAV_MENU_ITEMS, PROTECTED_ROUTES, ROUTES } from "@/constants/routes";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui";
 import { CreditsBadge } from "@/components/ui/CreditsBadge";
 import { useAuthStore } from "@/zustand/useAuthStore";
@@ -45,6 +45,7 @@ const menuItems: MenuItem[] = NAV_MENU_ITEMS.map((item) => ({
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const uid = useAuthStore((s) => s.uid);
   const clearAuthDetails = useAuthStore((s) => s.clearAuthDetails);
 
@@ -53,6 +54,12 @@ export default function Header() {
       deleteCookie(getAuthCookieName());
       await signOut(auth);
       clearAuthDetails();
+      // If we're on a protected route, navigate home so the user doesn't
+      // sit on a page they no longer have access to.
+      const isOnProtected = PROTECTED_ROUTES.some(
+        (route) => pathname === route || pathname?.startsWith(`${route}/`)
+      );
+      if (isOnProtected) router.push(ROUTES.home);
     } catch (error) {
       console.error("Error signing out:", error);
       toast.error("An error occurred while signing out.");

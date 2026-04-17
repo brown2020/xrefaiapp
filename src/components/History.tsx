@@ -26,6 +26,8 @@ import { useHistorySaver } from "@/hooks/useHistorySaver";
 import toast from "react-hot-toast";
 import { readStreamableValue } from "@ai-sdk/rsc";
 import { generateResponse } from "@/actions/generateAIResponse";
+import { isInsufficientCreditsError } from "@/utils/errors";
+import { createClientIdempotencyKey } from "@/utils/clientIdempotencyKey";
 
 export default function History() {
   const uid = useAuthStore((state) => state.uid);
@@ -72,26 +74,25 @@ export default function History() {
     setExpandedItems((prev) => ({ ...prev, [id]: !prev[id] }));
   }, []);
 
-  // Filter summaries by search term
-  const filteredSummaries = useMemo(
-    () =>
-      [...localAdds, ...summaries]
-        .reduce<UserHistoryType[]>((acc, item) => {
-          // de-dupe by id (local insert may overlap if pagination picks it up)
-          if (!acc.some((x) => x.id === item.id)) acc.push(item);
-          return acc;
-        }, [])
-        .sort(
-          (a, b) =>
-            (b.timestamp?.toMillis?.() ?? 0) - (a.timestamp?.toMillis?.() ?? 0)
-        )
-        .filter((summary) =>
-          (summary.response + " " + summary.prompt)
-            .toUpperCase()
-            .includes(search.toUpperCase())
-        ),
-    [localAdds, summaries, search]
-  );
+  // Filter summaries by search term. Dedupe via Set for O(N) instead of O(N²).
+  const filteredSummaries = useMemo(() => {
+    const seenIds = new Set<string>();
+    const deduped: UserHistoryType[] = [];
+    for (const item of [...localAdds, ...summaries]) {
+      if (seenIds.has(item.id)) continue;
+      seenIds.add(item.id);
+      deduped.push(item);
+    }
+    deduped.sort(
+      (a, b) =>
+        (b.timestamp?.toMillis?.() ?? 0) - (a.timestamp?.toMillis?.() ?? 0)
+    );
+    const needle = search.toUpperCase();
+    if (!needle) return deduped;
+    return deduped.filter((summary) =>
+      (summary.response + " " + summary.prompt).toUpperCase().includes(needle)
+    );
+  }, [localAdds, summaries, search]);
 
   if (!uid) {
     return (
@@ -259,21 +260,26 @@ function HistoryCard({
           anthropicApiKey: profile.anthropic_api_key,
           xaiApiKey: profile.xai_api_key,
           googleApiKey: profile.google_api_key,
+          idempotencyKey: createClientIdempotencyKey(),
         });
 
         let finished = "";
         for await (const chunk of readStreamableValue(stream)) {
-          if (!chunk) continue;
-          finished = chunk.trim();
+          if (chunk === undefined || chunk === null) continue;
+          finished = String(chunk).trim();
           setRepurposeOutput(finished);
         }
       } catch (error) {
-        if (
-          error instanceof Error &&
-          (error.message === "INSUFFICIENT_CREDITS" ||
-            error.message.toLowerCase().includes("insufficient"))
-        ) {
+        if (isInsufficientCreditsError(error)) {
           toast.error("Not enough credits. Please buy more credits in Account.");
+        } else if (
+          error instanceof Error &&
+          (error.message === "DUPLICATE_REQUEST" ||
+            error.message === "REQUEST_IN_PROGRESS")
+        ) {
+          toast.error(
+            "That repurpose is already being handled. Please wait a moment."
+          );
         } else {
           console.error("Repurpose error:", error);
           toast.error("Could not repurpose this item right now.");
@@ -340,13 +346,12 @@ function HistoryCard({
       <div className="bg-muted/50 border-b border-border px-5 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
           <Calendar size={14} />
-          {new Date(summary.timestamp.seconds * 1000).toLocaleString(
-            undefined,
-            {
-              dateStyle: "medium",
-              timeStyle: "short",
-            }
-          )}
+          {summary.timestamp?.seconds
+            ? new Date(summary.timestamp.seconds * 1000).toLocaleString(
+                undefined,
+                { dateStyle: "medium", timeStyle: "short" }
+              )
+            : "Pending…"}
           {summary.derivedFromId ? (
             <span className="ml-2 inline-flex items-center rounded-full border border-border bg-card px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
               Derived

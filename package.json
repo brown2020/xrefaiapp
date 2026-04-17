@@ -42,6 +42,8 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",
+    "@eslint/js": "^10.0.1",
+    "@next/eslint-plugin-next": "^16.2.4",
     "@tailwindcss/postcss": "^4.2.2",
     "@types/lodash": "^4.17.24",
     "@types/node": "^25.5.2",
@@ -49,9 +51,10 @@
     "@types/react-dom": "^19.2.3",
     "@types/react-scroll-to-bottom": "^4.2.5",
     "eslint": "^10.2.0",
-    "eslint-config-next": "^16.2.2",
+    "eslint-plugin-react-hooks": "^7.1.0",
     "postcss": "^8",
     "tailwindcss": "^4.2.2",
-    "typescript": "^6"
+    "typescript": "^6",
+    "typescript-eslint": "^8.58.2"
   }
 }

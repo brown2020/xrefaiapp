@@ -17,13 +17,13 @@ import { CreditsPaywallModal } from "@/components/ui/CreditsPaywallModal";
  * Client-side provider that handles:
  * - Auth token management
  * - Store initialization
- * - Loading states
  * - Cookie consent
  * - Toast notifications
  * - Redirect on logout from protected routes
  *
- * Note: Initial route protection is handled by proxy.ts at the edge level.
- * This component handles redirect when user logs out while on a protected route.
+ * Route protection at the edge is handled by `proxy.ts`. This component
+ * handles the runtime case where a user logs out while on a protected
+ * route — we navigate them back to home.
  */
 export function ClientProvider({ children }: { children: React.ReactNode }) {
   const { loading, uid } = useAuthToken(getAuthCookieName());
@@ -34,11 +34,9 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
   useInitializeStores();
   const { isClient, isWebView } = useClientSetup();
 
-  // Track authentication state and redirect on logout from protected routes
   useEffect(() => {
     if (loading) return;
 
-    // Check if user just logged out (was authenticated, now isn't)
     if (wasAuthenticated.current && !uid) {
       const isOnProtectedRoute = PROTECTED_ROUTES.some(
         (route) => pathname === route || pathname?.startsWith(`${route}/`)
@@ -49,7 +47,6 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Update the ref for next comparison
     wasAuthenticated.current = !!uid;
   }, [loading, uid, pathname, router]);
 

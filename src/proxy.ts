@@ -1,41 +1,27 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getAuthCookieName } from "@/utils/getAuthCookieName";
+import { PROTECTED_ROUTES } from "@/constants/routes";
 
 /**
- * Protected routes that require authentication
+ * Next.js 16 Proxy (replaces middleware.ts).
+ * Handles route protection at the edge level.
  *
- * ⚠️ SYNC REQUIRED: Keep in sync with PROTECTED_ROUTES in constants/routes.ts
- * Next.js requires static string literals for the matcher config,
- * so we cannot import from constants. Run `npm run lint` to verify sync.
- */
-const PROTECTED_ROUTE_PREFIXES = [
-  "/chat",
-  "/tools",
-  "/history",
-  "/account",
-  "/payment-attempt",
-  "/payment-success",
-] as const;
-
-/**
- * Next.js 16 Proxy (replaces middleware.ts)
- * Handles route protection at the edge level
+ * Note: This is a soft gate — it only checks whether an auth cookie is
+ * present. Actual token verification happens in server actions / API
+ * route handlers. Tampered cookies will be rejected there.
  */
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Check if the current path starts with any of the protected routes
-  const isProtectedRoute = PROTECTED_ROUTE_PREFIXES.some(
+  const isProtectedRoute = PROTECTED_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
 
   if (isProtectedRoute) {
-    // Get the auth token from cookies
     const cookieName = getAuthCookieName();
     const token = request.cookies.get(cookieName)?.value;
 
-    // If no token is found, redirect to home page
     if (!token) {
       const url = new URL("/", request.url);
       return NextResponse.redirect(url);
@@ -46,9 +32,9 @@ export function proxy(request: NextRequest) {
 }
 
 /**
- * Configure which paths the proxy runs on
- * Note: Next.js requires static string literals here - cannot use variables
- * Keep in sync with PROTECTED_ROUTE_PREFIXES above and PROTECTED_ROUTES in constants/routes.ts
+ * Configure which paths the proxy runs on.
+ * Note: Next.js requires static string literals here — cannot use variables.
+ * Keep in sync with `PROTECTED_ROUTES` in constants/routes.ts.
  */
 export const config = {
   matcher: [

@@ -13,8 +13,9 @@ export function isReactNativeWebView(): boolean {
 }
 
 /**
- * Check if running in iOS React Native WebView
- * @deprecated Use isReactNativeWebView() - the naming was misleading
+ * Back-compat alias. The naming is misleading (it detects any RN WebView,
+ * not iOS specifically), but is widely referenced. New call sites should
+ * use `isReactNativeWebView()` directly.
  */
 export function isIOSReactNativeWebView(): boolean {
   return isReactNativeWebView();

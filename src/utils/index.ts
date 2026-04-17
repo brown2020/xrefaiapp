@@ -18,13 +18,10 @@ export {
 } from "./platform";
 
 // Content validation
-export { validateContent, validateContentWithAlert } from "./contentGuard";
+export { validateContent, validateContentWithToast } from "./contentGuard";
 
 // Image utilities
 export { getImagePrompt } from "./getImagePrompt";
-
-// Payment utilities
-export { default as convertToSubcurrency } from "./convertToSubcurrency";
 
 // Image processing
 export { resizeImage } from "./resizeImage";
