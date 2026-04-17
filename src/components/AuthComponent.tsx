@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   GoogleAuthProvider,
+  getIdToken,
   sendSignInLinkToEmail,
   signInWithPopup,
   signOut,
@@ -10,8 +11,9 @@ import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   fetchSignInMethodsForEmail,
+  type User,
 } from "firebase/auth";
-import { deleteCookie } from "cookies-next";
+import { deleteCookie, setCookie } from "cookies-next";
 
 import Link from "next/link";
 import { LockIcon, MailIcon, XIcon, ArrowRight } from "lucide-react";
@@ -49,6 +51,29 @@ export default function AuthComponent() {
   const showModal = () => setIsVisible(true);
   const hideModal = () => setIsVisible(false);
 
+  /**
+   * Write the auth cookie immediately after sign-in so the edge proxy can
+   * see it on the very next navigation. Without this, `useAuthToken`'s
+   * effect races with the user clicking a protected link and the proxy
+   * redirects to home because the cookie isn't there yet.
+   */
+  const persistAuthCookie = async (user: User): Promise<void> => {
+    try {
+      const idToken = await getIdToken(user, /* forceRefresh */ true);
+      const isSecure =
+        process.env.NODE_ENV === "production" &&
+        window.location.protocol === "https:";
+      setCookie(getAuthCookieName(), idToken, {
+        secure: isSecure,
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7,
+      });
+    } catch (err) {
+      console.error("Failed to persist auth cookie after sign-in:", err);
+    }
+  };
+
   useEffect(() => {
     setShowGoogleSignIn(!isIOSReactNativeWebView());
   }, []);
@@ -67,7 +92,10 @@ export default function AuthComponent() {
 
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      const credential = await signInWithPopup(auth, provider);
+      if (credential.user) {
+        await persistAuthCookie(credential.user);
+      }
     } catch (error) {
       if (isFirebaseError(error)) {
         if (error.code === "auth/account-exists-with-different-credential") {
@@ -121,12 +149,13 @@ export default function AuthComponent() {
 
     setIsSubmitting(true);
     try {
-      if (authMode === "signup") {
-        await createUserWithEmailAndPassword(auth, email, password);
-        persistSignupHints();
-      } else {
-        await signInWithEmailAndPassword(auth, email, password);
-        persistSignupHints();
+      const credential =
+        authMode === "signup"
+          ? await createUserWithEmailAndPassword(auth, email, password)
+          : await signInWithEmailAndPassword(auth, email, password);
+      persistSignupHints();
+      if (credential.user) {
+        await persistAuthCookie(credential.user);
       }
       hideModal();
     } catch (error: unknown) {

@@ -28,6 +28,49 @@ function isFirebaseError(error: unknown): error is { code: string; message: stri
   );
 }
 
+/**
+ * Writes the Firebase ID token to the auth cookie synchronously relative to
+ * the caller. Returns a promise that resolves once the cookie has been set
+ * (or rejected on an unambiguous invalid-token error).
+ *
+ * This is broken out of the hook so sign-in paths can `await` it before
+ * navigating to a protected route.
+ */
+async function writeAuthCookie(
+  cookieName: string
+): Promise<boolean> {
+  const user = auth.currentUser;
+  if (!user) return false;
+
+  try {
+    const idToken = await getIdToken(user, /* forceRefresh */ true);
+    const isSecure =
+      process.env.NODE_ENV === "production" &&
+      typeof window !== "undefined" &&
+      window.location.protocol === "https:";
+    setCookie(cookieName, idToken, {
+      secure: isSecure,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7,
+    });
+    return true;
+  } catch (err: unknown) {
+    const firebaseCode = isFirebaseError(err) ? err.code : "";
+    if (firebaseCode && TOKEN_INVALID_CODES.has(firebaseCode)) {
+      // Firebase explicitly says the token is invalid — safe to clear.
+      deleteCookie(cookieName, { path: "/" });
+    } else if (err instanceof Error) {
+      // Transient (network, offline, CORS) — KEEP the existing cookie
+      // so the user isn't logged out by a flaky connection.
+      console.error("Token refresh failed:", err.message);
+    } else {
+      console.error("Token refresh failed");
+    }
+    return false;
+  }
+}
+
 const useAuthToken = (cookieName = getAuthCookieName()) => {
   const [user, loading, error] = useAuthState(auth);
   const setAuthDetails = useAuthStore((state) => state.setAuthDetails);
@@ -40,39 +83,14 @@ const useAuthToken = (cookieName = getAuthCookieName()) => {
   const activityTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refreshAuthToken = useCallback(async () => {
+    const wrote = await writeAuthCookie(cookieName);
+    if (!wrote) return;
     try {
-      if (!auth.currentUser) return;
-      const idToken = await getIdToken(auth.currentUser, true);
-
-      const isSecure =
-        process.env.NODE_ENV === "production" &&
-        typeof window !== "undefined" &&
-        window.location.protocol === "https:";
-      setCookie(cookieName, idToken, {
-        secure: isSecure,
-        sameSite: "lax",
-        path: "/",
-        maxAge: 60 * 60 * 24 * 7,
-      });
-      try {
-        if (typeof window !== "undefined" && !window.ReactNativeWebView) {
-          window.localStorage.setItem(lastTokenRefreshKey, Date.now().toString());
-        }
-      } catch {
-        // Ignore localStorage errors (private mode, quota, etc.).
+      if (typeof window !== "undefined" && !window.ReactNativeWebView) {
+        window.localStorage.setItem(lastTokenRefreshKey, Date.now().toString());
       }
-    } catch (err: unknown) {
-      const firebaseCode = isFirebaseError(err) ? err.code : "";
-      if (firebaseCode && TOKEN_INVALID_CODES.has(firebaseCode)) {
-        // Only clear the cookie when Firebase explicitly tells us the token
-        // is no longer valid. Transient network errors should NOT wipe the
-        // cookie and force the user to sign in again.
-        deleteCookie(cookieName, { path: "/" });
-      } else if (err instanceof Error) {
-        console.error("Token refresh failed:", err.message);
-      } else {
-        console.error("Token refresh failed");
-      }
+    } catch {
+      // Ignore localStorage errors (private mode, quota, etc.).
     }
   }, [cookieName, lastTokenRefreshKey]);
 
@@ -97,8 +115,6 @@ const useAuthToken = (cookieName = getAuthCookieName()) => {
     if (typeof window === "undefined") return;
 
     const handleStorageChange = debounce((e: StorageEvent) => {
-      // When another tab refreshed the token, we don't need to refresh
-      // again — just reschedule our own timer to align with the new token.
       if (e.key === lastTokenRefreshKey) {
         scheduleTokenRefresh();
       }
@@ -121,9 +137,6 @@ const useAuthToken = (cookieName = getAuthCookieName()) => {
     if (typeof window === "undefined") return;
 
     const handleFocus = () => {
-      // When the user returns to the tab, aggressively refresh the token
-      // since it may have expired while we were hidden (Firebase tokens
-      // only last ~1 h). We then schedule the normal periodic refresh.
       if (document.visibilityState === "visible" && auth.currentUser) {
         void refreshAuthToken();
         scheduleTokenRefresh();
@@ -140,6 +153,12 @@ const useAuthToken = (cookieName = getAuthCookieName()) => {
   }, [refreshAuthToken, scheduleTokenRefresh]);
 
   useEffect(() => {
+    // CRITICAL: do not touch the cookie while Firebase is still hydrating
+    // auth state from IndexedDB. During hydration `user` is null but that
+    // doesn't mean the user is signed out — wiping the cookie here causes
+    // the proxy to redirect protected routes to home on every page load.
+    if (loading) return;
+
     if (user?.uid) {
       const authDetails = {
         uid: user.uid,
@@ -152,11 +171,16 @@ const useAuthToken = (cookieName = getAuthCookieName()) => {
       };
       setAuthDetails(authDetails);
       void (async () => {
+        // Writing the cookie is the critical side-effect — do it first so
+        // any subsequent navigation to a protected route has the cookie
+        // available for the edge proxy. Profile sync is secondary and can
+        // happen after.
         await refreshAuthToken();
         await syncAuthProfile(authDetails);
         scheduleTokenRefresh();
       })();
     } else {
+      // Genuine signed-out state (loading === false && user === null).
       resetProfile();
       resetPayments();
       clearAuthDetails();
@@ -165,6 +189,7 @@ const useAuthToken = (cookieName = getAuthCookieName()) => {
   }, [
     clearAuthDetails,
     cookieName,
+    loading,
     resetPayments,
     resetProfile,
     setAuthDetails,
