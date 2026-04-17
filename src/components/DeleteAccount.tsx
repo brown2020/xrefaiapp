@@ -28,7 +28,7 @@ export default function DeleteAccount() {
     setShowDeleteModal(false);
     try {
       await deleteAccount();
-      deleteCookie(getAuthCookieName());
+      deleteCookie(getAuthCookieName(), { path: "/" });
       await signOut(auth);
       clearAuthDetails();
       toast.success("Account deleted successfully.");

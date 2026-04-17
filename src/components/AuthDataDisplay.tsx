@@ -84,7 +84,7 @@ export default function AuthDataDisplay() {
 
   const logoutUser = async () => {
     try {
-      deleteCookie(getAuthCookieName());
+      deleteCookie(getAuthCookieName(), { path: "/" });
       await signOut(auth);
       clearAuthDetails();
     } catch (error) {

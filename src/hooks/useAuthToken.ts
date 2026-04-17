@@ -67,7 +67,7 @@ const useAuthToken = (cookieName = getAuthCookieName()) => {
         // Only clear the cookie when Firebase explicitly tells us the token
         // is no longer valid. Transient network errors should NOT wipe the
         // cookie and force the user to sign in again.
-        deleteCookie(cookieName);
+        deleteCookie(cookieName, { path: "/" });
       } else if (err instanceof Error) {
         console.error("Token refresh failed:", err.message);
       } else {
@@ -160,7 +160,7 @@ const useAuthToken = (cookieName = getAuthCookieName()) => {
       resetProfile();
       resetPayments();
       clearAuthDetails();
-      deleteCookie(cookieName);
+      deleteCookie(cookieName, { path: "/" });
     }
   }, [
     clearAuthDetails,

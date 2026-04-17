@@ -51,7 +51,7 @@ export default function Header() {
 
   const handleSignOut = async () => {
     try {
-      deleteCookie(getAuthCookieName());
+      deleteCookie(getAuthCookieName(), { path: "/" });
       await signOut(auth);
       clearAuthDetails();
       // If we're on a protected route, navigate home so the user doesn't
