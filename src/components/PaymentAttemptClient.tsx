@@ -11,8 +11,8 @@ import { getIdToken } from "firebase/auth";
 
 export default function PaymentAttemptClient() {
   const searchParams = useSearchParams();
-  const packId = searchParams.get("pack");
-  const redirect = searchParams.get("redirect") || ROUTES.account;
+  const packId = searchParams?.get("pack") ?? null;
+  const redirect = searchParams?.get("redirect") || ROUTES.account;
   const pack = getCreditPack(packId);
   const [error, setError] = useState<string | null>(null);
 
