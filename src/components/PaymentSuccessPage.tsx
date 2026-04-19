@@ -33,11 +33,11 @@ export default function PaymentSuccessPage() {
 
   const searchParams = useSearchParams();
   const redirectPath = useMemo(
-    () => searchParams.get("redirect") || ROUTES.account,
+    () => searchParams?.get("redirect") || ROUTES.account,
     [searchParams]
   );
   const sessionId = useMemo(
-    () => searchParams.get("session_id") || "",
+    () => searchParams?.get("session_id") || "",
     [searchParams]
   );
 
