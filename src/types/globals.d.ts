@@ -18,8 +18,10 @@ declare global {
 
 export {};
 
-// SVG module declarations
+// SVG module declarations — Next.js processes SVGs through its image pipeline
+// which exposes a StaticImageData-compatible object (src, height, width).
 declare module '*.svg' {
-  const content: string;
+  import type { StaticImageData } from 'next/image';
+  const content: StaticImageData;
   export default content;
 }
