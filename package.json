@@ -57,5 +57,10 @@
     "tailwindcss": "^4.2.4",
     "typescript": "^6",
     "typescript-eslint": "^8.59.0"
+  },
+  "overrides": {
+    "uuid": ">=14.0.0",
+    "@tootallnate/once": ">=3.0.1",
+    "fast-xml-parser": ">=5.7.0"
   }
 }
