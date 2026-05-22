@@ -1,67 +1,52 @@
+import {
+  PublicContentSection,
+  PublicPageLayout,
+} from "@/components/PublicPageLayout";
+
+const principles = [
+  "Clear tools instead of cluttered prompt boxes.",
+  "Credit-based usage so costs stay visible.",
+  "Account controls for saved content, model choice, and provider keys.",
+  "Security patterns built around verified auth, rate limits, and guarded payments.",
+] as const;
+
 export default function About() {
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold mb-6 text-center text-foreground">
-          About Xref.AI
-        </h1>
+    <PublicPageLayout
+      eyebrow="About"
+      title="Xref.ai is a focused AI workspace for writing, chat, and image ideas."
+      description="The app brings practical generation tools into one account: writing helpers, chat, summarization, design prompts, image generation, saved history, and flexible credits."
+    >
+      <PublicContentSection title="What We Are Building">
+        <p>
+          Xref.ai is designed for people who move between research, notes,
+          drafts, revisions, and publishing. The goal is to keep the creative
+          loop compact: bring an idea or reference, choose a tool, generate a
+          useful starting point, then refine it.
+        </p>
+        <p>
+          The product supports both credit-based AI usage and user-provided API
+          keys, giving creators a simple path to get started and more control
+          when they need it.
+        </p>
+      </PublicContentSection>
 
-        <div className="bg-card text-card-foreground p-6 rounded-lg border border-border shadow-sm">
-          <div className="prose max-w-none">
-            <p className="text-lg leading-relaxed mb-4 text-muted-foreground">
-              <span className="font-bold text-foreground">Xref.AI</span> is an
-              advanced AI-powered platform designed to help you create
-              high-quality content with ease. Whether you&apos;re a writer,
-              marketer, student, or professional, our tools can help you generate
-              ideas, summarize information, and create engaging content.
-            </p>
+      <PublicContentSection title="Core Tools">
+        <ul className="list-disc pl-5">
+          <li>Writing tools for drafts, rewrites, summaries, and simplification.</li>
+          <li>AI chat for exploring ideas and saving useful exchanges.</li>
+          <li>Image generation for visual concepts and creative prompts.</li>
+          <li>Saved history so useful work remains available in your account.</li>
+        </ul>
+      </PublicContentSection>
 
-            <p className="text-lg leading-relaxed mb-4 text-muted-foreground">
-              <span className="font-bold text-foreground">Our Mission:</span> To
-              make content creation accessible, efficient, and enjoyable for
-              everyone. We believe that with the right tools, anyone can produce
-              exceptional content that communicates their ideas effectively.
-            </p>
-
-            <p className="text-lg leading-relaxed mb-4 text-muted-foreground">
-              <span className="font-bold text-foreground">
-                Powerful AI Tools:
-              </span>{" "}
-              Our platform offers a variety of tools including{" "}
-              <strong className="text-foreground">topic summarization</strong>,{" "}
-              <strong className="text-foreground">freestyle writing</strong>,{" "}
-              <strong className="text-foreground">text simplification</strong>,{" "}
-              <strong className="text-foreground">image generation</strong>, and{" "}
-              <strong className="text-foreground">design assistance</strong>.
-              Each tool is powered by state-of-the-art AI models to deliver the
-              best results.
-            </p>
-
-            <p className="text-lg leading-relaxed mb-4 text-muted-foreground">
-              <span className="font-bold text-foreground">
-                Customizable and Shareable:
-              </span>{" "}
-              Every image you generate is stored on your profile, where you can{" "}
-              <strong className="text-foreground">add tags</strong>,{" "}
-              <strong className="text-foreground">search and filter</strong>{" "}
-              your images, and{" "}
-              <strong className="text-foreground">regenerate</strong> them using
-              the same or edited prompts. You can also make your images{" "}
-              <strong className="text-foreground">sharable</strong> and easily{" "}
-              <strong className="text-foreground">download</strong> or{" "}
-              <strong className="text-foreground">share</strong> them with your
-              friends, community, or social media followers.
-            </p>
-
-            <p className="text-lg leading-relaxed text-muted-foreground">
-              Whether you&apos;re experimenting with different styles, refining
-              your ideas, or simply enjoying the process of creation, Xref.AI is
-              here to help you unleash your creative potential. Join the growing
-              community of creators and start generating today!
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+      <PublicContentSection title="Product Principles">
+        <ul className="list-disc pl-5">
+          {principles.map((principle) => (
+            <li key={principle}>{principle}</li>
+          ))}
+        </ul>
+      </PublicContentSection>
+    </PublicPageLayout>
   );
 }

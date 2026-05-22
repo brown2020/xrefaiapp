@@ -29,12 +29,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`h-full ${plusJakartaSans.variable}`}>
-      <body className="h-full bg-background text-foreground">
+    <html lang="en" className={`min-h-dvh ${plusJakartaSans.variable}`}>
+      <body className="min-h-dvh bg-background text-foreground">
         <ClientProvider>
-          <div className="flex flex-col h-full">
+          <div className="flex min-h-dvh flex-col">
             <Header />
-            <main className="flex-1 min-h-0">{children}</main>
+            <main className="flex-1">{children}</main>
             <Footer />
           </div>
         </ClientProvider>

@@ -59,7 +59,9 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
           This app uses cookies to enhance the user experience.
         </CookieConsent>
       )}
-      {isClient && <Toaster position="bottom-center" />}
+      {isClient && (
+        <Toaster position="bottom-center" containerStyle={{ zIndex: 30000 }} />
+      )}
     </ErrorBoundary>
   );
 }

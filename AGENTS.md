@@ -1,4 +1,4 @@
-# CLAUDE.md — Xref.ai Codebase Guide
+# AGENTS.md — Xref.ai Codebase Guide
 
 ## Project Overview
 
@@ -135,7 +135,7 @@ Patterns:
 
 - Whitelist in `src/ai/models.ts`:
   - `openai:gpt-5.4` (default)
-  - `anthropic:claude-sonnet-4-6`
+  - `anthropic:Codex-sonnet-4-6`
   - `xai:grok-4`
   - `google:gemini-3-pro-preview`
 - `resolveAiModelKey(value)` falls back to the default if the key isn't whitelisted — used both when persisting profile updates and when building the model for a generation.

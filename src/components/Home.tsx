@@ -1,246 +1,252 @@
 "use client";
 
-import { Typewriter } from "react-simple-typewriter";
-import AuthComponent from "@/components/AuthComponent";
-import { useRouter } from "next/navigation";
+import type { CSSProperties } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import AuthComponent from "@/components/AuthComponent";
 import {
-  PenTool,
-  Image as ImageIcon,
+  ArrowRight,
+  CheckCircle2,
+  CreditCard,
   FileText,
+  Image as ImageIcon,
+  MessageSquare,
+  PenTool,
   Share2,
+  ShieldCheck,
   Sparkles,
   Zap,
-  CheckCircle2,
+  type LucideIcon,
 } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 
+const typewriterWords = [
+  "Topic Summaries",
+  "Blog Posts",
+  "Newsletters",
+  "Travel Logs",
+  "Website Content",
+  "Essay Paragraphs",
+  "Homework Help",
+  "Descriptions",
+  "Product Info",
+  "Social Media Posts",
+  "Instagram Captions",
+  "Marketing Content",
+];
+
+const features = [
+  {
+    icon: FileText,
+    title: "Writing Tools",
+    description:
+      "Draft posts, essays, descriptions, and marketing copy with a workflow built for revision.",
+    color: "text-blue-600",
+  },
+  {
+    icon: MessageSquare,
+    title: "AI Chat",
+    description:
+      "Explore ideas in conversation, keep useful context, and return to saved threads.",
+    color: "text-[#f97316]",
+  },
+  {
+    icon: ImageIcon,
+    title: "Image Generation",
+    description:
+      "Convert structured prompts into images for campaigns, concepts, and creative exploration.",
+    color: "text-pink-600",
+  },
+  {
+    icon: Zap,
+    title: "Fast Summaries",
+    description:
+      "Compress topics, notes, articles, and references into clearer starting points.",
+    color: "text-amber-600",
+  },
+  {
+    icon: PenTool,
+    title: "Rewrite and Simplify",
+    description:
+      "Polish existing text, sharpen tone, or make dense material easier to read.",
+    color: "text-green-700",
+  },
+  {
+    icon: Share2,
+    title: "Saved History",
+    description:
+      "Keep generated work available so good ideas do not disappear after one session.",
+    color: "text-cyan-700",
+  },
+] as const;
+
+const workflow = [
+  "Choose a tool or open chat.",
+  "Add a prompt, topic, text, URL, or image idea.",
+  "Generate, refine, save, and keep creating.",
+] as const;
+
 export default function Home() {
-  const router = useRouter();
-
-  const handleNavigation = (link: string) => {
-    router.push(link);
-  };
-
-  const typewriterWords = [
-    "Topic Summaries",
-    "Blog Posts",
-    "Newsletters",
-    "Travel Logs",
-    "Website Content",
-    "Essay Paragraphs",
-    "Homework Help",
-    "Descriptions",
-    "Product Info",
-    "Social Media Posts",
-    "Instagram Captions",
-    "Marketing Content",
-  ];
-
   return (
-    <div className="flex flex-col min-h-screen w-full bg-linear-to-b from-muted/40 to-muted/80 text-foreground">
-      {/* Hero Section */}
-      <section className="relative pt-20 pb-16 md:pt-32 md:pb-24 overflow-hidden">
-        <div className="container px-4 mx-auto relative z-10">
-          <div className="flex flex-col items-center text-center max-w-4xl mx-auto">
-            <div className="inline-flex items-center px-3 py-1 mb-8 text-sm font-medium rounded-full bg-card text-foreground border border-border">
-              <Sparkles className="w-4 h-4 mr-2" />
-              <span>Unlock your creative potential with AI</span>
+    <div className="min-h-full bg-[#fbfaf7] text-foreground">
+      <section className="relative overflow-hidden border-b border-border bg-[#111827] text-white">
+        <Image
+          src="/hero.png"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="pointer-events-none object-cover opacity-30"
+          aria-hidden="true"
+        />
+        <div className="pointer-events-none absolute inset-0 bg-[#111827]/70" />
+
+        <div className="container relative z-10 mx-auto px-4 py-14 sm:py-16 md:py-20">
+          <div className="mx-auto max-w-4xl text-center">
+            <div className="mb-6 inline-flex items-center rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm font-bold text-white backdrop-blur">
+              <Sparkles className="mr-2 h-4 w-4 text-[#fbbf24]" />
+              AI writing, chat, and image tools
             </div>
 
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 text-foreground">
-              Create amazing <br className="hidden md:block" />
-              <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-cyan-500">
-                <Typewriter
-                  words={typewriterWords}
-                  loop={0}
-                  cursor
-                  cursorStyle="_"
-                  typeSpeed={70}
-                  deleteSpeed={50}
-                  delaySpeed={1500}
-                />
-              </span>
+            <h1 className="text-5xl font-extrabold leading-tight tracking-normal md:text-7xl">
+              Create amazing
             </h1>
 
-            <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl leading-relaxed">
-              Generate high-quality content in seconds. From engaging blog posts
-              to stunning visuals, let our AI tools handle the heavy lifting so
-              you can focus on big ideas.
+            <div className="mx-auto mt-4 flex h-[5.25rem] max-w-[15ch] items-start justify-center overflow-hidden text-3xl font-extrabold leading-tight tracking-normal text-white sm:h-[3.5rem] sm:max-w-none sm:text-4xl md:h-[4.5rem] md:text-5xl lg:text-6xl">
+              <span className="text-[#fbbf24]">
+                <HeroTypewriter words={typewriterWords} />
+              </span>
+            </div>
+
+            <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-white/80 md:text-xl">
+              Turn references, prompts, and rough ideas into drafts, summaries,
+              chat answers, and visuals without losing track of what you made.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <AuthComponent />
-              <button
-                onClick={() =>
-                  document
-                    .getElementById("features")
-                    ?.scrollIntoView({ behavior: "smooth" })
-                }
-                className="px-6 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              <a
+                href="#features"
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/25 bg-white/10 px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-white/15"
               >
-                Explore Features
-              </button>
+                Explore features
+                <ArrowRight className="h-4 w-4" />
+              </a>
             </div>
           </div>
-
-          {/* Hero Images Composition */}
-          <div className="mt-16 relative max-w-5xl mx-auto hidden md:block">
-            <div className="absolute -inset-1 bg-linear-to-r from-blue-500 to-cyan-500 rounded-2xl blur opacity-20 animate-pulse"></div>
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-border bg-card">
-              <div className="grid grid-cols-3 gap-4 p-4">
-                <div className="col-span-2 aspect-video relative rounded-xl overflow-hidden bg-muted">
-                  <Image
-                    src="/hero.png"
-                    alt="AI Dashboard Interface"
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <div className="col-span-1 flex flex-col gap-4">
-                  <div className="grow relative rounded-xl overflow-hidden bg-muted">
-                    <Image
-                      src="/hero_2.png"
-                      alt="AI Generated Content"
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="h-1/3 relative rounded-xl overflow-hidden bg-linear-to-br from-blue-600 to-cyan-600 flex items-center justify-center text-white p-4">
-                    <div className="text-center">
-                      <div className="text-3xl font-bold">100+</div>
-                      <div className="text-xs opacity-80">Content Types</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Background decorations */}
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
-          <div className="absolute top-[-10%] right-[-5%] w-96 h-96 bg-blue-400/20 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-[10%] left-[-5%] w-72 h-72 bg-cyan-400/20 rounded-full blur-3xl"></div>
         </div>
       </section>
 
-      {/* Features Grid */}
-      <section id="features" className="py-20 bg-card">
-        <div className="container px-4 mx-auto">
-          <div className="text-center mb-16 max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
-              Everything you need to create
+      <section id="features" className="border-b border-border bg-card py-16 md:py-20">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto mb-10 max-w-3xl text-center">
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.24em] text-accent">
+              Toolkit
+            </p>
+            <h2 className="text-3xl font-extrabold tracking-normal text-foreground md:text-4xl">
+              One workspace for writing, chat, images, and saved outputs.
             </h2>
-            <p className="text-muted-foreground">
-              A comprehensive suite of AI-powered tools designed to streamline
-              your creative workflow and boost productivity.
+            <p className="mt-4 text-base leading-7 text-muted-foreground">
+              The app is organized around real creation tasks, with flexible
+              credits and account controls behind the scenes.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            <FeatureCard
-              icon={<FileText className="w-6 h-6 text-blue-500" />}
-              title="Smart Writing Assistant"
-              description="Generate articles, essays, and stories with context-aware AI that captures your unique voice."
-            />
-            <FeatureCard
-              icon={<ImageIcon className="w-6 h-6 text-purple-500" />}
-              title="Image Generation"
-              description="Turn text descriptions into vivid, high-quality images for your projects and marketing."
-            />
-            <FeatureCard
-              icon={<Zap className="w-6 h-6 text-amber-500" />}
-              title="Instant Summaries"
-              description="Condense long documents, articles, or transcripts into concise summaries in seconds."
-            />
-            <FeatureCard
-              icon={<Share2 className="w-6 h-6 text-pink-500" />}
-              title="Social Media Magic"
-              description="Create engaging posts, captions, and hashtags optimized for different platforms."
-            />
-            <FeatureCard
-              icon={<PenTool className="w-6 h-6 text-green-500" />}
-              title="Content Improvement"
-              description="Rewrite and polish existing content to improve clarity, tone, and engagement."
-            />
-            <FeatureCard
-              icon={<Sparkles className="w-6 h-6 text-cyan-500" />}
-              title="Creative Brainstorming"
-              description="Generate ideas for blog topics, product names, and marketing campaigns instantly."
-            />
+          <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {features.map((feature) => (
+              <FeatureCard key={feature.title} {...feature} />
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Premium/Credits Section */}
-      <section className="py-20 bg-muted/40 border-t border-border">
-        <div className="container px-4 mx-auto">
-          <div className="max-w-5xl mx-auto bg-primary text-primary-foreground rounded-3xl overflow-hidden shadow-2xl relative">
-            {/* Abstract Background Elements */}
-            <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-blue-500 rounded-full opacity-20 blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-64 h-64 bg-purple-500 rounded-full opacity-20 blur-3xl"></div>
+      <section className="border-b border-border bg-[#fbfaf7] py-16 md:py-20">
+        <div className="container mx-auto grid gap-10 px-4 md:grid-cols-[0.9fr_1.1fr] md:items-center">
+          <div>
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.24em] text-accent">
+              Flow
+            </p>
+            <h2 className="text-3xl font-extrabold tracking-normal text-foreground md:text-4xl">
+              From a rough reference to something useful.
+            </h2>
+            <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground">
+              Xref.ai keeps the path short: prompt, generate, review, and save
+              the result in the same account.
+            </p>
+          </div>
 
-            <div className="grid md:grid-cols-2 gap-8 items-center p-8 md:p-12 relative z-10">
-              <div className="text-white space-y-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="bg-white/10 p-2 rounded-lg backdrop-blur-sm">
-                    <Image
-                      src="/credits_1.svg"
-                      alt="Credits"
-                      height={32}
-                      width={32}
-                      className="w-8 h-8"
-                    />
-                  </div>
-                  <span className="text-blue-300 font-semibold tracking-wider text-sm uppercase">
-                    Flexible Pricing
-                  </span>
-                </div>
-
-                <h2 className="text-3xl md:text-4xl font-bold leading-tight">
-                  Pay only for what you use. No monthly subscriptions.
-                </h2>
-
-                <p className="text-blue-100 text-lg opacity-90">
-                  Purchase credits as needed. Your credits never expire, giving
-                  you complete control over your spending.
+          <div className="grid gap-4">
+            {workflow.map((item, index) => (
+              <div
+                key={item}
+                className="flex items-start gap-4 rounded-lg border border-border bg-card p-5"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-extrabold text-primary-foreground">
+                  {index + 1}
+                </span>
+                <p className="pt-1 font-semibold leading-6 text-foreground">
+                  {item}
                 </p>
-
-                <ul className="space-y-3 pt-2">
-                  <li className="flex items-center gap-2 text-blue-50">
-                    <CheckCircle2 className="w-5 h-5 text-green-400" />
-                    <span>Transparent pricing per generation</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-blue-50">
-                    <CheckCircle2 className="w-5 h-5 text-green-400" />
-                    <span>Secure payments via Stripe</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-blue-50">
-                    <CheckCircle2 className="w-5 h-5 text-green-400" />
-                    <span>Top up anytime instantly</span>
-                  </li>
-                </ul>
-
-                <button
-                  onClick={() => handleNavigation(ROUTES.account)}
-                  className="mt-4 inline-flex items-center justify-center px-8 py-3 bg-card text-foreground font-bold rounded-lg hover:opacity-90 transition-opacity shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 duration-200"
-                >
-                  Buy Credits
-                </button>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-              <div className="hidden md:flex justify-center items-center">
-                <div className="relative w-full aspect-square max-w-xs">
-                  <div className="absolute inset-0 bg-linear-to-tr from-blue-600 to-purple-600 rounded-full opacity-20 animate-pulse"></div>
-                  <Image
-                    src="/credits_1.svg"
-                    alt="Credits Coin"
-                    fill
-                    className="object-contain drop-shadow-2xl p-8"
-                  />
-                </div>
+      <section className="bg-[#111827] py-16 text-white md:py-20">
+        <div className="container mx-auto grid gap-10 px-4 md:grid-cols-[1.1fr_0.9fr] md:items-center">
+          <div>
+            <div className="mb-5 inline-flex items-center rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm font-bold text-white">
+              <CreditCard className="mr-2 h-4 w-4 text-[#fbbf24]" />
+              Flexible credits
+            </div>
+            <h2 className="max-w-2xl text-3xl font-extrabold leading-tight tracking-normal md:text-4xl">
+              Use credits when you need them. Bring your own provider keys when
+              you want more control.
+            </h2>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-white/75">
+              Credits power generation without a subscription lock-in, while
+              account settings let advanced users route supported models through
+              their own API keys.
+            </p>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href={ROUTES.account}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-bold text-foreground transition-opacity hover:opacity-90"
+              >
+                Buy credits
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href={ROUTES.terms}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/20 px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-white/10"
+              >
+                Read terms
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3 md:grid-cols-1">
+            {[
+              "Transparent generation costs",
+              "Stripe checkout",
+              "Server-side credit ledger",
+            ].map((item) => (
+              <div
+                key={item}
+                className="flex items-center gap-3 rounded-lg border border-white/15 bg-white/10 p-4"
+              >
+                <CheckCircle2 className="h-5 w-5 shrink-0 text-[#02c173]" />
+                <span className="text-sm font-semibold text-white/90">
+                  {item}
+                </span>
               </div>
+            ))}
+            <div className="hidden items-center gap-3 rounded-lg border border-white/15 bg-white/10 p-4 md:flex">
+              <ShieldCheck className="h-5 w-5 shrink-0 text-[#fbbf24]" />
+              <span className="text-sm font-semibold text-white/90">
+                Auth, rate-limit, and duplicate-charge protections
+              </span>
             </div>
           </div>
         </div>
@@ -249,24 +255,45 @@ export default function Home() {
   );
 }
 
+function HeroTypewriter({ words }: { words: readonly string[] }) {
+  return (
+    <span className="home-typewriter" aria-label={words.join(", ")}>
+      {words.map((word, index) => (
+        <span
+          key={word}
+          aria-hidden="true"
+          className="home-typewriter__word"
+          style={
+            {
+              animationDelay: `${index * 3}s, 0s`,
+            } as CSSProperties
+          }
+        >
+          {word}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 function FeatureCard({
-  icon,
+  icon: Icon,
   title,
   description,
+  color,
 }: {
-  icon: React.ReactNode;
+  icon: LucideIcon;
   title: string;
   description: string;
+  color: string;
 }) {
   return (
-    <div className="group p-6 rounded-2xl border border-border bg-muted/40 hover:shadow-xl hover:border-ring transition-all duration-300">
-      <div className="w-12 h-12 rounded-xl bg-card shadow-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-        {icon}
-      </div>
-      <h3 className="text-xl font-bold mb-2 text-foreground group-hover:text-ring transition-colors">
-        {title}
-      </h3>
-      <p className="text-muted-foreground">{description}</p>
+    <div className="rounded-lg border border-border bg-card p-5 transition-colors hover:border-accent">
+      <Icon className={`mb-4 h-6 w-6 ${color}`} />
+      <h3 className="text-lg font-bold text-foreground">{title}</h3>
+      <p className="mt-2 text-sm leading-6 text-muted-foreground">
+        {description}
+      </p>
     </div>
   );
 }

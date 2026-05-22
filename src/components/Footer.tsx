@@ -2,13 +2,12 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { X as Twitter, Share as Facebook, Camera as Instagram, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { signOut } from "firebase/auth";
 import { deleteCookie } from "cookies-next";
 import {
   FOOTER_MENU_ITEMS,
   FOOTER_HIDDEN_ROUTES,
-  ROUTES,
 } from "@/constants/routes";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { auth } from "@/firebase/firebaseClient";
@@ -19,28 +18,9 @@ function FooterLink({ label, href }: { label: string; href: string }) {
   return (
     <Link
       href={href}
-      className="text-foreground hover:text-accent navbar-link transition-colors"
+      className="rounded-lg px-2 py-1 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
     >
       {label}
-    </Link>
-  );
-}
-
-function SocialIcon({
-  href,
-  icon: Icon,
-}: {
-  href: string;
-  icon: React.ComponentType<{ size?: number }>;
-}) {
-  return (
-    <Link
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex items-center justify-center w-8 h-8 bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground rounded-full transition-colors"
-    >
-      <Icon size={14} />
     </Link>
   );
 }
@@ -66,17 +46,16 @@ export default function Footer() {
   };
 
   return (
-    <footer className="bg-muted border-t border-border">
-      <div className="container flex flex-col sm:flex-row items-center justify-between px-5 py-5 mx-auto z-10 text-muted-foreground gap-4 sm:gap-0">
-        {/* Left Menu */}
-        <nav className="flex flex-wrap gap-4 sm:gap-6 order-2 sm:order-1 lg:w-[33%]">
+    <footer className="border-t border-border bg-card">
+      <div className="container z-10 mx-auto flex flex-col items-center justify-between gap-4 px-5 py-5 text-muted-foreground sm:flex-row">
+        <nav className="flex flex-wrap justify-center sm:justify-start gap-4 sm:gap-6">
           {FOOTER_MENU_ITEMS.map((item) => (
             <FooterLink key={item.href} label={item.label} href={item.href} />
           ))}
           {uid && (
             <button
               onClick={handleSignOut}
-              className="flex items-center gap-1 text-foreground hover:text-red-600 navbar-link transition-colors"
+              className="flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
             >
               <LogOut size={14} />
               <span>Sign Out</span>
@@ -84,23 +63,8 @@ export default function Footer() {
           )}
         </nav>
 
-        {/* Social Media Icons */}
-        <div className="flex lg:justify-center gap-3 order-1 lg:order-2 lg:w-[33%]">
-          <SocialIcon href="https://x.com/xrefdotai" icon={Twitter} />
-          <SocialIcon
-            href="https://www.facebook.com/xrefdotai"
-            icon={Facebook}
-          />
-          <SocialIcon
-            href="https://www.instagram.com/xrefdotai"
-            icon={Instagram}
-          />
-        </div>
-
-        {/* Right Menu and Copyright */}
-        <div className="flex lg:justify-end gap-2 order-3 lg:order-3 lg:w-[33%] text-foreground">
-          <span>&copy; {new Date().getFullYear()}</span>
-          <FooterLink label="XREF.AI" href={ROUTES.home} />
+        <div className="flex gap-2 text-sm font-semibold text-muted-foreground">
+          <span>&copy; {new Date().getFullYear()} Ignite Channel Inc.</span>
         </div>
       </div>
     </footer>

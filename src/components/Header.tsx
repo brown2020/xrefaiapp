@@ -67,26 +67,35 @@ export default function Header() {
   };
 
   return (
-    <div className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur-md">
-      <div className="container mx-auto px-4 py-4 text-sm">
+    <div className="sticky top-0 z-20 border-b border-border bg-card/90 backdrop-blur-md">
+      <div className="container mx-auto px-4 py-3 text-sm">
         <div className="flex items-center justify-between text-sm">
           {/* Logo */}
-          <Link href="/" className="flex items-center justify-center">
-            <span className="px-3 py-2 text-white bg-orange-500 rounded-md cursor-pointer text-lg font-bold">
-              XREF.AI
+          <Link
+            href="/"
+            className="flex items-center gap-2 rounded-lg focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/30"
+            aria-label="Xref.ai home"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#f97316] text-lg font-extrabold text-white">
+              X
+            </span>
+            <span className="text-lg font-extrabold tracking-normal text-foreground">
+              Xref.ai
             </span>
           </Link>
 
-          <div className="hidden sm:flex items-center gap-4">
+          <div className="hidden sm:flex items-center gap-3">
             {/* Desktop Menu */}
-            <nav className="flex space-x-1">
+            <nav className="flex gap-1">
               {menuItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
                   aria-current={pathname === item.href ? "page" : undefined}
-                  className={`px-3 py-2 navbar-link font-semibold flex items-center gap-2 text-base ${
-                    pathname === item.href ? "active" : "text-foreground"
+                  className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold transition-colors ${
+                    pathname === item.href
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
                 >
                   <item.icon className="w-4 h-4" />
@@ -98,7 +107,7 @@ export default function Header() {
             {uid && (
               <button
                 onClick={handleSignOut}
-                className="px-3 py-2 navbar-link font-semibold flex items-center gap-2 text-base text-foreground hover:text-red-600 transition-colors"
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
                 aria-label="Sign out"
               >
                 <LogOut className="w-4 h-4" />
@@ -113,7 +122,7 @@ export default function Header() {
               <SheetTrigger>
                 <button
                   type="button"
-                  className="ml-auto flex items-center justify-center"
+                  className="ml-auto flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card transition-colors hover:bg-muted"
                   aria-label="Open menu"
                 >
                   <Menu className="w-6 h-6 text-foreground" />
@@ -129,8 +138,10 @@ export default function Header() {
                       <Link
                         href={item.href}
                         aria-current={pathname === item.href ? "page" : undefined}
-                        className={`transition-all whitespace-nowrap flex h-12 gap-2 w-full items-center justify-start px-3 rounded-lg navbar-link font-semibold ${
-                          pathname === item.href ? "active" : ""
+                        className={`flex h-12 w-full items-center justify-start gap-2 whitespace-nowrap rounded-lg px-3 font-bold transition-colors ${
+                          pathname === item.href
+                            ? "bg-muted text-foreground"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
                         }`}
                       >
                         <item.icon className="w-4 h-4" />
@@ -142,7 +153,7 @@ export default function Header() {
                     <SheetClose>
                       <button
                         onClick={handleSignOut}
-                        className="transition-all whitespace-nowrap flex h-12 gap-2 w-full items-center justify-start px-3 rounded-lg navbar-link font-semibold text-red-600 hover:bg-red-50"
+                        className="flex h-12 w-full items-center justify-start gap-2 whitespace-nowrap rounded-lg px-3 font-bold text-red-600 transition-colors hover:bg-red-50"
                       >
                         <LogOut className="w-4 h-4" />
                         <span>Sign Out</span>

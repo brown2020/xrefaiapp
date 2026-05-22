@@ -261,9 +261,9 @@
 @layer base {
   html,
   body {
-    min-height: 500px;
-    height: calc(var(--vh, 1vh) * 100);
-    width: 100vw;
+    min-height: 100dvh;
+    height: auto;
+    width: 100%;
     overflow-x: hidden;
     /* overflow-y: scroll; */
     background-color: var(--background);
@@ -341,6 +341,80 @@
 
 .hero-img {
   width: 100%;
+}
+
+@layer components {
+  .home-typewriter {
+    display: inline-grid;
+    height: 1.2em;
+    max-width: 100%;
+    overflow: hidden;
+    position: relative;
+    text-align: left;
+    vertical-align: bottom;
+    width: min(18ch, 100%);
+  }
+
+  .home-typewriter__word {
+    animation-duration: 36s, 0.8s;
+    animation-fill-mode: both, none;
+    animation-iteration-count: infinite, infinite;
+    animation-name: home-typewriter-word, home-typewriter-cursor;
+    animation-timing-function: steps(18, end), step-end;
+    border-right: 0.08em solid currentColor;
+    display: inline-block;
+    grid-area: 1 / 1;
+    max-width: 100%;
+    opacity: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    width: 0;
+  }
+
+  @keyframes home-typewriter-word {
+    0% {
+      opacity: 0;
+      width: 0;
+    }
+
+    0.25% {
+      opacity: 1;
+      width: 0;
+    }
+
+    2.8% {
+      opacity: 1;
+      width: 100%;
+    }
+
+    6.4% {
+      opacity: 1;
+      width: 100%;
+    }
+
+    8.15% {
+      opacity: 1;
+      width: 0;
+    }
+
+    8.33%,
+    100% {
+      opacity: 0;
+      width: 0;
+    }
+  }
+
+  @keyframes home-typewriter-cursor {
+    0%,
+    45% {
+      border-right-color: currentColor;
+    }
+
+    46%,
+    100% {
+      border-right-color: transparent;
+    }
+  }
 }
 
 .img-section {

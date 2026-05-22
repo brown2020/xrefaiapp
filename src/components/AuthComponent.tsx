@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   GoogleAuthProvider,
   getIdToken,
@@ -11,12 +11,19 @@ import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   fetchSignInMethodsForEmail,
+  updateProfile as updateFirebaseProfile,
   type User,
 } from "firebase/auth";
 import { deleteCookie, setCookie } from "cookies-next";
 
 import Link from "next/link";
-import { LockIcon, MailIcon, XIcon, ArrowRight } from "lucide-react";
+import {
+  AlertCircle,
+  LockIcon,
+  MailIcon,
+  ArrowRight,
+  UserIcon,
+} from "lucide-react";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { auth } from "@/firebase/firebaseClient";
 import { getAuthCookieName } from "@/utils/getAuthCookieName";
@@ -29,6 +36,10 @@ import { InlineSpinner } from "@/components/ui/LoadingSpinner";
 import { Modal } from "@/components/ui/Modal";
 
 type AuthMode = "signin" | "signup";
+type AuthFeedback = {
+  tone: "error" | "info" | "success";
+  message: string;
+} | null;
 
 export default function AuthComponent() {
   const setAuthDetails = useAuthStore((s) => s.setAuthDetails);
@@ -40,16 +51,22 @@ export default function AuthComponent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [acceptTerms, setAcceptTerms] = useState(false);
-  const formRef = useRef<HTMLFormElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [isEmailLinkLogin, setIsEmailLinkLogin] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>("signin");
   const [showGoogleSignIn, setShowGoogleSignIn] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authFeedback, setAuthFeedback] = useState<AuthFeedback>(null);
 
-  const showModal = () => setIsVisible(true);
-  const hideModal = () => setIsVisible(false);
+  const clearAuthFeedback = () => setAuthFeedback(null);
+  const showModal = () => {
+    clearAuthFeedback();
+    setIsVisible(true);
+  };
+  const hideModal = () => {
+    clearAuthFeedback();
+    setIsVisible(false);
+  };
 
   /**
    * Write the auth cookie immediately after sign-in so the edge proxy can
@@ -78,42 +95,38 @@ export default function AuthComponent() {
     setShowGoogleSignIn(!isIOSReactNativeWebView());
   }, []);
 
-  const ensureTermsAccepted = (): boolean => {
-    if (!acceptTerms) {
-      if (formRef.current) formRef.current.reportValidity();
-      toast.error("Please accept the terms and privacy policy to continue.");
-      return false;
-    }
-    return true;
-  };
-
   const signInWithGoogle = async () => {
-    if (!ensureTermsAccepted()) return;
-
+    clearAuthFeedback();
     try {
       const provider = new GoogleAuthProvider();
       const credential = await signInWithPopup(auth, provider);
       if (credential.user) {
         await persistAuthCookie(credential.user);
       }
+      hideModal();
     } catch (error) {
       if (isFirebaseError(error)) {
         if (error.code === "auth/account-exists-with-different-credential") {
-          toast.error(
-            "An account with the same email exists with a different sign-in provider."
-          );
+          setAuthFeedback({
+            tone: "error",
+            message:
+              "An account with the same email exists with a different sign-in provider.",
+          });
         } else if (error.code === "auth/popup-closed-by-user") {
           return;
         } else {
-          toast.error(
-            "Something went wrong signing in with Google\n" + error.message
-          );
+          setAuthFeedback({
+            tone: "error",
+            message:
+              "Something went wrong signing in with Google. Please try again.",
+          });
         }
       } else {
-        toast.error("Something went wrong signing in with Google.");
+        setAuthFeedback({
+          tone: "error",
+          message: "Something went wrong signing in with Google.",
+        });
       }
-    } finally {
-      hideModal();
     }
   };
 
@@ -130,12 +143,12 @@ export default function AuthComponent() {
     }
   };
 
-  const persistSignupHints = () => {
+  const persistSignupHints = (nextEmail: string, nextName: string) => {
     try {
-      window.localStorage.setItem("xrefEmail", email);
+      window.localStorage.setItem("xrefEmail", nextEmail);
       window.localStorage.setItem(
         "xrefName",
-        name.trim() || email.split("@")[0] || ""
+        nextName || nextEmail.split("@")[0] || ""
       );
     } catch {
       // localStorage may be unavailable (e.g. private mode). Non-fatal.
@@ -144,17 +157,25 @@ export default function AuthComponent() {
 
   const handlePasswordSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!ensureTermsAccepted()) return;
-    if (!email || !password) return;
+    const trimmedEmail = email.trim();
+    const trimmedName = name.trim();
+    if (!trimmedEmail || !password) return;
 
+    clearAuthFeedback();
     setIsSubmitting(true);
     try {
       const credential =
         authMode === "signup"
-          ? await createUserWithEmailAndPassword(auth, email, password)
-          : await signInWithEmailAndPassword(auth, email, password);
-      persistSignupHints();
+          ? await createUserWithEmailAndPassword(auth, trimmedEmail, password)
+          : await signInWithEmailAndPassword(auth, trimmedEmail, password);
+
       if (credential.user) {
+        if (authMode === "signup" && trimmedName) {
+          await updateFirebaseProfile(credential.user, {
+            displayName: trimmedName,
+          });
+          persistSignupHints(trimmedEmail, trimmedName);
+        }
         await persistAuthCookie(credential.user);
       }
       hideModal();
@@ -162,7 +183,10 @@ export default function AuthComponent() {
       const firebaseCode = isFirebaseError(error) ? error.code : "";
 
       if (firebaseCode === "auth/email-already-in-use") {
-        toast("This email already has an account. Try signing in.", { icon: "ℹ️" });
+        setAuthFeedback({
+          tone: "info",
+          message: "This email already has an account. Try signing in.",
+        });
         setAuthMode("signin");
         return;
       }
@@ -170,21 +194,27 @@ export default function AuthComponent() {
         firebaseCode === "auth/wrong-password" ||
         firebaseCode === "auth/invalid-credential"
       ) {
-        toast.error(
-          "Incorrect email or password. If you don't have an account, create one."
-        );
+        setAuthFeedback({
+          tone: "error",
+          message:
+            "Incorrect email or password. If you don't have an account, create one.",
+        });
         return;
       }
       if (firebaseCode === "auth/user-not-found") {
-        toast(
-          "No account for this email. Switched to create-account mode — click again to register.",
-          { icon: "ℹ️" }
-        );
+        setAuthFeedback({
+          tone: "info",
+          message:
+            "No account was found for this email. Create an account to continue.",
+        });
         setAuthMode("signup");
         return;
       }
       if (firebaseCode === "auth/weak-password") {
-        toast.error("Password is too weak. Try at least 8 characters.");
+        setAuthFeedback({
+          tone: "error",
+          message: "Password is too weak. Try at least 8 characters.",
+        });
         return;
       }
 
@@ -196,22 +226,34 @@ export default function AuthComponent() {
 
   const handleAuthError = (error: unknown) => {
     if (isFirebaseError(error)) {
-      toast.error(error.message);
+      setAuthFeedback({ tone: "error", message: error.message });
     } else if (error instanceof Error) {
-      toast.error(error.message);
+      setAuthFeedback({ tone: "error", message: error.message });
     } else {
-      toast.error("Authentication failed. Please try again.");
+      setAuthFeedback({
+        tone: "error",
+        message: "Authentication failed. Please try again.",
+      });
     }
   };
 
   const handlePasswordReset = async () => {
-    if (!email) {
-      toast.error("Please enter your email to reset your password.");
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setAuthFeedback({
+        tone: "error",
+        message: "Please enter your email to reset your password.",
+      });
       return;
     }
+    clearAuthFeedback();
     try {
-      await sendPasswordResetEmail(auth, email);
-      toast.success(`Password reset email sent to ${email}`);
+      await sendPasswordResetEmail(auth, trimmedEmail);
+      setAuthFeedback({
+        tone: "success",
+        message: `Password reset email sent to ${trimmedEmail}.`,
+      });
+      toast.success(`Password reset email sent to ${trimmedEmail}`);
     } catch (error) {
       handleAuthError(error);
     }
@@ -221,39 +263,51 @@ export default function AuthComponent() {
     e: React.FormEvent<HTMLFormElement>
   ) => {
     e.preventDefault();
-    if (!ensureTermsAccepted()) return;
+    const trimmedEmail = email.trim();
+    const trimmedName = name.trim();
+    if (!trimmedEmail) return;
+    setEmail(trimmedEmail);
+    clearAuthFeedback();
 
     const actionCodeSettings = {
       url: `${window.location.origin}/loginfinish`,
       handleCodeInApp: true,
     };
 
+    setIsSubmitting(true);
     try {
-      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-      window.localStorage.setItem("xrefEmail", email);
-      window.localStorage.setItem("xrefName", name);
+      await sendSignInLinkToEmail(auth, trimmedEmail, actionCodeSettings);
+      persistSignupHints(trimmedEmail, trimmedName);
       setAuthDetails({ authPending: true });
       toast.success("Check your email for a sign-in link.");
     } catch (error) {
       console.error("Error sending sign-in link:", error);
-      toast.error("Could not send sign-in link. Please try again.");
+      setAuthFeedback({
+        tone: "error",
+        message: "Could not send sign-in link. Please try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleModeToggle = async () => {
+  const selectAuthMode = async (next: AuthMode) => {
+    if (next === authMode) return;
+
     // When toggling modes we also try to suggest the right mode based on the
     // email (if one has been typed) to reduce the chance of a mismatch.
-    const next: AuthMode = authMode === "signin" ? "signup" : "signin";
+    clearAuthFeedback();
     setAuthMode(next);
 
     if (next === "signin" && email && email.includes("@")) {
       try {
         const methods = await fetchSignInMethodsForEmail(auth, email);
         if (methods.length === 0) {
-          toast(
-            "No account found for this email. Consider creating one instead.",
-            { icon: "ℹ️" }
-          );
+          setAuthFeedback({
+            tone: "info",
+            message:
+              "No account found for this email. Consider creating one instead.",
+          });
         }
       } catch {
         // Best-effort only.
@@ -261,11 +315,26 @@ export default function AuthComponent() {
     }
   };
 
+  const isSignup = authMode === "signup";
+  const modalTitle = isEmailLinkLogin
+    ? "Sign in with email"
+    : isSignup
+      ? "Create your account"
+      : "Welcome back";
+  const modalSubtitle = isEmailLinkLogin
+    ? "We'll send a secure link to your inbox."
+    : isSignup
+      ? "Set up your Xref.ai account in a few seconds."
+      : "Access your Xref.ai account.";
+
   return (
     <>
       {uid && (
         <button
+          type="button"
           onClick={showModal}
+          aria-haspopup="dialog"
+          aria-expanded={isVisible}
           className="btn-muted max-w-md mx-auto text-white"
         >
           You are signed in
@@ -273,7 +342,10 @@ export default function AuthComponent() {
       )}
       {!uid && (
         <button
+          type="button"
           onClick={showModal}
+          aria-haspopup="dialog"
+          aria-expanded={isVisible}
           className="bg-[#02C173] hover:bg-[#009d5b] hover:opacity-100 btn-blue mt-0 w-auto flex items-center gap-2"
         >
           Sign In to Enable Your Account
@@ -285,30 +357,37 @@ export default function AuthComponent() {
         isOpen={isVisible}
         onClose={hideModal}
         maxWidth="md"
-        showCloseButton={false}
       >
-        <div className="relative">
-          <button
-            onClick={hideModal}
-            className="absolute top-0 right-0 p-2 hover:bg-gray-400 bg-gray-200 rounded-full -m-2 transition-colors"
-            aria-label="Close"
-          >
-            <XIcon size={20} className="text-gray-800" />
-          </button>
-
+        <div className="pt-3">
           {uid ? (
-            <div className="flex flex-col gap-2 pt-2">
-              <div className="text-2xl text-center">You are signed in</div>
-              <div className="input-disabled">{authDisplayName}</div>
-              <div className="input-disabled">{authEmail}</div>
-              <button onClick={handleSignOut} className="btn-danger">
+            <div className="flex flex-col gap-4">
+              <div className="pr-10">
+                <h2 className="text-2xl font-bold">You&apos;re signed in</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Your account is ready on this device.
+                </p>
+              </div>
+              <div className="rounded-xl border border-border bg-muted/50 p-4">
+                <div className="font-semibold">
+                  {authDisplayName || "Xref.ai account"}
+                </div>
+                <div className="text-sm text-muted-foreground break-all">
+                  {authEmail}
+                </div>
+              </div>
+              <button type="button" onClick={handleSignOut} className="btn-danger mt-0">
                 Sign Out
               </button>
             </div>
           ) : authPending ? (
-            <div className="flex flex-col gap-2 pt-2">
-              <div className="text-2xl text-center">Signing you in</div>
-              <div className="flex flex-col gap-3 border rounded-md px-3 py-2">
+            <div className="flex flex-col gap-4">
+              <div className="pr-10">
+                <h2 className="text-2xl font-bold">Check your email</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  The sign-in link is waiting in your inbox.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm">
                 <div>
                   {`Check your email at ${email} for a message from Xref.ai`}
                 </div>
@@ -325,19 +404,52 @@ export default function AuthComponent() {
                 </div>
               </div>
 
-              <button onClick={handleSignOut} className="btn-danger">
+              <button type="button" onClick={handleSignOut} className="btn-danger mt-0">
                 Start Over
               </button>
             </div>
           ) : (
             <form
               onSubmit={isEmailLinkLogin ? handleEmailLinkSubmit : handlePasswordSubmit}
-              ref={formRef}
-              className="flex flex-col gap-2 pt-2"
+              className="flex flex-col gap-4"
             >
-              <div className="text-3xl text-center pb-3">
-                {authMode === "signup" ? "Create Account" : "Sign In"}
+              <div className="pr-10">
+                <h2 className="text-2xl font-bold">{modalTitle}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {modalSubtitle}
+                </p>
               </div>
+
+              {!isEmailLinkLogin && (
+                <div className="grid grid-cols-2 gap-1 rounded-full bg-muted p-1">
+                  <button
+                    type="button"
+                    onClick={() => void selectAuthMode("signin")}
+                    className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/30 ${
+                      authMode === "signin"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    aria-pressed={authMode === "signin"}
+                  >
+                    Sign in
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void selectAuthMode("signup")}
+                    className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/30 ${
+                      authMode === "signup"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    aria-pressed={authMode === "signup"}
+                  >
+                    Create account
+                  </button>
+                </div>
+              )}
+
+              {authFeedback && <AuthFeedbackMessage feedback={authFeedback} />}
 
               {showGoogleSignIn && (
                 <>
@@ -346,59 +458,106 @@ export default function AuthComponent() {
                     logo={googleLogo}
                     onClick={signInWithGoogle}
                   />
-                  <div className="flex items-center justify-center w-full h-12">
-                    <hr className="grow h-px bg-gray-400 border-0" />
-                    <span className="px-3">or</span>
-                    <hr className="grow h-px bg-gray-400 border-0" />
+                  <div className="flex items-center justify-center w-full">
+                    <hr className="grow h-px border-0 bg-border" />
+                    <span className="px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      or
+                    </span>
+                    <hr className="grow h-px border-0 bg-border" />
                   </div>
                 </>
               )}
 
-              {isEmailLinkLogin && (
-                <input
-                  id="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter your name"
-                  className="input-primary mb-2"
-                />
+              {(isSignup || isEmailLinkLogin) && (
+                <label className="block">
+                  <span className="text-sm font-medium text-foreground">
+                    Name <span className="text-muted-foreground">(optional)</span>
+                  </span>
+                  <div className="relative mt-1">
+                    <UserIcon
+                      size={18}
+                      className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    />
+                    <input
+                      id="auth-name"
+                      type="text"
+                      value={name}
+                      onChange={(e) => {
+                        setName(e.target.value);
+                        clearAuthFeedback();
+                      }}
+                      placeholder="Jane Doe"
+                      className="input-primary pl-10"
+                      autoComplete="name"
+                    />
+                  </div>
+                </label>
               )}
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                className="input-primary mt-2"
-                autoComplete="email"
-              />
+              <label className="block">
+                <span className="text-sm font-medium text-foreground">Email</span>
+                <div className="relative mt-1">
+                  <MailIcon
+                    size={18}
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  />
+                  <input
+                    id="auth-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      clearAuthFeedback();
+                    }}
+                    placeholder="you@example.com"
+                    className="input-primary pl-10"
+                    autoComplete="email"
+                    required
+                  />
+                </div>
+              </label>
               {!isEmailLinkLogin && (
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder={
-                    authMode === "signup"
-                      ? "Create a password (min. 8 chars)"
-                      : "Enter your password"
-                  }
-                  className="input-primary mt-2"
-                  autoComplete={
-                    authMode === "signup" ? "new-password" : "current-password"
-                  }
-                  minLength={authMode === "signup" ? 8 : undefined}
-                />
+                <label className="block">
+                  <span className="text-sm font-medium text-foreground">
+                    Password
+                  </span>
+                  <div className="relative mt-1">
+                    <LockIcon
+                      size={18}
+                      className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    />
+                    <input
+                      id="auth-password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        clearAuthFeedback();
+                      }}
+                      placeholder={
+                        authMode === "signup"
+                          ? "At least 8 characters"
+                          : "Enter your password"
+                      }
+                      className="input-primary pl-10"
+                      autoComplete={
+                        authMode === "signup"
+                          ? "new-password"
+                          : "current-password"
+                      }
+                      minLength={authMode === "signup" ? 8 : undefined}
+                      required
+                    />
+                  </div>
+                </label>
               )}
               {!isEmailLinkLogin && authMode === "signin" && (
-                <div className="text-right mt-2">
+                <div className="-mt-2 text-right">
                   <button
                     type="button"
                     onClick={handlePasswordReset}
-                    className="underline text-sm text-blue-600 hover:text-blue-800"
+                    className="text-sm font-medium text-primary hover:underline"
                   >
-                    Forgot Password?
+                    Forgot password?
                   </button>
                 </div>
               )}
@@ -411,8 +570,12 @@ export default function AuthComponent() {
               >
                 {isEmailLinkLogin ? (
                   <div className="flex items-center gap-2 h-8">
-                    <MailIcon size={20} />
-                    <span>Continue with Email Link</span>
+                    {isSubmitting ? (
+                      <InlineSpinner size="sm" />
+                    ) : (
+                      <MailIcon size={20} />
+                    )}
+                    <span>Email me a sign-in link</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 h-8">
@@ -422,59 +585,73 @@ export default function AuthComponent() {
                       <LockIcon size={20} />
                     )}
                     <span>
-                      {authMode === "signup" ? "Create Account" : "Sign In"}
+                      {authMode === "signup" ? "Create account" : "Sign in"}
                     </span>
                   </div>
                 )}
               </button>
-              {!isEmailLinkLogin && (
-                <div className="text-center text-sm">
-                  {authMode === "signin"
-                    ? "Don't have an account?"
-                    : "Already have an account?"}{" "}
-                  <button
-                    type="button"
-                    onClick={handleModeToggle}
-                    className="underline"
-                  >
-                    {authMode === "signin" ? "Create one" : "Sign in"}
-                  </button>
-                </div>
-              )}
-              <div className="text-center">
+              <div className="text-center text-sm">
                 <button
                   type="button"
-                  onClick={() => setIsEmailLinkLogin(!isEmailLinkLogin)}
-                  className="underline"
+                  onClick={() => {
+                    clearAuthFeedback();
+                    setIsEmailLinkLogin(!isEmailLinkLogin);
+                  }}
+                  className="font-medium text-primary hover:underline"
                 >
-                  {isEmailLinkLogin ? "Use Email/Password" : "Use Email Link"}
+                  {isEmailLinkLogin
+                    ? "Use password instead"
+                    : "Email me a sign-in link instead"}
                 </button>
               </div>
-              <label className="flex items-center space-x-2 pl-1">
-                <input
-                  type="checkbox"
-                  checked={acceptTerms}
-                  onChange={(e) => setAcceptTerms(e.target.checked)}
-                  className="h-full"
-                  required
-                />
-                <span>
-                  I accept the{" "}
-                  <Link href={"/terms"} className="underline">
-                    terms
-                  </Link>{" "}
-                  and{" "}
-                  <Link href="/privacy" className="underline">
-                    privacy
-                  </Link>{" "}
-                  policy.
-                </span>
-              </label>
+              <p className="text-center text-xs leading-5 text-muted-foreground">
+                By continuing, you accept our{" "}
+                <Link
+                  href="/terms"
+                  className="mx-0.5 font-medium text-foreground underline"
+                >
+                  Terms
+                </Link>{" "}
+                and{" "}
+                <Link
+                  href="/privacy"
+                  className="mx-0.5 font-medium text-foreground underline"
+                >
+                  Privacy Policy
+                </Link>.
+              </p>
             </form>
           )}
         </div>
       </Modal>
     </>
+  );
+}
+
+function AuthFeedbackMessage({ feedback }: { feedback: Exclude<AuthFeedback, null> }) {
+  const toneClasses = {
+    error: "border-red-200 bg-red-50 text-red-950",
+    info: "border-blue-200 bg-blue-50 text-blue-950",
+    success: "border-green-200 bg-green-50 text-green-950",
+  };
+
+  const iconClasses = {
+    error: "text-red-600",
+    info: "text-blue-600",
+    success: "text-green-700",
+  };
+
+  return (
+    <div
+      role={feedback.tone === "error" ? "alert" : "status"}
+      className={`flex items-start gap-3 rounded-lg border px-4 py-3 text-sm font-medium leading-5 ${toneClasses[feedback.tone]}`}
+    >
+      <AlertCircle
+        className={`mt-0.5 h-5 w-5 shrink-0 ${iconClasses[feedback.tone]}`}
+        aria-hidden="true"
+      />
+      <span>{feedback.message}</span>
+    </div>
   );
 }
 
@@ -501,7 +678,7 @@ function AuthButton({
   return (
     <button
       type="button"
-      className="flex items-center gap-2 w-full px-4 py-2 border rounded-md hover:bg-gray-100"
+      className="grid min-h-12 w-full grid-cols-[24px_1fr_24px] items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 font-semibold text-foreground transition-colors hover:bg-muted focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/30"
       onClick={onClick}
     >
       <div className="w-6 h-6 relative">
@@ -513,7 +690,8 @@ function AuthButton({
           sizes="24px"
         />
       </div>
-      <span className="grow text-center">{label}</span>
+      <span className="text-center">{label}</span>
+      <span aria-hidden="true" />
     </button>
   );
 }

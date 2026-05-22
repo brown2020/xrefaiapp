@@ -1,4 +1,10 @@
+import {
+  PublicContentSection,
+  PublicPageLayout,
+} from "@/components/PublicPageLayout";
+
 type Props = {
+  appName: string;
   companyName: string;
   companyEmail: string;
   companyAddress: string;
@@ -6,7 +12,18 @@ type Props = {
   updatedAt: string;
 };
 
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return <PublicContentSection title={title}>{children}</PublicContentSection>;
+}
+
 export default function Privacy({
+  appName,
   companyName,
   companyEmail,
   companyAddress,
@@ -14,192 +31,207 @@ export default function Privacy({
   updatedAt,
 }: Props) {
   return (
-    <div className="container mx-auto flex items-center justify-center p-4">
-       <div className="rounded-lg text-[#041D34]">
-       <h1 className="text-3xl font-extrabold text-left mb-8">Privacy Policy</h1>
-        <section className="mb-8">
-          <p className="text-[#0B3C68] leading-relaxed">
-            Protecting your private information is our priority. This Statement of
-            Privacy applies to {companyName} pages and apps developed by
-            {companyName} and governs data collection and usage. For the purposes of
-            this Privacy Policy, unless otherwise noted, all references to{" "}
-            {companyName} include {companyName} pages and apps developed by{" "}
-            {companyName}. By using the {companyName}
-            website and applications, you consent to the data practices described in
-            this statement.
+    <PublicPageLayout
+      eyebrow="Privacy"
+      title="Privacy Policy"
+      description={`${companyName} keeps this policy specific to ${appName}: account data, prompts, generated content, credits, payments, provider keys, and the AI services that power the app.`}
+      updatedAt={updatedAt}
+    >
+        <Section title="Overview">
+          <p>
+            This Privacy Policy explains how {companyName} collects, uses, and
+            shares information when you use {appName}, including our website,
+            chat, writing, summarization, image-generation, account, credit, and
+            payment features.
           </p>
-        </section>
+          <p>
+            We built this policy to describe the data practices that matter for
+            an AI productivity app. If you do not agree with this policy, please
+            do not use {appName}.
+          </p>
+        </Section>
 
-        <h4 className="text-2xl! font-semibold text-[#041D34] mt-8 mb-4">Collection of your Personal Information</h4>
-        <p className="mb-2 text-[#0B3C68]">
-          In order to better provide you with products and services offered,
-          {companyName} may collect personally identifiable information, such as
-          your:
-        </p>
-        <ul className="list-disc list-inside text-[#0B3C68] mb-6">
-          <li>First and Last Name</li>
-          <li>E-mail Address</li>
-        </ul>
-        <p className="mb-2 text-[#0B3C68]">
-          We do not collect any personal information about you unless you
-          voluntarily provide it to us. However, you may be required to provide
-          certain personal information to us when you elect to use certain
-          products or services. These may include: (a) registering for an account;
-          (b) entering a sweepstakes or contest sponsored by us or one of our
-          partners; (c) signing up for special offers from selected third parties;
-          (d) sending us an email message; (e) submitting your credit card or
-          other payment information when ordering and purchasing products and
-          services. To wit, we will use your information for, but not limited to,
-          communicating with you in relation to services and/or products you have
-          requested from us. We also may gather additional personal or
-          non-personal information in the future.
-        </p>
-        <h4 className="text-2xl! font-semibold text-[#041D34] mt-8 mb-4">Use of your Personal Information</h4>
-        <p className="mb-6 text-[#0B3C68]">
-          {companyName} collects and uses your personal information to operate and
-          deliver the services you have requested.
-        </p>
-        <p className="mb-6 text-[#0B3C68]">
-          {companyName} may also use your personally identifiable information to
-          inform you of other products or services available from
-          {companyName} and its affiliates.
-        </p>
-        <h4 className="text-2xl! font-semibold text-[#041D34] mt-8 mb-4">Sharing Information with Third Parties</h4>
-        <p className="mb-6 text-[#0B3C68]">
-          {companyName} does not sell, rent or lease its customer lists to third
-          parties.
-        </p>
-        <p className="mb-6 text-[#0B3C68]">
-          {companyName} may share data with trusted partners to help perform
-          statistical analysis, send you email or postal mail, provide customer
-          support, or arrange for deliveries. All such third parties are
-          prohibited from using your personal information except to provide these
-          services to {companyName}, and they are required to maintain the
-          confidentiality of your information.
-        </p>
-        <p className="mb-6 text-[#0B3C68]">
-          {companyName} may disclose your personal information, without notice, if
-          required to do so by law or in the good faith belief that such action is
-          necessary to: (a) conform to the edicts of the law or comply with legal
-          process served on {companyName} or the site; (b) protect and defend the
-          rights or property of {companyName}; and/or (c) act under exigent
-          circumstances to protect the personal safety of users of {companyName},
-          or the public.
-        </p>
-        <h4 className="text-2xl! font-semibold text-[#041D34] mt-8 mb-4">Right to Deletion</h4>
-        <p className="mb-6 text-[#0B3C68]">
-          Subject to certain exceptions set out below, on receipt of a verifiable
-          request from you, we will:
-        </p>
-        <ul className="list-disc list-inside text-[#0B3C68] mb-6">
-          <li>Delete your personal information from our records; and</li>
-          <li>
-            Direct any service providers to delete your personal information from
-            their records.
-          </li>
-        </ul>
-        <p className="mb-6 text-[#0B3C68]">
-          Please note that we may not be able to comply with requests to delete
-          your personal information if it is necessary to:
-        </p>
-        <ul className="list-disc list-inside text-[#0B3C68] mb-6">
-          <li>
-            Complete the transaction for which the personal information was
-            collected, fulfill the terms of a written warranty or product recall
-            conducted in accordance with federal law, provide a good or service
-            requested by you, or reasonably anticipated within the context of our
-            ongoing business relationship with you, or otherwise perform a
-            contract between you and us;
-          </li>
-          <li>
-            Detect security incidents, protect against malicious, deceptive,
-            fraudulent, or illegal activity; or prosecute those responsible for
-            that activity;
-          </li>
-          <li>
-            Debug to identify and repair errors that impair existing intended
-            functionality;
-          </li>
-          <li>
-            Exercise free speech, ensure the right of another consumer to exercise
-            his or her right of free speech, or exercise another right provided
-            for by law;
-          </li>
-          <li>
-            Comply with the California Electronic Communications Privacy Act;
-          </li>
-          <li>
-            Engage in public or peer-reviewed scientific, historical, or
-            statistical research in the public interest that adheres to all other
-            applicable ethics and privacy laws, when our deletion of the
-            information is likely to render impossible or seriously impair the
-            achievement of such research, provided we have obtained your informed
-            consent;
-          </li>
-          <li>
-            Enable solely internal uses that are reasonably aligned with your
-            expectations based on your relationship with us;
-          </li>
-          <li>Comply with an existing legal obligation; or</li>
-          <li>
-            Otherwise use your personal information, internally, in a lawful
-            manner that is compatible with the context in which you provided the
-            information.
-          </li>
-        </ul>
+        <Section title="Information We Collect">
+          <p>We collect the following categories of information:</p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>
+              <strong>Account information:</strong> email address, display name,
+              authentication identifiers, profile settings, selected AI model,
+              and account preferences.
+            </li>
+            <li>
+              <strong>User content:</strong> prompts, chat messages, writing
+              requests, URLs you ask us to summarize, uploaded or resized images,
+              generated images, generated text, and saved history items.
+            </li>
+            <li>
+              <strong>Credits and payment records:</strong> credit balances,
+              credit ledger entries, purchase history, Stripe Checkout session
+              identifiers, pack selections, payment status, and related metadata.
+              We do not receive or store full payment card numbers.
+            </li>
+            <li>
+              <strong>User-provided API keys:</strong> if you choose to use your
+              own provider keys instead of credits, we store the keys you save in
+              your profile so we can route your requests to the provider you
+              select.
+            </li>
+            <li>
+              <strong>Device, cookie, and usage information:</strong> cookies,
+              local storage values, browser or WebView details, logs, error
+              information, rate-limit records, idempotency records, and security
+              signals used to operate and protect the service.
+            </li>
+          </ul>
+        </Section>
 
-        <h4 className="text-2xl! font-semibold text-[#041D34] mt-8 mb-4">Children Under Thirteen</h4>
-        <p className="mb-6 text-[#0B3C68]">
-          {companyName} does not knowingly collect personally identifiable
-          information from children under the age of thirteen. If you are under
-          the age of thirteen, you must ask your parent or guardian for permission
-          to use this application.
-        </p>
-        <h4 className="text-2xl! font-semibold text-[#041D34] mt-8 mb-4">E-mail Communications</h4>
-        <p className="mb-6 text-[#0B3C68]">
-          From time to time, {companyName} may contact you via email for the
-          purpose of providing announcements, promotional offers, alerts,
-          confirmations, surveys, and/or other general communication. If you would
-          like to stop receiving marketing or promotional communications via email
-          from {companyName}, you may opt out of such communications by clicking
-          the unsubscribe link in the email message.
-        </p>
-        <h4 className="text-2xl! font-semibold text-[#041D34] mt-8 mb-4">External Data Storage</h4>
-        <p className="mb-6 text-[#0B3C68]">
-          Sites We may store your data on servers provided by third party hosting
-          vendors with whom we have contracted.
-        </p>
-        <h4 className="text-2xl! font-semibold text-[#041D34] mt-8 mb-4">Changes to this Statement</h4>
-        <p className="mb-6 text-[#0B3C68]">
-          {companyName} reserves the right to change this Privacy Policy from time
-          to time. We will notify you about significant changes in the way we
-          treat personal information by sending a notice to the primary email
-          address specified in your account, by placing a prominent notice on our
-          application, and/or by updating any privacy information. Your continued
-          use of the application and/or Services available after such
-          modifications will constitute your: (a) acknowledgment of the modified
-          Privacy Policy; and (b) agreement to abide and be bound by that Policy.
-        </p>
-        <h4 className="text-2xl! font-semibold text-[#041D34] mt-8 mb-4">Contact Information</h4>
-        <p className="mb-6 text-[#0B3C68]">
-          {companyName} welcomes your questions or comments regarding this
-          Statement of Privacy. If you believe that {companyName} has not adhered
-          to this Statement, please contact {companyName} at:
-        </p>
-        <p className="mb-6 text-[#0B3C68]">
-          {companyName}
-          <br />
-          {companyAddress}
-          <br />
-          {companyLocation}
-        </p>
-        <p className="mb-6 text-[#0B3C68]">
-          Email Address:
-          <br />
-          {companyEmail}
-        </p>
-        <h5 className="text-sm text-gray-500">Last updated: {updatedAt}</h5>
-      </div>
-    </div>
+        <Section title="How We Use Information">
+          <p>We use information to:</p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>provide, personalize, secure, and improve {appName};</li>
+            <li>authenticate users and keep accounts signed in;</li>
+            <li>generate, stream, save, and display AI responses and images;</li>
+            <li>process credit debits, refunds, purchases, and payment records;</li>
+            <li>send sign-in links, password reset emails, receipts, and support messages;</li>
+            <li>detect abuse, enforce rate limits, prevent duplicate charges, and debug errors;</li>
+            <li>comply with law, enforce our terms, and protect rights and safety.</li>
+          </ul>
+        </Section>
+
+        <Section title="AI Providers and Service Providers">
+          <p>
+            To provide AI features, we may send your prompts, conversation
+            context, tool inputs, requested URLs, image prompts, generated
+            content, model selections, and related metadata to AI providers such
+            as OpenAI, Anthropic, xAI, Google, and Fireworks AI, depending on the
+            feature and model you choose.
+          </p>
+          <p>
+            We use Firebase and Google Cloud services for authentication,
+            database, storage, and server infrastructure. We use Stripe for
+            checkout and payment processing. These providers process information
+            on our behalf or as independent service providers under their own
+            terms and privacy notices.
+          </p>
+          <p>
+            We do not intentionally send full payment card numbers to AI
+            providers. We do not sell your prompts, saved history, generated
+            outputs, or account information.
+          </p>
+        </Section>
+
+        <Section title="Cookies and Local Storage">
+          <p>
+            We use cookies and local storage to keep you signed in, remember
+            account and email-link state, support security, and improve the user
+            experience. You can control cookies through your browser settings,
+            but disabling cookies may prevent sign-in or protected routes from
+            working correctly.
+          </p>
+        </Section>
+
+        <Section title="How We Share Information">
+          <p>We may share information:</p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>with service providers who help us operate {appName};</li>
+            <li>with AI providers when needed to fulfill your request;</li>
+            <li>with payment processors when you buy credits;</li>
+            <li>when you direct us to share or transmit information;</li>
+            <li>to comply with law, legal process, or enforceable government requests;</li>
+            <li>to protect users, the public, {companyName}, or our service;</li>
+            <li>as part of a merger, acquisition, financing, or sale of assets.</li>
+          </ul>
+        </Section>
+
+        <Section title="Retention">
+          <p>
+            We keep account records, saved chats, summaries, generated image
+            metadata, credit records, payment records, idempotency records, and
+            rate-limit records for as long as needed to provide the service,
+            maintain accurate financial and security records, resolve disputes,
+            comply with law, and enforce our terms.
+          </p>
+          <p>
+            You may delete certain content in the product where that option is
+            available or contact us to request deletion. Some records, such as
+            payment, fraud-prevention, ledger, backup, or legal compliance
+            records, may be retained when required or reasonably necessary.
+          </p>
+        </Section>
+
+        <Section title="Security">
+          <p>
+            We use administrative, technical, and organizational measures designed
+            to protect information, including authenticated access, server-side
+            token verification, transaction-based credit updates, rate limits,
+            idempotency protections, and hardened URL proxy controls. No online
+            service can guarantee absolute security.
+          </p>
+        </Section>
+
+        <Section title="Your Choices and Rights">
+          <p>
+            You can update certain profile settings in your account, remove
+            user-provided API keys, sign out, and contact us about access,
+            correction, deletion, or portability requests.
+          </p>
+          <p>
+            California residents may have rights to know, access, correct,
+            delete, and obtain a copy of personal information, and to opt out of
+            certain sale or sharing of personal information. We do not sell
+            personal information or share it for cross-context behavioral
+            advertising as those terms are commonly used in California privacy
+            law. We will not discriminate against you for exercising privacy
+            rights.
+          </p>
+          <p>
+            To make a request, email {companyEmail}. We may need to verify your
+            identity before fulfilling a request.
+          </p>
+        </Section>
+
+        <Section title="Children">
+          <p>
+            {appName} is not intended for children under 13. We do not knowingly
+            collect personal information from children under 13. If you believe a
+            child has provided personal information to us, contact us and we will
+            take appropriate steps.
+          </p>
+        </Section>
+
+        <Section title="International Users">
+          <p>
+            {companyName} is based in the United States. If you use {appName}
+            from outside the United States, your information may be processed and
+            stored in the United States and other locations where we or our
+            service providers operate.
+          </p>
+        </Section>
+
+        <Section title="Changes to This Policy">
+          <p>
+            We may update this Privacy Policy from time to time. The updated
+            version will be posted on this page with a new last-updated date.
+            Your continued use of {appName} after an update means you accept the
+            updated policy.
+          </p>
+        </Section>
+
+        <Section title="Contact">
+          <p>
+            {companyName}
+            <br />
+            {companyAddress}
+            <br />
+            {companyLocation}
+          </p>
+          <p>
+            Email:{" "}
+            <a className="underline" href={`mailto:${companyEmail}`}>
+              {companyEmail}
+            </a>
+          </p>
+        </Section>
+    </PublicPageLayout>
   );
 }

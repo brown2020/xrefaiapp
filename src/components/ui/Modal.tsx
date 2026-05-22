@@ -82,7 +82,7 @@ export function Modal({
     <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-20000 p-4">
       <div
         ref={modalRef}
-        className={`relative bg-card text-card-foreground border border-border p-6 rounded-lg shadow-lg w-full ${maxWidthClasses[maxWidth]} mx-auto`}
+        className={`relative bg-card text-card-foreground border border-border p-6 rounded-lg shadow-lg w-full ${maxWidthClasses[maxWidth]} max-h-[calc(100dvh-2rem)] overflow-y-auto mx-auto`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? "modal-title" : undefined}
