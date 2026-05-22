@@ -335,7 +335,7 @@ export default function AuthComponent() {
           onClick={showModal}
           aria-haspopup="dialog"
           aria-expanded={isVisible}
-          className="btn-muted max-w-md mx-auto text-white"
+          className="btn-muted max-w-md mx-auto"
         >
           You are signed in
         </button>

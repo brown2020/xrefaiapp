@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import AuthComponent from "@/components/AuthComponent";
@@ -86,6 +86,11 @@ const workflow = [
   "Generate, refine, save, and keep creating.",
 ] as const;
 
+const TYPEWRITER_TYPE_DELAY_MS = 72;
+const TYPEWRITER_DELETE_DELAY_MS = 38;
+const TYPEWRITER_HOLD_DELAY_MS = 1250;
+const TYPEWRITER_NEXT_WORD_DELAY_MS = 180;
+
 export default function Home() {
   return (
     <div className="min-h-full bg-[#fbfaf7] text-foreground">
@@ -112,7 +117,7 @@ export default function Home() {
               Create amazing
             </h1>
 
-            <div className="mx-auto mt-4 flex h-[5.25rem] max-w-[15ch] items-start justify-center overflow-hidden text-3xl font-extrabold leading-tight tracking-normal text-white sm:h-[3.5rem] sm:max-w-none sm:text-4xl md:h-[4.5rem] md:text-5xl lg:text-6xl">
+            <div className="mx-auto mt-4 flex h-[5.25rem] w-full max-w-[20ch] items-start justify-center overflow-hidden text-3xl font-extrabold leading-tight tracking-normal text-white sm:h-[3.5rem] sm:text-4xl md:h-[4.5rem] md:text-5xl lg:text-6xl">
               <span className="text-[#fbbf24]">
                 <HeroTypewriter words={typewriterWords} />
               </span>
@@ -256,22 +261,65 @@ export default function Home() {
 }
 
 function HeroTypewriter({ words }: { words: readonly string[] }) {
+  const visibleWords = useMemo(
+    () => words.filter((word) => word.trim().length > 0),
+    [words]
+  );
+  const [wordIndex, setWordIndex] = useState(0);
+  const [characterCount, setCharacterCount] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const currentWord = visibleWords[wordIndex % visibleWords.length] ?? "";
+  const visibleText = currentWord.slice(0, characterCount);
+
+  useEffect(() => {
+    if (!currentWord) {
+      return undefined;
+    }
+
+    const delay = isDeleting
+      ? characterCount > 0
+        ? TYPEWRITER_DELETE_DELAY_MS
+        : TYPEWRITER_NEXT_WORD_DELAY_MS
+      : characterCount < currentWord.length
+        ? TYPEWRITER_TYPE_DELAY_MS
+        : TYPEWRITER_HOLD_DELAY_MS;
+
+    const timer = window.setTimeout(() => {
+      if (isDeleting) {
+        if (characterCount > 0) {
+          setCharacterCount((count) => Math.max(count - 1, 0));
+          return;
+        }
+
+        setWordIndex((index) => (index + 1) % visibleWords.length);
+        setIsDeleting(false);
+        return;
+      }
+
+      if (characterCount < currentWord.length) {
+        setCharacterCount((count) =>
+          Math.min(count + 1, currentWord.length)
+        );
+        return;
+      }
+
+      setIsDeleting(true);
+    }, delay);
+
+    return () => window.clearTimeout(timer);
+  }, [characterCount, currentWord, isDeleting, visibleWords.length]);
+
   return (
-    <span className="home-typewriter" aria-label={words.join(", ")}>
-      {words.map((word, index) => (
-        <span
-          key={word}
-          aria-hidden="true"
-          className="home-typewriter__word"
-          style={
-            {
-              animationDelay: `${index * 3}s, 0s`,
-            } as CSSProperties
-          }
-        >
+    <span className="home-typewriter" aria-label={currentWord}>
+      {visibleWords.map((word) => (
+        <span key={word} aria-hidden="true" className="home-typewriter__sizer">
           {word}
         </span>
       ))}
+      <span aria-hidden="true" className="home-typewriter__word">
+        {visibleText || "\u00a0"}
+      </span>
     </span>
   );
 }

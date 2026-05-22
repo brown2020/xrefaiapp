@@ -347,61 +347,33 @@
   .home-typewriter {
     display: inline-grid;
     height: 1.2em;
-    max-width: 100%;
+    max-width: calc(100vw - 2rem);
     overflow: hidden;
     position: relative;
     text-align: left;
     vertical-align: bottom;
-    width: min(18ch, 100%);
+    width: max-content;
+  }
+
+  .home-typewriter__sizer,
+  .home-typewriter__word {
+    grid-area: 1 / 1;
+    justify-self: start;
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .home-typewriter__sizer {
+    pointer-events: none;
+    visibility: hidden;
   }
 
   .home-typewriter__word {
-    animation-duration: 36s, 0.8s;
-    animation-fill-mode: both, none;
-    animation-iteration-count: infinite, infinite;
-    animation-name: home-typewriter-word, home-typewriter-cursor;
-    animation-timing-function: steps(18, end), step-end;
+    animation: home-typewriter-cursor 0.8s step-end infinite;
     border-right: 0.08em solid currentColor;
     display: inline-block;
-    grid-area: 1 / 1;
-    max-width: 100%;
-    opacity: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    width: 0;
-  }
-
-  @keyframes home-typewriter-word {
-    0% {
-      opacity: 0;
-      width: 0;
-    }
-
-    0.25% {
-      opacity: 1;
-      width: 0;
-    }
-
-    2.8% {
-      opacity: 1;
-      width: 100%;
-    }
-
-    6.4% {
-      opacity: 1;
-      width: 100%;
-    }
-
-    8.15% {
-      opacity: 1;
-      width: 0;
-    }
-
-    8.33%,
-    100% {
-      opacity: 0;
-      width: 0;
-    }
+    padding-right: 0.08em;
   }
 
   @keyframes home-typewriter-cursor {
