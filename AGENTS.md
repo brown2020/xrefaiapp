@@ -4,6 +4,19 @@
 
 Xref.ai is an AI-powered writing, chat and image-generation app built on **Next.js 16 (App Router)**, **React 19**, **TypeScript** (strict), and **Tailwind CSS 4**. It supports multi-provider AI chat, writing tools, and image generation gated by a credit-based monetization system (Stripe Checkout on web, optional in-app purchases via signed IAP webview payloads).
 
+## Purpose of This File
+
+`AGENTS.md` is the single complete implementation guide for AI coding agents working in this repository. It should help an agent:
+
+- understand the product surface, architecture, and security boundaries quickly;
+- identify the source-of-truth files for auth, credits, payments, AI models, routes, and shared UI;
+- preserve app-specific invariants such as idempotent credit debits, authenticated mutations, SSRF protection, public-page layout consistency, and responsive homepage behavior;
+- choose the right verification path (`npm run lint`, `npm run build`, and browser checks for visible UI changes).
+
+Keep this file practical and accurate. Prefer durable architecture notes, invariants, and workflows over exhaustive descriptions of every component.
+
+Use `spec.md` before product-facing work to understand what the app is today, which user promises matter, and which roadmap milestones should guide feature choices. Update `spec.md` when product behavior, user-facing scope, or roadmap priorities change. Update `AGENTS.md` when implementation invariants, architecture guidance, platform constraints, or agent workflow expectations change.
+
 ## Quick Commands
 
 ```bash
@@ -14,6 +27,17 @@ npm run lint    # Run ESLint 10 (flat config)
 ```
 
 No test framework is configured; ESLint is the primary code quality tool.
+
+For changes that touch routing, server actions, API routes, auth, payments, credits, or shared UI, run `npm run build` as well. For visible frontend changes, verify the relevant route in the browser at desktop and mobile widths before calling the work done.
+
+## Agent Workflow Expectations
+
+- Start by reading the relevant files and `git status`; the worktree may contain user changes.
+- Use existing route constants, stores, hooks, UI primitives, type guards, and credit/auth helpers instead of inventing parallel patterns.
+- Keep edits scoped to the requested behavior. Avoid opportunistic refactors in security-sensitive paths.
+- Treat all credit, payment, auth, rate-limit, and idempotency code as high-risk: preserve transactions, deterministic IDs, refund paths, and server-side token verification.
+- For dependency updates, inspect `npm audit` output and avoid `npm audit fix --force` unless the resulting major-version changes are intentionally reviewed. The `overrides` block in `package.json` pins patched transitive versions and should not be removed casually.
+- For UI fixes, check mobile behavior explicitly. The homepage hero, auth modal, footer, and public legal pages have had recent responsive/contrast issues; verify the actual rendered page.
 
 ## Tech Stack
 
@@ -135,7 +159,7 @@ Patterns:
 
 - Whitelist in `src/ai/models.ts`:
   - `openai:gpt-5.4` (default)
-  - `anthropic:Codex-sonnet-4-6`
+  - `anthropic:claude-sonnet-4-6`
   - `xai:grok-4`
   - `google:gemini-3-pro-preview`
 - `resolveAiModelKey(value)` falls back to the default if the key isn't whitelisted — used both when persisting profile updates and when building the model for a generation.
@@ -193,6 +217,14 @@ Public: `/`, `/about`, `/privacy`, `/terms`, `/support`, `/loginfinish`.
 Protected (via `proxy.ts` matcher): `/chat`, `/tools`, `/history`, `/account`, `/payment-attempt`, `/payment-success`.
 
 Root layout (`src/app/layout.tsx`) loads the Plus Jakarta Sans variable font and wraps children in `<ClientProvider>`, which owns auth, toasts, cookie consent and the paywall modal.
+
+### Public Page / Homepage Conventions
+
+- Footer navigation is the canonical navigation for `/about`, `/terms`, `/privacy`, and `/support` (`FOOTER_MENU_ITEMS` in `src/constants/routes.ts`). Do not add a second in-page link grid or duplicate footer nav on those pages unless explicitly requested.
+- `/about`, `/terms`, `/privacy`, and `/support` should use `PublicPageLayout`, `PublicContentSection`, and `PublicCard` from `src/components/PublicPageLayout.tsx` for a simple, modern, text-first layout.
+- Legal/support copy uses Ignite Channel Inc. as the company identity. Current address: Ignite Channel Inc, 190 W Amado Road, Palm Springs, CA 92262.
+- The homepage hero is in `src/components/Home.tsx`; the typewriter uses React state plus invisible CSS sizers (`.home-typewriter__sizer`) in `src/app/globals.css` so mobile layout height and width stay stable. Keep that behavior when editing hero text or typography.
+- `AuthComponent` owns the sign-in/sign-up modal and the homepage auth CTA. Keep auth errors visible in the modal foreground, preserve the "By continuing..." legal acceptance language, and check signed-in/signed-out button contrast.
 
 ## Firestore Data Model
 
@@ -261,7 +293,15 @@ assert / assertDefined
 ### Platform / Content Guard (`src/utils/platform.ts`, `contentGuard.ts`)
 
 - `isReactNativeWebView()` — detects `window.ReactNativeWebView` (used to suppress cookie-consent banner and localStorage writes).
-- `checkRestrictedWords(content)` — UX-only restricted-word filter, applied client-side for iOS WebView (NOT enforced server-side — document in code that broader moderation would need a server move).
+- A completed Expo app loads this web app in a React Native WebView. Preserve native-specific branches even when they differ from the browser path: Google sign-in is hidden, Stripe/web checkout controls are hidden, native IAP uses `INIT_IAP` / `IAP_SUCCESS` messages, cookie consent is suppressed, and some localStorage coordination is skipped.
+- `checkRestrictedWords(content)` — UX-only restricted-word filter, applied client-side for the RN WebView context (NOT enforced server-side — document in code that broader moderation would need a server move).
+
+### Analytics (`Firebase / Google Analytics`)
+
+- Google Analytics should use Firebase's existing public env config, especially `NEXT_PUBLIC_FIREBASE_MEASUREMENTID`. Do not hard-code the measurement ID in source or docs.
+- When product analytics are implemented, create a small browser-only helper around `firebase/analytics` (`isSupported()`, `getAnalytics()`, `logEvent()`) that no-ops on the server and when analytics is unsupported.
+- Do not log raw prompts, generated content, API keys, auth tokens, payment secrets, or full URLs that may contain sensitive data. Log bounded product metadata such as event name, route, tool, entry point, model key, credit cost, success/failure, and latency bucket.
+- Server-side cost/profitability telemetry can be stored in internal records or logs; sending server events to GA4 would require an explicit Measurement Protocol setup and should not be assumed from the public measurement ID alone.
 
 ### Clipboard / Images (`src/utils/clipboard.ts`, `resizeImage.ts`, `getImagePrompt.ts`)
 
