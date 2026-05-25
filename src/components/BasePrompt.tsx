@@ -26,6 +26,8 @@ import { ROUTES } from "@/constants/routes";
 import { useShallow } from "zustand/react/shallow";
 import { isInsufficientCreditsError } from "@/utils/errors";
 import { createClientIdempotencyKey } from "@/utils/clientIdempotencyKey";
+import GenerationNextActions from "@/components/GenerationNextActions";
+import { clampStarterWordCount } from "@/constants/toolMetadata";
 
 export interface BasePromptProps {
   title: string;
@@ -34,6 +36,8 @@ export interface BasePromptProps {
   buttonText?: string;
   loadingText?: string;
   showWordCount?: boolean;
+  initialInput?: string;
+  initialWordCount?: number;
   children: (props: {
     inputValue: string;
     setInputValue: (value: string) => void;
@@ -48,6 +52,8 @@ export default function BasePrompt({
   buttonText = "Generate",
   loadingText = "Working",
   showWordCount = true,
+  initialInput,
+  initialWordCount,
   children,
 }: BasePromptProps) {
   const generationConfig = useProfileStore(
@@ -75,8 +81,10 @@ export default function BasePrompt({
     setProgress,
   } = useGenerationState();
 
-  const [inputValue, setInputValue] = useState("");
-  const [words, setWords] = useState(String(DEFAULT_WORD_COUNT));
+  const [inputValue, setInputValue] = useState(initialInput ?? "");
+  const [words, setWords] = useState(() =>
+    String(clampStarterWordCount(initialWordCount))
+  );
 
   const isMountedRef = useRef(true);
   useEffect(() => {
@@ -202,7 +210,7 @@ export default function BasePrompt({
             {MAX_WORD_COUNT})
             <input
               className={inputClassName}
-              defaultValue={String(DEFAULT_WORD_COUNT)}
+              value={words}
               type="number"
               id="words-field"
               min={MIN_WORD_COUNT}
@@ -227,7 +235,13 @@ export default function BasePrompt({
           </SubmitButton>
         </div>
 
-        <ResponseDisplay flagged={flagged} summary={summary} />
+        <ResponseDisplay
+          flagged={flagged}
+          summary={summary}
+          nextActions={
+            <GenerationNextActions content={summary} sourceLabel={title} />
+          }
+        />
       </form>
     </div>
   );

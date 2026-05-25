@@ -13,6 +13,7 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 interface DesignerFormProps {
   onSubmit: (promptData: PromptDataType, topic: string) => void;
   active: boolean;
+  initialTopic?: string;
 }
 
 const initialPrompt: PromptDataType = {
@@ -24,9 +25,13 @@ const initialPrompt: PromptDataType = {
   items: [],
 };
 
-export function DesignerForm({ onSubmit, active }: DesignerFormProps) {
+export function DesignerForm({
+  onSubmit,
+  active,
+  initialTopic,
+}: DesignerFormProps) {
   const [promptData, setPromptData] = useState<PromptDataType>(initialPrompt);
-  const [topic, setTopic] = useState<string>("");
+  const [topic, setTopic] = useState<string>(initialTopic ?? "");
 
   // Generic handler for all select fields
   const handleSelectChange = useCallback(

@@ -6,12 +6,14 @@ interface ResponseDisplayProps {
   flagged: string;
   summary: string;
   children?: React.ReactNode;
+  nextActions?: React.ReactNode;
 }
 
 export function ResponseDisplay({
   flagged,
   summary,
   children,
+  nextActions,
 }: ResponseDisplayProps) {
   if (flagged) {
     return (
@@ -30,8 +32,9 @@ export function ResponseDisplay({
       <div id="response" className="my-4">
         {children || (
           <div className="bg-muted/50 text-foreground rounded-lg p-4 border border-border">
-            <div className="flex justify-end mb-2">
+            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CopyButton text={summary} size={14} />
+              {nextActions}
             </div>
             <div className="whitespace-pre-wrap text-sm leading-relaxed">
               {summary}

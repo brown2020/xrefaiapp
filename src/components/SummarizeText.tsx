@@ -3,8 +3,12 @@
 import BasePrompt from "./BasePrompt";
 import TextareaAutosize from "react-textarea-autosize";
 import { inputClassName, labelClassName } from "@/components/ui/FormInput";
+import type { ToolInitialProps } from "@/types/ToolInitialProps";
 
-export default function SummarizeText() {
+export default function SummarizeText({
+  initialInput,
+  initialWords,
+}: ToolInitialProps) {
   return (
     <BasePrompt
       title="Text Summary"
@@ -14,6 +18,8 @@ export default function SummarizeText() {
       }
       buttonText="Summarize Text"
       loadingText="Summarizing"
+      initialInput={initialInput}
+      initialWordCount={initialWords}
     >
       {({ inputValue, setInputValue }) => (
         <label htmlFor="text-field" className={labelClassName}>

@@ -241,6 +241,10 @@ Use `firebase/analytics` through a browser-only helper, initialized from the exi
 
 Goal: help a new user reach a useful first output from the homepage or first protected route.
 
+Status: Completed.
+
+Completion note (2026-05-25): Added creator- and marketer-first starter paths with secondary student and researcher entries, homepage starter links into Chat/Tools via query state, route-driven prompt/tool prefills, Chat and Tools activation guidance with expected inputs, examples, costs, and likely outputs, plus next-action links from generated text to continue in chat, create an image prompt, or open History.
+
 Depends on: current homepage, auth modal, Chat, and Tools.
 
 PR scope:

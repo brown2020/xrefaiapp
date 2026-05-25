@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useMemo, useState, useCallback } from "react";
+import { useRef, useMemo, useState, useCallback, useEffect } from "react";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import ScrollToBottom from "react-scroll-to-bottom";
 import useProfileStore from "@/zustand/useProfileStore";
@@ -22,8 +22,17 @@ import toast from "react-hot-toast";
 import { useShallow } from "zustand/react/shallow";
 import { getMessageText, calculateWordCount } from "@/utils/messages";
 import { isInsufficientCreditsError } from "@/utils/errors";
+import {
+  STARTER_INTENTS,
+  getStarterIntentById,
+} from "@/constants/starterIntents";
 
-export default function Chat() {
+interface ChatProps {
+  initialPrompt?: string;
+  starterIntentId?: string;
+}
+
+export default function Chat({ initialPrompt, starterIntentId }: ChatProps) {
   const uid = useAuthStore((s) => s.uid);
   const profilePhotoUrl = useProfileStore((s) => s.profile.photoUrl);
   const generationConfig = useProfileStore(
@@ -41,6 +50,7 @@ export default function Chat() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
   const isSubmittingRef = useRef(false);
+  const appliedInitialPromptRef = useRef<string | undefined>(undefined);
 
   const {
     chatlist,
@@ -114,6 +124,15 @@ export default function Chat() {
   });
 
   const isLoading = status === "submitted" || status === "streaming";
+  const starterIntent = getStarterIntentById(starterIntentId);
+
+  useEffect(() => {
+    if (!initialPrompt || appliedInitialPromptRef.current === initialPrompt) {
+      return;
+    }
+    setInput(initialPrompt);
+    appliedInitialPromptRef.current = initialPrompt;
+  }, [initialPrompt]);
 
   /**
    * Build the conversation history to send to the server, trimmed to the
@@ -197,6 +216,11 @@ export default function Chat() {
     return "";
   }, [messages]);
 
+  const chatStarterIntents = useMemo(
+    () => STARTER_INTENTS.filter((intent) => intent.route === ROUTES.chat),
+    []
+  );
+
   return (
     <div className="flex flex-col h-full relative bg-muted/30 w-full">
       {loading ? (
@@ -231,31 +255,68 @@ export default function Chat() {
                   {!isLoading && reversedChatlist.length === 0 && (
                     <div className="py-10">
                       <div className="max-w-2xl mx-auto bg-card text-card-foreground border border-border rounded-2xl shadow-sm p-6">
+                        {starterIntent ? (
+                          <div className="mb-5 rounded-lg border border-accent/40 bg-accent/10 p-4">
+                            <div className="text-xs font-bold uppercase tracking-[0.18em] text-accent">
+                              {starterIntent.audience} starter
+                            </div>
+                            <h2 className="mt-2 text-lg font-bold text-foreground">
+                              {starterIntent.title}
+                            </h2>
+                            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                              {starterIntent.description}
+                            </p>
+                          </div>
+                        ) : null}
+
                         <h2 className="text-lg font-bold text-foreground">
                           Start a conversation
                         </h2>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Ask a question or paste content you want help with.
+                          Ask a question, paste notes, or start from a guided
+                          prompt. A chat message costs {CREDITS_COSTS.chatMessage}{" "}
+                          credits in credits mode.
                         </p>
+
+                        <div className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
+                          <ActivationFact
+                            label="Expected input"
+                            value="A question, rough idea, notes, or content you want help improving."
+                          />
+                          <ActivationFact
+                            label="Likely output"
+                            value="A conversational answer you can copy, continue, or save in chat history."
+                          />
+                        </div>
 
                         <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {[
-                            "Summarize this article for me in 5 bullet points.",
-                            "Rewrite this paragraph to be clearer and more concise.",
-                            "Give me 10 blog post ideas about sustainable travel.",
-                            "Turn these notes into a professional email.",
+                            ...chatStarterIntents.map((intent) => ({
+                              label: intent.audience,
+                              prompt: intent.prompt ?? "",
+                            })),
+                            {
+                              label: "Example",
+                              prompt:
+                                "Give me 10 blog post ideas about sustainable travel.",
+                            },
+                            {
+                              label: "Example",
+                              prompt:
+                                "Turn these notes into a professional email: ",
+                            },
                           ].map((example) => (
                             <button
-                              key={example}
+                              key={example.prompt}
                               type="button"
-                              onClick={() => setInput(example)}
+                              onClick={() => setInput(example.prompt)}
                               className="text-left p-3 rounded-xl bg-muted border border-border hover:opacity-90 transition-opacity"
                             >
                               <div className="text-xs font-medium text-muted-foreground">
-                                Try this
+                                {example.label}
                               </div>
                               <div className="text-sm text-foreground mt-1">
-                                {example}
+                                {example.prompt}
                               </div>
                             </button>
                           ))}
@@ -337,6 +398,17 @@ export default function Chat() {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+function ActivationFact({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-muted/40 p-3">
+      <div className="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">
+        {label}
+      </div>
+      <p className="mt-1 leading-6 text-foreground">{value}</p>
     </div>
   );
 }
