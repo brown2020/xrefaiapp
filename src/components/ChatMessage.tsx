@@ -4,6 +4,7 @@ import { ChatType } from "@/types/ChatType";
 import { User } from "lucide-react";
 import { BotAvatar, BotHeader } from "@/components/ui/BotMessage";
 import { CopyButton } from "@/components/ui/CopyButton";
+import GenerationNextActions from "@/components/GenerationNextActions";
 
 interface ChatMessageProps {
   message: ChatType;
@@ -61,8 +62,15 @@ export default function ChatMessage({
               <MarkdownRenderer content={message.response} />
             </div>
 
-            <div className="mt-4 flex justify-start pt-3 border-t border-gray-50">
-              <CopyButton text={message.response} successMessage="Response copied!" />
+            <div className="mt-4 flex flex-col gap-3 pt-3 border-t border-gray-50 sm:flex-row sm:items-center sm:justify-between">
+              <CopyButton
+                text={message.response}
+                successMessage="Response copied!"
+              />
+              <GenerationNextActions
+                content={message.response}
+                sourceLabel="chat response"
+              />
             </div>
           </div>
         </div>

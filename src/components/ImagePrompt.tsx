@@ -20,11 +20,12 @@ import { usePaywallStore } from "@/zustand/usePaywallStore";
 import { CREDITS_COSTS } from "@/constants/credits";
 import { ROUTES } from "@/constants/routes";
 import { useShallow } from "zustand/react/shallow";
+import type { ToolInitialProps } from "@/types/ToolInitialProps";
 
 const IMAGE_ERROR_MESSAGE =
   "I can't do that. I can't do real people or anything that violates the terms of service. Please try changing the prompt.";
 
-export default function ImagePrompt() {
+export default function ImagePrompt({ initialInput }: ToolInitialProps) {
   const { saveHistory, uid } = useHistorySaver();
   const generationConfig = useProfileStore(
     useShallow((s) => ({
@@ -44,7 +45,7 @@ export default function ImagePrompt() {
     completeWithError,
   } = useGenerationState();
 
-  const [topic, setTopic] = useState("");
+  const [topic, setTopic] = useState(initialInput ?? "");
   const [selectedPainter, setSelectedPainter] = useState("");
 
   useScrollToResult(summary, flagged);

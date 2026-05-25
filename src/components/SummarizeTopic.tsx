@@ -26,8 +26,15 @@ import { ROUTES } from "@/constants/routes";
 import { useShallow } from "zustand/react/shallow";
 import { isInsufficientCreditsError } from "@/utils/errors";
 import { createClientIdempotencyKey } from "@/utils/clientIdempotencyKey";
+import GenerationNextActions from "@/components/GenerationNextActions";
+import { clampStarterWordCount } from "@/constants/toolMetadata";
+import type { ToolInitialProps } from "@/types/ToolInitialProps";
 
-export default function SummarizeTopic() {
+export default function SummarizeTopic({
+  initialInput,
+  initialFocus,
+  initialWords,
+}: ToolInitialProps) {
   const generationConfig = useProfileStore(
     useShallow((s) => ({
       useCredits: s.profile.useCredits,
@@ -54,9 +61,11 @@ export default function SummarizeTopic() {
     setProgress,
   } = useGenerationState();
 
-  const [topic, setTopic] = useState("");
-  const [siteUrl, setSiteUrl] = useState("");
-  const [words, setWords] = useState("30");
+  const [topic, setTopic] = useState(initialFocus ?? "");
+  const [siteUrl, setSiteUrl] = useState(initialInput ?? "");
+  const [words, setWords] = useState(() =>
+    String(clampStarterWordCount(initialWords))
+  );
 
   useScrollToResult(summary, flagged);
 
@@ -182,6 +191,7 @@ export default function SummarizeTopic() {
             id="site1-field"
             maxLength={120}
             placeholder="Website URL to use as a reference."
+            value={siteUrl}
             onChange={(e) => setSiteUrl(e.target.value)}
             required
           />
@@ -195,6 +205,7 @@ export default function SummarizeTopic() {
             id="topic-field"
             maxLength={80}
             placeholder="Enter a specific focus or aspect to summarize (optional)."
+            value={topic}
             onChange={(e) => setTopic(e.target.value)}
           />
         </label>
@@ -204,10 +215,12 @@ export default function SummarizeTopic() {
           {MAX_WORD_COUNT})
           <input
             className={inputClassName}
-            defaultValue="30"
+            value={words}
             type="number"
             id="words-field"
             placeholder="Enter number of words."
+            min={MIN_WORD_COUNT}
+            max={MAX_WORD_COUNT}
             onChange={(e) => setWords(e.target.value || "30")}
           />
         </label>
@@ -224,7 +237,16 @@ export default function SummarizeTopic() {
           </SubmitButton>
         </div>
 
-        <ResponseDisplay flagged={flagged} summary={summary} />
+        <ResponseDisplay
+          flagged={flagged}
+          summary={summary}
+          nextActions={
+            <GenerationNextActions
+              content={summary}
+              sourceLabel="website summary"
+            />
+          }
+        />
       </form>
     </div>
   );

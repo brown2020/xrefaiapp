@@ -6,12 +6,16 @@ import Link from "next/link";
 import AuthComponent from "@/components/AuthComponent";
 import {
   ArrowRight,
+  BookOpen,
   CheckCircle2,
   CreditCard,
   FileText,
+  GraduationCap,
   Image as ImageIcon,
+  Megaphone,
   MessageSquare,
   PenTool,
+  Search,
   Share2,
   ShieldCheck,
   Sparkles,
@@ -19,6 +23,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
+import {
+  STARTER_INTENTS,
+  buildStarterIntentHref,
+  type StarterAudience,
+  type StarterIntent,
+} from "@/constants/starterIntents";
 
 const typewriterWords = [
   "Topic Summaries",
@@ -86,6 +96,13 @@ const workflow = [
   "Generate, refine, save, and keep creating.",
 ] as const;
 
+const starterAudienceIcons: Record<StarterAudience, LucideIcon> = {
+  Creator: Sparkles,
+  Marketer: Megaphone,
+  Student: GraduationCap,
+  Researcher: Search,
+};
+
 const TYPEWRITER_TYPE_DELAY_MS = 72;
 const TYPEWRITER_DELETE_DELAY_MS = 38;
 const TYPEWRITER_HOLD_DELAY_MS = 1250;
@@ -138,6 +155,32 @@ export default function Home() {
                 <ArrowRight className="h-4 w-4" />
               </a>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="starter-paths"
+        className="border-b border-border bg-[#fbfaf7] py-14 md:py-16"
+      >
+        <div className="container mx-auto px-4">
+          <div className="mx-auto mb-8 max-w-3xl text-center">
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.24em] text-accent">
+              Starter paths
+            </p>
+            <h2 className="text-3xl font-extrabold tracking-normal text-foreground md:text-4xl">
+              Start from a use case, not a blank page.
+            </h2>
+            <p className="mt-4 text-base leading-7 text-muted-foreground">
+              Pick a common creator, marketing, study, or research job and
+              Xref.ai will open the right workspace with a useful prompt ready.
+            </p>
+          </div>
+
+          <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {STARTER_INTENTS.map((intent) => (
+              <StarterIntentCard key={intent.id} intent={intent} />
+            ))}
           </div>
         </div>
       </section>
@@ -343,5 +386,44 @@ function FeatureCard({
         {description}
       </p>
     </div>
+  );
+}
+
+function StarterIntentCard({ intent }: { intent: StarterIntent }) {
+  const Icon = starterAudienceIcons[intent.audience] ?? BookOpen;
+
+  return (
+    <Link
+      href={buildStarterIntentHref(intent)}
+      className="group flex h-full flex-col rounded-lg border border-border bg-card p-5 text-left shadow-sm transition-colors hover:border-accent hover:bg-muted/40"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <span className="inline-flex items-center gap-2 rounded-lg bg-muted px-2.5 py-1 text-xs font-bold text-foreground">
+          <Icon className="h-3.5 w-3.5 text-accent" />
+          {intent.audience}
+        </span>
+        <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+      </div>
+      <h3 className="mt-4 text-lg font-bold text-foreground">
+        {intent.title}
+      </h3>
+      <p className="mt-2 text-sm leading-6 text-muted-foreground">
+        {intent.description}
+      </p>
+      <div className="mt-4 space-y-2 border-t border-border pt-4 text-xs leading-5 text-muted-foreground">
+        <p>
+          <span className="font-bold text-foreground">Input:</span>{" "}
+          {intent.expectedInput}
+        </p>
+        <p>
+          <span className="font-bold text-foreground">Output:</span>{" "}
+          {intent.likelyOutput}
+        </p>
+        <p>
+          <span className="font-bold text-foreground">Cost:</span>{" "}
+          {intent.estimatedCredits} credits
+        </p>
+      </div>
+    </Link>
   );
 }

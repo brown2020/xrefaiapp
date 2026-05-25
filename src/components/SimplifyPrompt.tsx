@@ -5,8 +5,12 @@ import BasePrompt from "./BasePrompt";
 import TextareaAutosize from "react-textarea-autosize";
 import { GRADE_LEVELS } from "@/constants";
 import { inputClassName, labelClassName } from "@/components/ui/FormInput";
+import type { ToolInitialProps } from "@/types/ToolInitialProps";
 
-export default function SimplifyPrompt() {
+export default function SimplifyPrompt({
+  initialInput,
+  initialWords,
+}: ToolInitialProps) {
   const [gradeLevel, setGradeLevel] = useState<string>("5th Grade");
 
   return (
@@ -19,6 +23,8 @@ export default function SimplifyPrompt() {
       buttonText="Simplify Writing"
       loadingText="Simplifying"
       showWordCount={false}
+      initialInput={initialInput}
+      initialWordCount={initialWords}
     >
       {({ inputValue, setInputValue }) => (
         <>

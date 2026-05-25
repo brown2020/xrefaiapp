@@ -3,8 +3,12 @@
 import BasePrompt from "./BasePrompt";
 import TextareaAutosize from "react-textarea-autosize";
 import { inputClassName, labelClassName } from "@/components/ui/FormInput";
+import type { ToolInitialProps } from "@/types/ToolInitialProps";
 
-export default function FreestylePrompt() {
+export default function FreestylePrompt({
+  initialInput,
+  initialWords,
+}: ToolInitialProps) {
   return (
     <BasePrompt
       title="Freestyle Writing"
@@ -14,6 +18,8 @@ export default function FreestylePrompt() {
       }
       buttonText="Let's Write!"
       loadingText="Writing"
+      initialInput={initialInput}
+      initialWordCount={initialWords}
     >
       {({ inputValue, setInputValue }) => (
         <label htmlFor="topic-field" className={labelClassName}>
