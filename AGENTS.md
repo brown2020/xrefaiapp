@@ -1,414 +1,452 @@
-# AGENTS.md — Xref.ai Codebase Guide
+# AGENTS.md - Xref.ai Codebase Guide
+
+## Purpose
+
+`AGENTS.md` is the single source of truth for autonomous coding agents working in this repository. Read it before editing code. Read `spec.md` before product-facing work.
+
+This guide is intentionally repo-specific. It documents the current application, the boundaries that protect users and money movement, and the workflow expected when committing directly to `dev`.
 
 ## Project Overview
 
-Xref.ai is an AI-powered writing, chat and image-generation app built on **Next.js 16 (App Router)**, **React 19**, **TypeScript** (strict), and **Tailwind CSS 4**. It supports multi-provider AI chat, writing tools, and image generation gated by a credit-based monetization system (Stripe Checkout on web, optional in-app purchases via signed IAP webview payloads).
+Xref.ai is an AI creation workspace for writing, chat, summarization, image prompts, image generation, saved history, and credit-based usage. It is built with Next.js 16 App Router, React 19, TypeScript 6 strict mode, Tailwind CSS 4, Firebase, Stripe Checkout, Fireworks AI, and the Vercel AI SDK.
 
-## Purpose of This File
+## Product Purpose
 
-`AGENTS.md` is the single complete implementation guide for AI coding agents working in this repository. It should help an agent:
+The app helps users turn rough ideas, URLs, notes, text, and visual concepts into useful outputs they can save and reuse. The current product is strongest for creator, marketer, student, and researcher workflows:
 
-- understand the product surface, architecture, and security boundaries quickly;
-- identify the source-of-truth files for auth, credits, payments, AI models, routes, and shared UI;
-- preserve app-specific invariants such as idempotent credit debits, authenticated mutations, SSRF protection, public-page layout consistency, and responsive homepage behavior;
-- choose the right verification path (`npm run lint`, `npm run build`, and browser checks for visible UI changes).
+- start from a use case on the homepage;
+- sign in with Firebase Auth;
+- generate text, summaries, chat responses, or images;
+- save outputs into account history;
+- repurpose text history into common deliverables;
+- buy credits through Stripe on web or through signed native IAP messages in the Expo WebView path;
+- optionally bring provider API keys instead of spending credits.
 
-Keep this file practical and accurate. Prefer durable architecture notes, invariants, and workflows over exhaustive descriptions of every component.
+For product direction, roadmap milestones, and user-facing promises, use `spec.md`.
 
-Use `spec.md` before product-facing work to understand what the app is today, which user promises matter, and which roadmap milestones should guide feature choices. Update `spec.md` when product behavior, user-facing scope, or roadmap priorities change. Update `AGENTS.md` when implementation invariants, architecture guidance, platform constraints, or agent workflow expectations change.
+## Branch And Git Workflow
+
+This repository uses:
+
+- `main` as the stable production branch.
+- `dev` as the autonomous working branch.
+
+Rules for autonomous runs:
+
+- Never push to `main`.
+- Do not create feature branches unless the user explicitly changes the workflow.
+- Make one focused PR-sized change at a time, even though the change is committed directly to `dev`.
+- Start by fetching remote refs, switching to `dev`, integrating the latest `origin/dev`, and inspecting the working tree.
+- If `origin/dev` does not exist and the user explicitly asked to work on `dev`, create `dev` from the latest stable remote base only after documenting that assumption. Do not move or push `main`.
+- If uncommitted changes already exist, treat them as user-owned. Stop unless they are clearly generated/irrelevant and can be preserved without staging or overwriting them.
+- Before committing, confirm the branch is `dev`, fetch again, integrate `origin/dev` if it exists, rerun required validation, then commit and push `dev` to `origin/dev`.
+- Do not open pull requests for the direct-to-`dev` workflow unless the user asks.
+
+Preferred non-interactive sequence:
+
+```bash
+git fetch origin
+git switch dev
+git merge --ff-only origin/dev
+git status --short --branch
+```
+
+If `origin/dev` is missing, do not invent unrelated branch names. Keep the work on `dev`.
 
 ## Quick Commands
 
+Use npm. This repository has `package-lock.json` lockfile version 3. Do not switch package managers.
+
 ```bash
-npm run dev     # Start dev server (Next.js 16 defaults to Turbopack)
-npm run build   # Production build
-npm run start   # Start production server
-npm run lint    # Run ESLint 10 (flat config)
+npm install        # Install dependencies using npm
+npm run dev        # Start Next.js dev server
+npm run build      # Production build and Next.js type checks
+npm run start      # Start production server after build
+npm run lint       # ESLint 10 flat config
+npm run test:browser # Headless Playwright smoke tests
 ```
 
-No test framework is configured; ESLint is the primary code quality tool.
+Canonical validation for documentation-only changes:
 
-For changes that touch routing, server actions, API routes, auth, payments, credits, or shared UI, run `npm run build` as well. For visible frontend changes, verify the relevant route in the browser at desktop and mobile widths before calling the work done.
-
-## Agent Workflow Expectations
-
-- Start by reading the relevant files and `git status`; the worktree may contain user changes.
-- Use existing route constants, stores, hooks, UI primitives, type guards, and credit/auth helpers instead of inventing parallel patterns.
-- Keep edits scoped to the requested behavior. Avoid opportunistic refactors in security-sensitive paths.
-- Treat all credit, payment, auth, rate-limit, and idempotency code as high-risk: preserve transactions, deterministic IDs, refund paths, and server-side token verification.
-- For dependency updates, inspect `npm audit` output and avoid `npm audit fix --force` unless the resulting major-version changes are intentionally reviewed. The `overrides` block in `package.json` pins patched transitive versions and should not be removed casually.
-- For UI fixes, check mobile behavior explicitly. The homepage hero, auth modal, footer, and public legal pages have had recent responsive/contrast issues; verify the actual rendered page.
-
-## Tech Stack
-
-- **Framework:** Next.js 16.x (App Router, Turbopack default, Proxy replaces legacy middleware)
-- **Language:** TypeScript 6.x (strict mode, `@/*` → `./src/*` path alias)
-- **UI:** React 19.x, Tailwind CSS 4.x (via `@tailwindcss/postcss`), `@radix-ui/react-dialog`, `lucide-react`, `react-markdown` + `remark-gfm`, `react-hot-toast`
-- **State:** Zustand 5.x (with `useShallow` for multi-field selectors)
-- **Backend:** Firebase 12 client + `firebase-admin` 13 server (Firestore, Auth, Storage)
-- **Payments:** Stripe 22.x (Checkout Sessions on web) + custom IAP confirmation for RN WebView
-- **AI text:** Vercel AI SDK 6.x (`ai`, `@ai-sdk/react`, `@ai-sdk/rsc`) with OpenAI, Anthropic, xAI and Google providers
-- **AI images:** Fireworks AI (`stable-diffusion-xl-1024-v1-0`)
-
-## Directory Structure
-
+```bash
+npm run lint
+./node_modules/.bin/tsc --noEmit --pretty false
+npm run build
 ```
+
+Canonical validation for routing, server action, API, auth, payment, credit, shared UI, or visible frontend changes:
+
+```bash
+npm run lint
+./node_modules/.bin/tsc --noEmit --pretty false
+npm run build
+npm run test:browser
+```
+
+`npm run test:browser` uses Playwright headlessly and starts `npm run start` on `127.0.0.1` via `playwright.config.ts`. Run `npm run build` first because `next start` needs a production build.
+
+## Non-Interactive Testing Rules
+
+- Never use watch mode.
+- Never use a headed browser.
+- Never rely on manual login.
+- Use CI-safe commands only.
+- Prefer existing scripts over ad hoc commands.
+- If a check is unavailable or blocked by environment credentials, say exactly which check could not run and why.
+- Browser checks for visible UI work should use headless Playwright or the Codex in-app browser; do not ask the user to manually verify basics you can verify.
+
+## Current Tech Stack
+
+- Framework: Next.js 16 App Router. `src/proxy.ts` replaces legacy middleware.
+- Runtime: React 19, TypeScript 6 strict mode, Node route handlers where declared.
+- Styling: Tailwind CSS 4 through `@tailwindcss/postcss`, plus shared utilities in `src/app/globals.css`.
+- UI libraries: `lucide-react`, Radix Dialog, `react-markdown` with `remark-gfm`, `react-hot-toast`, `react-select`, `react-textarea-autosize`.
+- State: Zustand 5, with `useShallow` for multi-field selectors.
+- Auth/data/storage: Firebase client SDK 12 and Firebase Admin 13 for Auth, Firestore, and Storage.
+- AI text: Vercel AI SDK 6 with OpenAI, Anthropic, xAI, and Google providers.
+- AI images: Fireworks AI `stable-diffusion-xl-1024-v1-0`.
+- Payments: Stripe 22 Checkout Sessions on web plus signed React Native WebView IAP confirmation.
+- Tests: Playwright smoke tests under `tests/`; no unit test runner is currently configured.
+
+## Repository Structure
+
+```text
 src/
-├── actions/        # "use server" Server Actions (AI, auth, credits, history, payments, profile)
-├── ai/             # AI model whitelist (models.ts) + server factory (getTextModel.ts)
-├── app/            # Next.js App Router pages & API routes
-│   ├── api/        # billing/{checkout,confirm}, chat, proxy
-│   ├── chat/ tools/ history/ account/ loginfinish/
-│   └── payment-{attempt,success}/, about/, terms/, privacy/, support/
-├── components/     # React UI (Chat, Home, History, Profile, Auth, etc.)
-│   ├── DesignerPrompt/  # Design tool subcomponents
-│   └── ui/         # Reusable primitives (Modal, Sheet, SubmitButton, CreditsPaywallModal…)
-├── constants/      # index.ts, routes.ts, creditPacks.ts, credits.ts
-├── data/           # Static choice lists (colors, candies, painters, etc.)
-├── firebase/       # firebaseClient.ts (browser) + firebaseAdmin.ts (server, lazy Proxy)
-├── hooks/          # useAuthToken, useChatGeneration, useImageGeneration, useFirestoreRealtime, …
-├── types/          # Domain types + guards.ts runtime guards + globals.d.ts
-├── utils/          # credits, errors, messages, idempotency, rateLimit, clipboard, …
-├── zustand/        # useAuthStore, useProfileStore, usePaymentsStore, usePaywallStore, useInitializeStores
-└── proxy.ts        # Next.js 16 edge proxy (soft cookie-presence gate on protected routes)
+  actions/        Server actions for auth, credits, history, payments, profile, text AI, image AI, IAP
+  ai/             Model whitelist and text model factory
+  app/            App Router pages and API route handlers
+  components/     UI components and feature surfaces
+  constants/      Routes, credit costs, credit packs, starter intents, tool metadata, shared limits
+  data/           Static choice lists for image/design prompt builders
+  firebase/       Firebase client setup and lazy Admin SDK proxies
+  hooks/          Auth, store init, chat/history, scraping, generation, Firestore hooks
+  types/          Domain types and runtime type guards
+  utils/          Credits, idempotency, rate limit, errors, messages, platform, clipboard, proxy helpers
+  zustand/        Auth, profile, payments, paywall, and initialization stores
+  proxy.ts        Edge soft gate for protected routes
+
+tests/
+  activation-starter-paths.spec.ts
 ```
 
-## Key Architecture Patterns
+Root config files include `package.json`, `package-lock.json`, `next.config.mjs`, `eslint.config.mjs`, `playwright.config.ts`, `tailwind.config.ts`, `postcss.config.mjs`, and `tsconfig.json`.
 
-### Server vs Client Boundaries
+## Key Features That Exist Today
 
-- **Server Actions** (`src/actions/*.ts`, `"use server"`) — auth, credits, profile, history, payments, IAP confirmation, and the AI text-generation streamable (`generateAIResponse`).
-- **API Routes** (`src/app/api/**/route.ts`, `runtime = "nodejs"`) — streaming chat (`/api/chat`), Stripe checkout/confirm, SSRF-safe URL proxy.
-- **`"use client"`** components for interactive UI. Heavy client-only surfaces (auth, toasts, cookie consent) live under `ClientProvider`.
-- **`src/proxy.ts`** is the Next.js 16 replacement for `middleware.ts`. It is a SOFT gate that only checks for the presence of the auth cookie; real token verification happens in every server action / API handler.
+- Public homepage with hero, starter paths, feature sections, auth CTA, and responsive typewriter sizing.
+- Public `/about`, `/terms`, `/privacy`, and `/support` pages using shared public-page layout components.
+- Firebase auth with Google sign-in, email/password, password reset, and email-link sign-in.
+- Protected Chat, Tools, History, Account, payment attempt, and payment success routes.
+- Streaming AI chat through `/api/chat`.
+- Writing tools: Summarize Website, Summarize Text, Freestyle Writing, Simplify Writing.
+- Image tools: Generate Image and Designer Tool.
+- Firestore-backed saved chat and summary history.
+- History search, pagination, expandable cards, markdown rendering, copy/download, and text repurpose actions.
+- Credit balances, credit ledger, credit packs, Stripe checkout, payment confirmation, and paywall modal.
+- BYO API key mode for text providers and Fireworks image generation.
+- Expo/React Native WebView branches for IAP, auth differences, cookie consent suppression, and localStorage differences.
+- Headless Playwright coverage for activation starter paths.
 
-### Authentication Flow
+## Core Architecture
 
-1. `useAuthToken` subscribes to Firebase Auth via `react-firebase-hooks` and, when signed in, writes a fresh ID token to the `xrefAuthToken` cookie (name overridable via `NEXT_PUBLIC_COOKIE_NAME`).
-2. Cookie write happens BEFORE profile sync so any immediate navigation to a protected route is covered by `proxy.ts`.
-3. A token refresh is scheduled every `TOKEN_REFRESH_INTERVAL_MS` (50 min) and re-run on window focus / visibility change.
-4. Server actions call `requireAuthedUid()` (`src/actions/serverAuth.ts`) — reads cookie, verifies via `adminAuth.verifyIdToken`, throws `AUTH_REQUIRED` on failure.
-5. API route handlers call `requireAuthedUidFromRequest()` (`src/utils/requireAuthedRequest.ts`) which additionally accepts a `Bearer` token for RN WebView clients.
-6. `useAuthStore.profileSyncStatus` (`idle | syncing | synced | error`) coordinates initial profile fetch in `useInitializeStores` with a `PROFILE_SYNC_TIMEOUT_MS` fallback.
-7. On sign-out from a protected route, `ClientProvider` navigates the user home.
+### Server And Client Boundaries
 
-### Credit System
+- Server actions live in `src/actions/*.ts` and are marked `"use server"` where required.
+- API routes live in `src/app/api/**/route.ts` and use `runtime = "nodejs"` where Node APIs or SDKs are required.
+- Interactive UI is client-side. `ClientProvider` owns auth token refresh, store initialization, cookie consent, toasts, paywall modal, and logout redirects.
+- Do not import server-only Firebase Admin modules into client components.
+- Do not move credit, payment, auth, idempotency, or rate-limit decisions to the client.
 
-- Source of truth: `src/constants/credits.ts`
-  - `CREDITS_COSTS.chatMessage = 25`, `imageGeneration = 300`, `tagSuggestion = 25`, `minTextGeneration = 25`
-  - `getTextGenerationCreditsCost(wordCount)` — `max(25, ceil(wordCount * 0.5))`
-- Credit packs: `src/constants/creditPacks.ts` — `starter | plus | pro | power`, with `amountCents` → `credits` mapping used by both UI and `/api/billing/*`.
-- Mutations go through **Firestore transactions** in `src/actions/serverCredits.ts`:
-  - `debitCreditsOrThrow(uid, amount, meta)` — debit + ledger entry, throws `INSUFFICIENT_CREDITS`.
-  - `creditCredits(uid, amount, meta?)` — credit + ledger entry (supports `deterministicId` for refund idempotency).
-  - `getCredits(uid)` — current balance.
-- Every debit is gated by an **idempotency check** and followed by a refund + `markIdempotencyFailed` if the downstream operation errors or aborts.
-- `src/utils/credits.ts` provides client/server-shared helpers: `coerceCredits`, `isValidDebitAmount`, `calculateNewBalance` (throws `INSUFFICIENT_CREDITS` on negative), `formatCredits`.
+### Chat Path
 
-### Idempotency (`src/utils/idempotency.ts`)
+The active chat UI is `src/components/Chat.tsx` using `@ai-sdk/react` and `DefaultChatTransport` pointed at `/api/chat`.
 
-- Keys are per-user and stored at `users/{uid}/idempotency/{key}` with a TTL (`IDEMPOTENCY_TTL_MS`, 24h).
-- `generateClientIdempotencyKey(uid, clientKey)` is preferred: the client calls `createClientIdempotencyKey()` (`src/utils/clientIdempotencyKey.ts`, `crypto.randomUUID`) and sends it with each submit so genuine retries are collapsed but intentional re-submits are distinct.
-- `generateIdempotencyKey(uid, payload)` is a fallback that hashes the payload. It intentionally does NOT use a time window (previous implementation allowed double-charge on window boundaries).
-- `checkAndSetIdempotency` atomically marks a key `processing`; `markIdempotencyComplete` and `markIdempotencyFailed` close the lifecycle.
+`/api/chat`:
 
-### Rate Limiting (`src/utils/rateLimit.ts`)
+- verifies auth with `requireAuthedUid()` from the auth cookie;
+- rate-limits the user under endpoint `chat`;
+- debits `CREDITS_COSTS.chatMessage` when in credits mode;
+- gates debits with idempotency;
+- streams with `streamText`;
+- refunds and clears idempotency on stream failure or abort;
+- saves chat history from the client after successful stream completion.
 
-- Distributed fixed-window counters stored at `users/{uid}/rateLimit/{endpoint}` via Firestore transactions — a single `windowStart` + `count` per endpoint (no unbounded arrays).
-- Defaults: `chat` 60/min, `image` 10/min, `tools` 30/min, `default` 100/min (all 60s windows).
-- `rateLimitMiddleware(uid, endpoint)` returns `null` when allowed or a 429 `Response` with `Retry-After`, `X-RateLimit-*` headers when blocked.
-- **Fails open** on Firestore errors to avoid turning infra hiccups into outages.
-- `cleanupRateLimitData(uid)` removes stale docs; safe to run periodically.
+`src/hooks/useChatGeneration.ts` is a legacy exported hook that is not used by the current Chat component. Prefer `Chat.tsx` plus `/api/chat` for chat work.
 
-### Payments
+### Tool Text Generation Path
 
-- **Web (Stripe Checkout):**
-  - `POST /api/billing/checkout` — verifies auth, looks up `packId` in `CREDIT_PACKS`, creates a Checkout Session, returns the hosted URL.
-  - `POST /api/billing/confirm` — verifies auth, acquires a **distributed lock** at `users/{uid}/locks/payment_{sessionId}` (TTL `PAYMENT_LOCK_TTL_MS` = 30s), retrieves the session, verifies `metadata.uid`, `payment_status === "paid"`, and `amount_total === pack.amountCents`, then atomically writes payment + profile credits + ledger (all with deterministic doc IDs so retries are no-ops).
-- **IAP (RN WebView):** `src/actions/confirmIapPurchase.ts`
-  - Verifies an HMAC-SHA256 signature over a JSON-canonicalized payload (shared secret `IAP_WEBVIEW_SECRET`).
-  - Rejects replays via 5-minute timestamp skew window.
-  - Enforces a global claim doc at `iapTransactions/{transactionId}` so a transaction can be consumed by exactly one uid.
-  - Caps credits at `2 × max(CREDIT_PACKS.credits)`.
+Writing tools call `generateAIResponse()` through `generateResponse()` in `src/actions/generateAIResponse.ts`. This path:
 
-### SSRF-Safe URL Proxy (`/api/proxy`)
+- verifies auth when credits are used;
+- calculates text-generation cost from requested word count;
+- idempotency-gates debits;
+- streams through AI SDK RSC streamable values;
+- refunds on generation errors;
+- saves summaries through `saveHistoryServer()`.
 
-- Auth + rate-limit gated.
-- HTTPS only, port 443 only, no credentials in URL, no hostname IP literals.
-- DNS-resolves the hostname and connects to the verified public IP directly (closes the TOCTOU window Node's `fetch` leaves open).
-- Blocks private/loopback/link-local IPv4 CIDRs and IPv6 ranges.
-- Rejects redirects (301/302/303/307/308) so an allowed host can't hop to a blocked one.
-- Caps response body at 1 MB and enforces an 8s timeout.
+### Image Generation Path
 
-### State Management (Zustand)
+`generateImage()` in `src/actions/generateImage.ts`:
 
-| Store                 | File                    | Purpose                                                                                 |
-| --------------------- | ----------------------- | --------------------------------------------------------------------------------------- |
-| `useAuthStore`        | `useAuthStore.ts`       | Firebase auth state + `profileSyncStatus` + `syncAuthProfile`                           |
-| `useProfileStore`     | `useProfileStore.ts`    | Profile + credits with **optimistic updates and serialized rollback** via write queue   |
-| `usePaymentsStore`    | `usePaymentsStore.ts`   | Payment history (fetch/add/check by id)                                                 |
-| `usePaywallStore`     | `usePaywallStore.ts`    | Credits paywall modal (context persists on close to avoid flicker)                      |
-| `useInitializeStores` | `useInitializeStores.ts`| Hook that resets stores on uid change and fetches profile once sync status resolves     |
+- always requires an authenticated user;
+- uses server `FIREWORKS_API_KEY` in credits mode or the profile Fireworks key in API-key mode;
+- debits `CREDITS_COSTS.imageGeneration` in credits mode;
+- uploads generated JPEGs to Firebase Storage and returns a signed URL;
+- saves image outputs as history entries with `words: "image"`.
 
-Patterns:
-- **`useShallow`** for multi-field selectors (`useChatGeneration`, `useImageGeneration`, etc.) to prevent unnecessary re-renders and race conditions.
-- **Refs instead of state** in callback dependencies where a realtime listener shouldn't re-subscribe on UI flag changes (`useChatMessages`, `useFirestoreRealtime`).
-- Optimistic profile writes are serialized through a module-level `profileUpdateQueue` so rollbacks don't clobber unrelated in-flight edits.
+Important current limitation: image clients do not yet pass a fresh client idempotency key, so image generation falls back to payload-hash idempotency. This protects retries but can collapse intentional identical re-submits until the idempotency record expires.
 
-### AI Model Support
+### Authentication And Route Protection
 
-- Whitelist in `src/ai/models.ts`:
-  - `openai:gpt-5.4` (default)
-  - `anthropic:claude-sonnet-4-6`
-  - `xai:grok-4`
-  - `google:gemini-3-pro-preview`
-- `resolveAiModelKey(value)` falls back to the default if the key isn't whitelisted — used both when persisting profile updates and when building the model for a generation.
-- `getTextModel({ modelKey, useCredits, ...apiKeys })` in `src/ai/getTextModel.ts`:
-  - **Credits mode** (`useCredits !== false`): uses server env keys via the default provider clients.
-  - **User keys mode** (`useCredits === false`): uses the user-supplied key from profile (e.g. `openai_api_key`) via `createOpenAI({apiKey})` / `createAnthropic` / `createXai` / `createGoogleGenerativeAI`.
-- Image generation uses Fireworks AI directly in `src/actions/generateImage.ts` (not the AI SDK).
+- `src/proxy.ts` is a soft edge gate. It checks for auth cookie presence only.
+- Protected routes are defined in `src/constants/routes.ts` and mirrored in the proxy matcher.
+- Every mutation and money path must verify the Firebase ID token server-side.
+- Server actions use `requireAuthedUid()` from `src/actions/serverAuth.ts`.
+- Billing and proxy API routes use `requireAuthedUidFromRequest()` so browser cookies and React Native Bearer tokens both work.
+- `/api/chat` currently uses cookie-based `requireAuthedUid()`.
+- `useAuthToken()` writes the Firebase ID token to the `xrefAuthToken` cookie before profile sync and refreshes it on interval/focus/visibility.
+- Do not treat proxy access as authorization. A forged or expired cookie must still fail at the server action/API layer.
 
-## Key Files
+### Credits And Payments
 
-| File                                | Purpose                                                                      |
-| ----------------------------------- | ---------------------------------------------------------------------------- |
-| `src/actions/generateAIResponse.ts` | Unified AI text generation (simple + conversation) with credit/idempotency   |
-| `src/actions/generateImage.ts`      | Fireworks image generation with credit/idempotency + Storage upload          |
-| `src/actions/serverAuth.ts`         | `requireAuthedUid()` — verifies Firebase ID token from cookie                |
-| `src/actions/serverCredits.ts`      | Transactional debit/credit with ledger entries                               |
-| `src/actions/serverProfile.ts`      | Profile read/write with sanitized whitelist and model-key validation         |
-| `src/actions/serverHistory.ts`      | Writes `summaries` and `chats` subcollections with size clamps               |
-| `src/actions/serverPayments.ts`     | Payments collection reads/writes, duplicate guard                            |
-| `src/actions/confirmIapPurchase.ts` | HMAC-verified IAP credit application with global claim doc                   |
-| `src/app/api/chat/route.ts`         | Streaming chat endpoint (rate limit + idempotent debit + refund on failure) |
-| `src/app/api/billing/checkout/route.ts` | Stripe Checkout Session creation                                         |
-| `src/app/api/billing/confirm/route.ts`  | Post-checkout crediting with distributed lock                            |
-| `src/app/api/proxy/route.ts`        | SSRF-safe HTTPS proxy for website scraping                                   |
-| `src/proxy.ts`                      | Edge proxy; soft cookie gate for protected routes                            |
-| `src/hooks/useAuthToken.ts`         | Firebase auth → cookie + profile sync + token refresh                        |
-| `src/hooks/useChatGeneration.ts`    | Chat submit/stream/save flow                                                 |
-| `src/hooks/useFirestoreRealtime.ts` | Live first-page subscription + older-page pagination                         |
-| `src/zustand/useProfileStore.ts`    | Profile + credits, serialized optimistic updates + rollback                  |
-| `src/zustand/useAuthStore.ts`       | Auth state + `profileSyncStatus`                                             |
-| `src/utils/idempotency.ts`          | Firestore-backed idempotency (generate/check/complete/fail/cleanup)          |
-| `src/utils/rateLimit.ts`            | Fixed-window rate limiter with fail-open safety                              |
-| `src/utils/credits.ts`              | Shared credit coercion / balance math                                        |
-| `src/utils/messages.ts`             | AI-SDK message text extraction + word count + context trimming               |
-| `src/utils/errors.ts`               | Custom error classes + type guards + paywall handler                         |
-| `src/types/guards.ts`               | Runtime type guards (`isObject`, `hasProperty`, `safeString`, …)             |
-| `src/constants/index.ts`            | Centralized numeric/string constants (limits, TTLs, rate-limits, messages)   |
-| `src/firebase/firebaseAdmin.ts`     | Lazy Admin SDK singleton via Proxy (safe at build time)                      |
-| `src/firebase/firebaseClient.ts`    | Firebase web SDK init (auth/firestore/storage)                               |
+Source files:
 
-## API Routes
+- `src/constants/credits.ts`
+- `src/constants/creditPacks.ts`
+- `src/actions/serverCredits.ts`
+- `src/app/api/billing/checkout/route.ts`
+- `src/app/api/billing/confirm/route.ts`
+- `src/actions/confirmIapPurchase.ts`
+- `src/components/ui/CreditsPaywallModal.tsx`
+- `src/components/CreditsLedger.tsx`
 
-| Route                   | Method | Purpose                                                                                |
-| ----------------------- | ------ | -------------------------------------------------------------------------------------- |
-| `/api/chat`             | POST   | Streaming chat (25 credits / message, rate-limited, idempotent, refunds on abort)      |
-| `/api/billing/checkout` | POST   | Create Stripe Checkout Session for a `packId` from `CREDIT_PACKS`                      |
-| `/api/billing/confirm`  | POST   | Verify `session_id`, credit profile, write payment + ledger under distributed lock     |
-| `/api/proxy`            | GET    | SSRF-safe HTTPS-only scraper (auth required, rate-limited, 1 MB cap, 8 s timeout)      |
+Invariants:
 
-Chat endpoint error codes: `401` (`AUTH_REQUIRED`), `402` (`INSUFFICIENT_CREDITS`), `409` (`DUPLICATE_CHAT_REQUEST` / `CHAT_REQUEST_IN_PROGRESS`), `429` (rate-limited), `500` fallback.
+- Credit balances are non-negative integers.
+- Credit debits and credits happen inside Firestore transactions.
+- Ledger entries accompany credit mutations.
+- Chargeable operations are idempotency-protected.
+- Refunds use deterministic IDs where needed.
+- Stripe confirmation validates auth, metadata UID, payment status, pack ID, and amount before crediting.
+- Stripe fulfillment uses a Firestore lock at `users/{uid}/locks/payment_{sessionId}`.
+- IAP fulfillment verifies HMAC signature, timestamp freshness, max credits, and global transaction claim docs.
+- Payment confirmation is currently return-page driven; there is no Stripe webhook route yet.
 
-## Pages (App Router)
+### Firestore Data Model
 
-Public: `/`, `/about`, `/privacy`, `/terms`, `/support`, `/loginfinish`.
-Protected (via `proxy.ts` matcher): `/chat`, `/tools`, `/history`, `/account`, `/payment-attempt`, `/payment-success`.
-
-Root layout (`src/app/layout.tsx`) loads the Plus Jakarta Sans variable font and wraps children in `<ClientProvider>`, which owns auth, toasts, cookie consent and the paywall modal.
-
-### Public Page / Homepage Conventions
-
-- Footer navigation is the canonical navigation for `/about`, `/terms`, `/privacy`, and `/support` (`FOOTER_MENU_ITEMS` in `src/constants/routes.ts`). Do not add a second in-page link grid or duplicate footer nav on those pages unless explicitly requested.
-- `/about`, `/terms`, `/privacy`, and `/support` should use `PublicPageLayout`, `PublicContentSection`, and `PublicCard` from `src/components/PublicPageLayout.tsx` for a simple, modern, text-first layout.
-- Legal/support copy uses Ignite Channel Inc. as the company identity. Current address: Ignite Channel Inc, 190 W Amado Road, Palm Springs, CA 92262.
-- The homepage hero is in `src/components/Home.tsx`; the typewriter uses React state plus invisible CSS sizers (`.home-typewriter__sizer`) in `src/app/globals.css` so mobile layout height and width stay stable. Keep that behavior when editing hero text or typography.
-- `AuthComponent` owns the sign-in/sign-up modal and the homepage auth CTA. Keep auth errors visible in the modal foreground, preserve the "By continuing..." legal acceptance language, and check signed-in/signed-out button contrast.
-
-## Firestore Data Model
-
-```
+```text
 users/{uid}/
-  profile/userData          # User profile (credits, API keys, preferences, selected model)
-  chats/{autoId}             # Chat messages ({ prompt, response, timestamp })
-  summaries/{autoId}         # Tool outputs ({ prompt, response, topic, words, xrefs?, derivedFromId?, tool? })
-  payments/{docId}           # Stripe + IAP payments (docId: `checkout_{sessionId}` | `iap_{transactionId}`)
-  creditsLedger/{docId}      # Ledger entries (debit/credit with reason/tool/modelKey/refId/balanceAfter)
-  idempotency/{key}          # 24h-TTL idempotency records
-  rateLimit/{endpoint}       # { windowStart, count } per endpoint
-  locks/payment_{sessionId}  # Distributed lock for /api/billing/confirm
+  profile/userData
+  chats/{autoId}
+  summaries/{autoId}
+  payments/{docId}
+  creditsLedger/{docId}
+  idempotency/{key}
+  rateLimit/{endpoint}
+  locks/payment_{sessionId}
 
-iapTransactions/{transactionId}  # Global single-claim guard for IAP receipts
+iapTransactions/{transactionId}
 ```
 
-Server-side writes clamp string sizes (`serverHistory.ts`: 20k prompt, 50k response, 20 xrefs × 2k; `serverProfile.ts`: 4k per field).
+Profile strings from client writes are allowlisted and clamped in `serverProfile.ts`. History strings are clamped in `serverHistory.ts`.
 
-## Shared Utilities
+### State Management
 
-### Credits (`src/utils/credits.ts`)
-
-```ts
-coerceCredits(value, fallback);         // Non-negative finite integer, always
-isValidDebitAmount(amount);
-isValidCreditAmount(amount);
-calculateNewBalance(current, delta);    // Throws INSUFFICIENT_CREDITS / "not finite"
-formatCredits(credits);                 // "1,000 credits"
-```
-
-### Messages (`src/utils/messages.ts`)
-
-```ts
-getMessageText(message);                // Handles AI SDK `parts` or legacy `content`
-calculateWordCount(text);
-truncateText(text, max, notice?);
-buildContextFromHistory(history, maxWords);
-```
-
-### Errors (`src/utils/errors.ts`)
-
-```ts
-class InsufficientCreditsError extends Error
-class AuthRequiredError extends Error
-class RateLimitError extends Error      // with retryAfterMs
-isInsufficientCreditsError(error)
-isAuthRequiredError(error)
-isRateLimitError(error)
-getErrorMessage(error, fallback?)
-handleInsufficientCredits(openPaywall, context)
-handleOperationError(operation, error, showToast?)
-```
-
-### Type Guards (`src/types/guards.ts`)
-
-```ts
-isObject / isString / isNumber / isBoolean / isArray
-hasProperty / hasStringProperty / hasNumberProperty
-isTimestampLike
-safeString / safeNumber / safeBoolean
-createStringLiteralGuard(values)
-assert / assertDefined
-```
-
-### Platform / Content Guard (`src/utils/platform.ts`, `contentGuard.ts`)
-
-- `isReactNativeWebView()` — detects `window.ReactNativeWebView` (used to suppress cookie-consent banner and localStorage writes).
-- A completed Expo app loads this web app in a React Native WebView. Preserve native-specific branches even when they differ from the browser path: Google sign-in is hidden, Stripe/web checkout controls are hidden, native IAP uses `INIT_IAP` / `IAP_SUCCESS` messages, cookie consent is suppressed, and some localStorage coordination is skipped.
-- `checkRestrictedWords(content)` — UX-only restricted-word filter, applied client-side for the RN WebView context (NOT enforced server-side — document in code that broader moderation would need a server move).
-
-### Analytics (`Firebase / Google Analytics`)
-
-- Google Analytics should use Firebase's existing public env config, especially `NEXT_PUBLIC_FIREBASE_MEASUREMENTID`. Do not hard-code the measurement ID in source or docs.
-- When product analytics are implemented, create a small browser-only helper around `firebase/analytics` (`isSupported()`, `getAnalytics()`, `logEvent()`) that no-ops on the server and when analytics is unsupported.
-- Do not log raw prompts, generated content, API keys, auth tokens, payment secrets, or full URLs that may contain sensitive data. Log bounded product metadata such as event name, route, tool, entry point, model key, credit cost, success/failure, and latency bucket.
-- Server-side cost/profitability telemetry can be stored in internal records or logs; sending server events to GA4 would require an explicit Measurement Protocol setup and should not be assumed from the public measurement ID alone.
-
-### Clipboard / Images (`src/utils/clipboard.ts`, `resizeImage.ts`, `getImagePrompt.ts`)
-
-- `copyToClipboard`, `copyImageToClipboard`, `downloadImage` (with secure-context fallback).
-- `resizeImage(file)` — center-crops to 1024×1024 PNG Blob.
-- `getImagePrompt(promptData, topic)` — composes an image prompt from `src/data/*` choice lists.
-
-## Coding Conventions
-
-### TypeScript
-
-- `strict: true`, `target: ES2017`, `moduleResolution: bundler`, `@/*` alias.
-- Prefer type guards from `src/types/guards.ts` over `as` casts when handling `unknown` data from Firestore or APIs.
-- Defensive credit handling via `coerceCredits` + `calculateNewBalance` — never trust raw Firestore numbers.
-
-### Components
-
-- Functional components with hooks only (no classes except `ErrorBoundary`).
-- Custom hooks prefixed with `use`.
-- Components in PascalCase; file name matches the default export.
+- `useAuthStore` tracks Firebase auth details and profile sync status.
+- `useProfileStore` stores profile/credits and performs serialized optimistic profile updates with rollback.
+- `usePaymentsStore` fetches payment history. Its `addPayment` path is currently not used by the UI; Stripe and IAP are the real purchase flows.
+- `usePaywallStore` keeps paywall context across close to avoid flicker.
+- `useInitializeStores` resets profile/payments on UID changes and fetches profile after auth sync or timeout.
 - Use `useShallow` for multi-field Zustand selectors.
-- Use `useRef` to hold latest callbacks/state in realtime listeners so subscriptions don't churn.
+- Use refs for realtime listener callbacks/state that should not resubscribe on UI-only changes.
 
-### Security Patterns
+### Realtime And Pagination
 
-- ID token verification on every mutation (`requireAuthedUid` / `requireAuthedUidFromRequest`).
-- Firestore transactions for all credit/payment/idempotency/rate-limit reads-modify-writes.
-- **Idempotency keys** prevent duplicate charges on retries.
-- **Distributed locks** prevent double-processing of the same Stripe session.
-- **Rate limiting** prevents API abuse (per-user, per-endpoint).
-- **Stack traces hidden in production** by `ErrorBoundary`; only an error ID is shown.
-- URL proxy is SSRF-hardened (DNS-verified IP, redirect rejection, byte cap, timeout).
-- IAP confirmations require HMAC signature + fresh timestamp + global claim doc.
-- Profile writes sanitized against a fixed `CLIENT_WRITABLE_FIELDS` allowlist with per-type validation; text fields clamped to 4k chars.
+- Chat uses `useChatMessages()` and `useFirestoreRealtime()` for live first-page updates plus older-page pagination.
+- History uses `useFirestorePagination()` and local optimistic additions for saved repurpose outputs.
+- Keep page sizes tied to `MAX_CHAT_LOAD`, `MAX_HISTORY_LOAD`, and `MAX_VISIBLE_CHATS`.
 
-### Error Handling
+### URL Proxy
 
-- Toast notifications via `react-hot-toast` (`Toaster` mounted in `ClientProvider`).
-- `handleOperationError(operation, error, showToast)` centralizes logging + toast, and suppresses toasts for known handled error classes.
-- `ErrorBoundary` wraps the app; in production it shows a generated `ERR-<timestamp>` reference instead of a stack.
+`GET /api/proxy` is used by the website summarizer. It must remain SSRF-hardened:
 
-## Constants Reference (`src/constants/index.ts`)
+- auth required;
+- rate-limited;
+- HTTPS only;
+- default port 443 only;
+- no credentials in target URL;
+- no IP literal hostnames;
+- DNS-resolves target and connects directly to the verified public IP;
+- blocks private/link-local/reserved IP ranges;
+- rejects redirects;
+- caps response body at 1 MB;
+- times out at 8 seconds.
 
-| Constant                          | Value     | Purpose                                              |
-| --------------------------------- | --------- | ---------------------------------------------------- |
-| `MAX_WORDS_IN_CONTEXT`            | 5000      | Chat context window word budget                      |
-| `MAX_CHAT_LOAD`                   | 30        | Chat page size                                       |
-| `MAX_HISTORY_LOAD`                | 20        | History page size                                    |
-| `MIN_WORD_COUNT` / `MAX_WORD_COUNT` / `DEFAULT_WORD_COUNT` | 3 / 800 / 30 | Tool word-count bounds            |
-| `COPY_FEEDBACK_DURATION`          | 2000 ms   | Copy toast duration                                  |
-| `MAX_STREAMED_CHARS`              | 12000     | Max chars before streamed response is truncated      |
-| `TRUNCATION_NOTICE`               | `"\n\n[Response truncated due to length]"` | Appended on truncation |
-| `STREAMING_THROTTLE_MS`           | 100 ms    | Client-side stream throttle                          |
-| `STREAMING_UPDATE_INTERVAL_MS`    | 120 ms    | Min interval between streamed UI updates             |
-| `MAX_MARKDOWN_CHARS` / `_LINES` / `_MARKERS` | 8000 / 400 / 300 | Markdown render guardrails                  |
-| `MAX_VISIBLE_CHATS`               | 80        | Max chats rendered at once                           |
-| `TOKEN_REFRESH_INTERVAL_MS`       | 50 min    | Firebase ID token refresh cadence                    |
-| `PROFILE_SYNC_TIMEOUT_MS`         | 5000 ms   | Max wait before fetching profile anyway              |
-| `RATE_LIMIT_WINDOW_MS`            | 60 000    | Default window                                       |
-| `CHAT_RATE_LIMIT` / `IMAGE_RATE_LIMIT` / `TOOLS_RATE_LIMIT` | 60 / 10 / 30 | Per-window request caps                 |
-| `IDEMPOTENCY_TTL_MS`              | 24 h      | Idempotency record lifetime                          |
-| `IDEMPOTENCY_TIME_WINDOW_MS`      | 60 000    | (Legacy constant — fallback key generator is windowless by design) |
-| `PAYMENT_LOCK_TTL_MS`             | 30 000    | Distributed lock duration for `/api/billing/confirm` |
+Do not replace it with plain `fetch(targetUrl)` unless the same protections are rebuilt.
+
+### Expo WebView Support
+
+React Native WebView support is intentional:
+
+- `window.ReactNativeWebView` detection lives in `src/utils/platform.ts` and `src/hooks/useClientSetup.ts`.
+- Google popup sign-in is hidden in WebView.
+- Web Stripe checkout controls are hidden in WebView; native purchase starts with `INIT_IAP`.
+- Native success returns `IAP_SUCCESS`, then `confirmIapPurchase()` verifies the signed payload.
+- Cookie consent is suppressed in WebView.
+- Some localStorage coordination is skipped in WebView.
+- The restricted-word guard is client-only and WebView-only. It is UX protection, not server moderation.
+
+Do not remove WebView branches as dead code.
+
+## Development Conventions
+
+- Keep changes scoped to the requested behavior.
+- Use existing constants, route maps, hooks, stores, UI primitives, type guards, auth helpers, credit helpers, and idempotency helpers.
+- Prefer structured parsers and type guards over ad hoc unknown-data handling.
+- Keep security-sensitive refactors small and reviewable.
+- Do not casually remove `package.json` overrides; they pin patched transitive versions.
+- Do not modify generated files such as `.next/`, `tsconfig.tsbuildinfo`, Playwright trace output, or local test build artifacts.
+- Do not read or print local secret files such as `.env`, `.env.local`, or `service_key.json`.
+
+## TypeScript And Lint Expectations
+
+- TypeScript is strict. Avoid `as` casts when a runtime guard from `src/types/guards.ts` fits.
+- `@/*` maps to `./src/*`.
+- `eslint.config.mjs` is an ESLint 10 flat config, intentionally not `eslint-config-next`.
+- Hooks lint is limited to classic `rules-of-hooks` and `exhaustive-deps`; do not enable React Compiler rules without auditing the app.
+- Warnings are allowed by current config, but new warnings should be avoided when practical.
+
+## Testing Expectations
+
+- Run `npm run lint` for all changes.
+- Run `./node_modules/.bin/tsc --noEmit --pretty false` when TypeScript behavior or public types changed, and as part of the canonical validation pass.
+- Run `npm run build` for routing, server action, API, auth, payment, credit, shared UI, or config changes.
+- Run `npm run test:browser` for visible UI, activation, routing, homepage, auth modal, protected-route, paywall, or starter-path changes.
+- Add or update Playwright tests for new user-visible flows that can be verified without manual login.
+- There is no unit test runner configured. If adding one, keep it intentional and document the new command here.
+
+## Files Requiring Extra Caution
+
+High-risk money/auth/data paths:
+
+- `src/actions/serverAuth.ts`
+- `src/utils/requireAuthedRequest.ts`
+- `src/proxy.ts`
+- `src/actions/serverCredits.ts`
+- `src/actions/generateAIResponse.ts`
+- `src/actions/generateImage.ts`
+- `src/utils/idempotency.ts`
+- `src/utils/rateLimit.ts`
+- `src/app/api/chat/route.ts`
+- `src/app/api/billing/checkout/route.ts`
+- `src/app/api/billing/confirm/route.ts`
+- `src/app/api/proxy/route.ts`
+- `src/actions/confirmIapPurchase.ts`
+- `src/actions/serverProfile.ts`
+- `src/actions/serverHistory.ts`
+- `src/firebase/firebaseAdmin.ts`
+
+High-risk UX/platform paths:
+
+- `src/hooks/useAuthToken.ts`
+- `src/components/ClientProvider.tsx`
+- `src/components/AuthComponent.tsx`
+- `src/components/Home.tsx`
+- `src/app/globals.css`
+- `src/components/Header.tsx`
+- `src/components/Footer.tsx`
+- `src/components/PublicPageLayout.tsx`
+- `src/components/ProfileComponent.tsx`
+- `src/components/ui/CreditsPaywallModal.tsx`
+- `src/components/Chat.tsx`
+- `src/components/Tools.tsx`
+- `src/components/History.tsx`
 
 ## Environment Variables
 
-### Firebase server (Admin SDK)
+Firebase client:
 
-`FIREBASE_TYPE`, `FIREBASE_PROJECT_ID`, `FIREBASE_PRIVATE_KEY_ID`, `FIREBASE_PRIVATE_KEY`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_CLIENT_ID`, `FIREBASE_AUTH_URI`, `FIREBASE_TOKEN_URI`, `FIREBASE_AUTH_PROVIDER_X509_CERT_URL`, `FIREBASE_CLIENT_CERTS_URL`, `FIREBASE_UNIVERSE_DOMAIN`
+- `NEXT_PUBLIC_FIREBASE_APIKEY`
+- `NEXT_PUBLIC_FIREBASE_AUTHDOMAIN`
+- `NEXT_PUBLIC_FIREBASE_PROJECTID`
+- `NEXT_PUBLIC_FIREBASE_STORAGEBUCKET`
+- `NEXT_PUBLIC_FIREBASE_MESSAGINGSENDERID`
+- `NEXT_PUBLIC_FIREBASE_APPID`
+- `NEXT_PUBLIC_FIREBASE_MEASUREMENTID`
 
-(`\n` escapes in `FIREBASE_PRIVATE_KEY` are converted to real newlines on load.)
+Firebase Admin:
 
-### Firebase client
+- `FIREBASE_TYPE`
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_PRIVATE_KEY_ID`
+- `FIREBASE_PRIVATE_KEY`
+- `FIREBASE_CLIENT_EMAIL`
+- `FIREBASE_CLIENT_ID`
+- `FIREBASE_AUTH_URI`
+- `FIREBASE_TOKEN_URI`
+- `FIREBASE_AUTH_PROVIDER_X509_CERT_URL`
+- `FIREBASE_CLIENT_CERTS_URL`
+- `FIREBASE_UNIVERSE_DOMAIN`
 
-`NEXT_PUBLIC_FIREBASE_APIKEY`, `NEXT_PUBLIC_FIREBASE_AUTHDOMAIN`, `NEXT_PUBLIC_FIREBASE_PROJECTID`, `NEXT_PUBLIC_FIREBASE_STORAGEBUCKET`, `NEXT_PUBLIC_FIREBASE_MESSAGINGSENDERID`, `NEXT_PUBLIC_FIREBASE_APPID`, `NEXT_PUBLIC_FIREBASE_MEASUREMENTID`
+AI providers:
 
-### AI providers (server, credits mode)
+- `OPENAI_API_KEY`
+- `OPENAI_ORG_ID` optional
+- `ANTHROPIC_API_KEY`
+- `XAI_API_KEY`
+- `GOOGLE_GENERATIVE_AI_API_KEY`
+- `FIREWORKS_API_KEY`
 
-`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `XAI_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`, `FIREWORKS_API_KEY`
-(Optionally `OPENAI_ORG_ID`.)
+Billing/runtime:
 
-### Stripe / billing
+- `STRIPE_SECRET_KEY`
+- `NEXT_PUBLIC_STRIPE_PRODUCT_NAME`
+- `APP_URL`
+- `NEXT_PUBLIC_COOKIE_NAME`
+- `IAP_WEBVIEW_SECRET`
 
-`STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_KEY` (publishable), `NEXT_PUBLIC_STRIPE_PRODUCT_NAME`, `APP_URL` (canonical origin used to build Checkout redirects; falls back to request origin in dev).
+Legacy/sample env files may mention `NEXT_PUBLIC_STRIPE_KEY` and `NEXT_PUBLIC_CREDITS_PER_IMAGE`, but the active web checkout and credit pricing code do not currently read them.
 
-### Misc
+## Background Jobs And Automations
 
-`NEXT_PUBLIC_COOKIE_NAME` (defaults to `xrefAuthToken`), `NEXT_PUBLIC_CREDITS_PER_IMAGE`, `IAP_WEBVIEW_SECRET` (required for RN WebView IAP flow).
+No cron jobs, queues, or scheduled background workers are configured in this repository.
 
-## ESLint Config Notes
+Cleanup helpers exist but are not scheduled:
 
-`eslint.config.mjs` is a flat config that intentionally does **not** use `eslint-config-next` (incompatible with ESLint 10). It composes:
+- `cleanupExpiredIdempotencyRecords(uid)`
+- `cleanupRateLimitData(uid)`
 
-- `@eslint/js` recommended
-- `typescript-eslint` recommended
-- `@next/eslint-plugin-next` (`recommended` + `core-web-vitals`)
-- `eslint-plugin-react-hooks` v7 — only the two classic rules (`rules-of-hooks` error, `exhaustive-deps` warn) because this project does **not** use React Compiler and the new compiler rules generate false positives on standard SSR patterns.
+Do not claim these run automatically unless infrastructure is added.
 
-## Important Notes
+## Definition Of Done
 
-1. `reactStrictMode: false` in `next.config.mjs` — don't re-enable without auditing the auth/profile sync effects.
-2. Turbopack is the default dev bundler in Next.js 16 (no `--turbopack` flag needed).
-3. Chat streaming is throttled at ~120 ms in the hook, independent of the 100 ms markdown render throttle.
-4. Page-level auth is **cookie presence only** at the edge; every mutation re-verifies the token server-side.
-5. Idempotency protects every chargeable operation and is complemented by refund-on-failure across chat, image, and text generation paths.
-6. Rate limiting is distributed (Firestore) and fails open.
-7. ErrorBoundary hides stack traces in production and surfaces a reference ID instead.
-8. Optimistic profile writes are serialized via a module-level queue so rollback on failure restores the exact prior client state.
-9. Firebase Admin is lazy-initialized through Proxy objects so build-time prerender doesn't crash when credentials are absent.
-10. SSRF protection in `/api/proxy` connects directly to the DNS-resolved public IP — do not refactor to plain `fetch()` without re-adding host verification.
+A change is done when:
+
+- it is scoped to one focused PR-sized objective;
+- docs and source agree about current product behavior;
+- auth, credits, payments, idempotency, rate limits, WebView behavior, and server/client boundaries remain intact;
+- relevant validation commands pass or blockers are clearly documented;
+- visible UI changes are checked at desktop and mobile sizes;
+- generated/local artifacts are not staged;
+- the work is committed on `dev` and pushed to `origin/dev` when the user requested direct-to-dev workflow.
+
+## Stop Conditions
+
+Stop and report instead of continuing when:
+
+- uncommitted user changes would need to be overwritten;
+- the branch is not `dev` and cannot be safely switched;
+- `main` would need to be pushed;
+- remote integration produces conflicts you cannot resolve confidently;
+- required secrets or services are unavailable and the task cannot be meaningfully validated;
+- a requested change would weaken auth, credit, payment, idempotency, SSRF, or IAP protections without explicit approval;
+- validation reveals failures outside the task scope that are unsafe to change casually.
+
+## Current Known Architecture Notes
+
+- `/api/chat` is the active chat streaming path; `useChatGeneration` is legacy/unused.
+- `usePaymentsStore.addPayment()` and `serverPayments.addPaymentServer()` are not currently connected to user-facing purchase UI.
+- `buildContextFromHistory()` and `truncateText()` in `src/utils/messages.ts` are exported but not used by the active chat path.
+- Image generation idempotency should eventually be moved to fresh client request IDs like text generation.
+- Payment confirmation is return-page driven; Stripe webhooks or reconciliation are future reliability work.
+- Firebase/GA4 measurement config exists, but there is no product analytics helper yet.

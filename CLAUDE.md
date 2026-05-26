@@ -1,10 +1,7 @@
-# CLAUDE.md — Pointer Only
+# CLAUDE.md
 
-This repository uses [AGENTS.md](./AGENTS.md) as the single complete implementation guide for coding agents.
+This repository uses AGENTS.md as the single source of truth for agent instructions.
 
-Before making code changes:
+Read AGENTS.md before making any changes.
 
-- Read [AGENTS.md](./AGENTS.md) for architecture, workflows, security invariants, platform constraints, and verification expectations.
-- Read [spec.md](./spec.md) for the current product spec and roadmap.
-
-Do not duplicate agent instructions here. Keeping one complete guide avoids stale instructions across agent entry-point files.
+Do not duplicate instructions here.

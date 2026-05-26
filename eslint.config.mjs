@@ -30,6 +30,7 @@ export default tseslint.config(
       "out/**",
       "node_modules/**",
       "coverage/**",
+      ".test-build/**",
       "next-env.d.ts",
     ],
   },

@@ -12,7 +12,7 @@ Xref.ai is an AI creation workspace for writing, chat, summarization, image prom
 
 - [AGENTS.md](./AGENTS.md): the single complete implementation guide for coding agents. Use it for architecture, invariants, security boundaries, platform constraints, and verification expectations.
 - [spec.md](./spec.md): the current product spec and roadmap. Use it for product behavior, user promises, current capabilities, constraints, and ordered roadmap milestones.
-- [CLAUDE.md](./CLAUDE.md): pointer-only entry point that redirects agents to `AGENTS.md` and `spec.md`.
+- [CLAUDE.md](./CLAUDE.md): pointer-only entry point that redirects agents to `AGENTS.md`.
 
 ## Current Product
 
@@ -64,9 +64,10 @@ npm run dev     # Start the Next.js dev server
 npm run build   # Production build
 npm run start   # Start the production server
 npm run lint    # Run ESLint
+npm run test:browser # Run headless Playwright smoke tests
 ```
 
-No full test framework is configured. `npm run lint` and `npm run build` are the baseline verification commands. Browser verification is expected for visible UI changes.
+`npm run lint`, `npm run build`, and the Playwright smoke suite are the baseline verification commands. Browser verification is expected for visible UI changes.
 
 ## Environment Variables
 
@@ -114,15 +115,13 @@ FIREWORKS_API_KEY=
 
 ```env
 STRIPE_SECRET_KEY=
-NEXT_PUBLIC_STRIPE_KEY=
 NEXT_PUBLIC_STRIPE_PRODUCT_NAME=
 APP_URL=
 NEXT_PUBLIC_COOKIE_NAME=
-NEXT_PUBLIC_CREDITS_PER_IMAGE=
 IAP_WEBVIEW_SECRET=
 ```
 
-`NEXT_PUBLIC_COOKIE_NAME` defaults to `xrefAuthToken`. `IAP_WEBVIEW_SECRET` is required only for the native WebView IAP flow.
+`NEXT_PUBLIC_COOKIE_NAME` defaults to `xrefAuthToken`. `IAP_WEBVIEW_SECRET` is required only for the native WebView IAP flow. Legacy samples may mention `NEXT_PUBLIC_STRIPE_KEY` and `NEXT_PUBLIC_CREDITS_PER_IMAGE`, but active checkout and credit pricing do not currently read them.
 
 ## Routes
 
