@@ -33,6 +33,9 @@ export interface BasePromptProps {
   title: string;
   systemPrompt: string;
   promptBuilder: (inputValue: string, wordCount: number) => string;
+  historyTool?: string;
+  historyStarterIntentId?: string;
+  historySettings?: (wordCount: number) => Record<string, string>;
   buttonText?: string;
   loadingText?: string;
   showWordCount?: boolean;
@@ -41,6 +44,8 @@ export interface BasePromptProps {
   children: (props: {
     inputValue: string;
     setInputValue: (value: string) => void;
+    wordCountValue: string;
+    setWordCountValue: (value: string) => void;
     active: boolean;
   }) => React.ReactNode;
 }
@@ -49,6 +54,9 @@ export default function BasePrompt({
   title,
   systemPrompt,
   promptBuilder,
+  historyTool,
+  historyStarterIntentId,
+  historySettings,
   buttonText = "Generate",
   loadingText = "Working",
   showWordCount = true,
@@ -157,8 +165,11 @@ export default function BasePrompt({
             prompt: newPrompt,
             response: finishedSummary,
             topic: topicDisplay,
-            words,
+            words: String(wordnum),
             xrefs: [],
+            tool: historyTool,
+            starterIntentId: historyStarterIntentId,
+            settings: historySettings?.(wordnum),
           });
         } catch (saveError) {
           console.error("Failed to save history:", saveError);
@@ -202,7 +213,13 @@ export default function BasePrompt({
   return (
     <div className="form-wrapper">
       <form onSubmit={getResponse}>
-        {children({ inputValue, setInputValue, active })}
+        {children({
+          inputValue,
+          setInputValue,
+          wordCountValue: words,
+          setWordCountValue: setWords,
+          active,
+        })}
 
         {showWordCount && (
           <label htmlFor="words-field" className={labelClassName}>
