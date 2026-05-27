@@ -140,6 +140,8 @@ The `/tools` page dynamically loads six tools:
 
 Tool text generation uses `generateAIResponse()` and word-count based pricing. Tool guide panels show expected input, examples, estimated cost, and likely output.
 
+Successful text tool outputs show next-step actions to continue in Chat, create an image prompt from the output, or open History.
+
 #### Image Generation
 
 - Uses Fireworks AI `stable-diffusion-xl-1024-v1-0`.
@@ -148,8 +150,7 @@ Tool text generation uses `generateAIResponse()` and word-count based pricing. T
 - Image generation costs `CREDITS_COSTS.imageGeneration` credits in credits mode.
 - Image results can be copied or downloaded.
 - Image outputs are saved to History with `words: "image"`.
-
-Current limitation: image submissions do not yet pass fresh client idempotency keys, so identical prompts can be treated as duplicate requests until idempotency expiry.
+- Image generation is authenticated, rate-limited, and uses fresh client idempotency keys to protect retries without blocking intentional repeat prompts.
 
 #### History
 
@@ -162,6 +163,7 @@ Current limitation: image submissions do not yet pass fresh client idempotency k
   - 5 hooks;
   - SEO title and meta.
 - Repurposed outputs can be saved back to History with `derivedFromId` and `tool` metadata.
+- Expanded History cards do not yet expose the same "continue in chat" or "create image prompt" next actions that fresh tool outputs show.
 
 #### Account, Credits, And Payments
 
@@ -180,6 +182,7 @@ Current limitation: image submissions do not yet pass fresh client idempotency k
 - A Firestore payment lock prevents double-processing the same session.
 - Account shows payment history and a live credits ledger.
 - The paywall modal can show required credits, current context, credit packs, and an API-key alternative.
+- Account includes a Delete Account control. Current server behavior deletes the profile document and Firebase Auth user, but does not cascade saved subcollections or generated image storage.
 
 #### API-Key Mode
 
@@ -240,6 +243,10 @@ Current limitation: image submissions do not yet pass fresh client idempotency k
 - `npm run build` may require valid enough environment configuration for build-time code paths.
 - Firebase Admin is lazy-initialized so build/prerender can complete without immediately touching credentials.
 - `reactStrictMode` is disabled; re-enabling requires auth/profile effect audit.
+- No formatter script is configured.
+- No repository-owned deployment files such as `vercel.json`, `firebase.json`, Dockerfile, workflow YAML, cron config, or queue worker config are present. Hosting details are inferred to live outside the repo.
+- Public native association files exist under `public/.well-known/`.
+- `.env.example` includes `FIREBASE_UNIVERSE_DOMAIN`, but the active Firebase Admin initialization does not read it.
 - Website scraping depends on public HTTPS pages and simple DOM text extraction, not a full readability pipeline.
 - Payment fulfillment is currently return-page driven, not webhook/reconciliation driven.
 - Cleanup utilities for idempotency and rate-limit docs exist but are not scheduled.
@@ -249,12 +256,15 @@ Current limitation: image submissions do not yet pass fresh client idempotency k
 - Projects/workspaces do not exist yet.
 - Saved prompt templates and reusable variables do not exist yet.
 - History is useful but not yet a full continuation workspace with labels, filters, rename, notes, or source chains beyond basic derived metadata.
+- Fresh tool outputs can continue into Chat, but expanded History items cannot yet do that directly.
 - Text revision actions are not first-class outside the current repurpose buttons.
 - Image generation is single-shot: no aspect ratio, seed, variation, quality, style preset, prompt enhancer, or gallery view.
 - Chat cannot explicitly reference selected history items or project context.
 - API-key mode currently requires Fireworks even for text-first users.
+- Account deletion currently leaves user subcollections and generated image storage behind unless removed separately.
 - `src/hooks/useChatGeneration.ts` is legacy/unused by the current Chat component.
 - `usePaymentsStore.addPayment()` and `serverPayments.addPaymentServer()` are not connected to the active purchase UI.
+- `src/constants/index.ts` includes some historical exported constants that are not read by active server paths.
 - Product analytics/event taxonomy is not implemented.
 - Admin/support tools for user lookup, manual credits, refunds, and diagnostics do not exist.
 
@@ -324,24 +334,41 @@ Acceptance criteria:
 - A saved output can lead naturally to another deliverable.
 - Source relationships remain understandable.
 
-### Milestone 4: Image Generation Request Reliability
+### Milestone 4: Account Data Deletion Completeness
 
-User value: image retries are safe without blocking intentional identical prompts.
+User value: account deletion matches user expectations and the trust promised by account/privacy surfaces.
 
 Implementation intent:
 
-- Pass fresh client idempotency keys from Generate Image and Designer Tool.
-- Include image tool/ref metadata in debit ledger entries.
-- Preserve retry collapse for true retries and allow intentional repeat generations.
-- Add a Playwright or focused testable smoke path where feasible without calling Fireworks.
+- Expand account deletion beyond `profile/userData` and Firebase Auth deletion.
+- Delete or anonymize user-created content subcollections such as chats, summaries, idempotency records, rate-limit docs, and locks.
+- Decide and document any payment or credit ledger records that must be retained for legal, tax, fraud, or support reasons.
+- Remove generated image files under the user's Storage prefix where feasible.
+- Show a clear failure state if deletion cannot complete.
 
 Acceptance criteria:
 
-- Re-click/retry protection remains intact.
-- Generating the same prompt twice intentionally is not blocked by payload-hash idempotency.
-- Credits/refunds remain deterministic.
+- Deleting an account removes Firebase Auth access and no longer leaves saved prompts, outputs, or generated images casually accessible under the user's UID.
+- Any retained billing records are explicitly documented and minimize prompt/output content.
+- The delete flow reports success only after required cleanup succeeds.
 
-### Milestone 5: Single-User Projects And Brand Voice
+### Milestone 5: Image Generation Request Controls
+
+User value: image creation feels predictable, controllable, and easy to diagnose.
+
+Implementation intent:
+
+- Expand user-facing request controls where provider behavior and pricing are predictable.
+- Improve image generation error copy for rate limiting, provider failures, and missing keys.
+- Add a non-provider test path for image request state where feasible without calling Fireworks.
+
+Acceptance criteria:
+
+- Users understand whether an image request failed because of credits, rate limits, provider keys, or provider failure.
+- New controls show exact credit cost before generation.
+- Credits, rate limits, idempotency, and refunds remain deterministic.
+
+### Milestone 6: Single-User Projects And Brand Voice
 
 User value: repeated work across clients, classes, campaigns, or topics has reusable context.
 
@@ -360,7 +387,7 @@ Acceptance criteria:
 - Project context can be reused in Chat and Tools.
 - Existing non-project workflows remain unchanged.
 
-### Milestone 6: Saved Prompts And Template Gallery
+### Milestone 7: Saved Prompts And Template Gallery
 
 User value: repeatable creative workflows can be rerun without rebuilding prompts.
 
@@ -378,7 +405,7 @@ Acceptance criteria:
 - Template outputs can be found, revised, and linked to projects later.
 - Template runs follow existing auth, credit, idempotency, and refund behavior.
 
-### Milestone 7: Image Studio v1
+### Milestone 8: Image Studio v1
 
 User value: visual output becomes controllable and connected to writing workflows.
 
@@ -397,7 +424,7 @@ Acceptance criteria:
 - Text history can feed image creation without manual copy/paste.
 - Image history is browsable as a reusable gallery.
 
-### Milestone 8: Chat Workspace Connections
+### Milestone 9: Chat Workspace Connections
 
 User value: Chat becomes a planning and continuation surface, not only a question-answer page.
 
@@ -415,7 +442,7 @@ Acceptance criteria:
 - Users can move from Chat to a tool output and back.
 - Context use is visible and controllable.
 
-### Milestone 9: Product Analytics And Credit Conversion
+### Milestone 10: Product Analytics And Credit Conversion
 
 User value: credit prompts and checkout become clearer, while the team can measure activation and revenue flow.
 
@@ -434,7 +461,7 @@ Acceptance criteria:
 - Product events can measure activation, generation success, paywall, checkout, and repeat usage.
 - Analytics initialization is safe in browser, server, and WebView contexts.
 
-### Milestone 10: Payment Reliability And Support Diagnostics
+### Milestone 11: Payment Reliability And Support Diagnostics
 
 User value: money-path failures can be prevented, detected, and explained.
 
@@ -451,7 +478,7 @@ Acceptance criteria:
 - Failed or ambiguous payment/credit operations leave an auditable trail.
 - Support can diagnose common issues without guessing at Firestore structure.
 
-### Milestone 11: Performance, Draft Resilience, And Mobile Ergonomics
+### Milestone 12: Performance, Draft Resilience, And Mobile Ergonomics
 
 User value: long creative work feels safer and faster.
 
@@ -469,7 +496,7 @@ Acceptance criteria:
 - Long inputs survive common interruptions.
 - Chat, Tools, and History remain smooth with realistic saved data volumes.
 
-### Milestone 12: Admin Support Tools v1
+### Milestone 13: Admin Support Tools v1
 
 User value: routine credit/payment support can happen safely without direct database edits.
 

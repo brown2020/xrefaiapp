@@ -9,6 +9,7 @@ import { CheckCircle, AlertTriangle, ArrowRight } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { auth } from "@/firebase/firebaseClient";
 import { getIdToken } from "firebase/auth";
+import { sanitizeInternalRedirectPath } from "@/utils/redirectPath";
 
 type ConfirmResponse =
   | {
@@ -33,7 +34,11 @@ export default function PaymentSuccessPage() {
 
   const searchParams = useSearchParams();
   const redirectPath = useMemo(
-    () => searchParams?.get("redirect") || ROUTES.account,
+    () =>
+      sanitizeInternalRedirectPath(
+        searchParams?.get("redirect"),
+        ROUTES.account
+      ),
     [searchParams]
   );
   const sessionId = useMemo(

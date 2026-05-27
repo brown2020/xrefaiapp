@@ -96,8 +96,9 @@ FIREBASE_AUTH_URI=
 FIREBASE_TOKEN_URI=
 FIREBASE_AUTH_PROVIDER_X509_CERT_URL=
 FIREBASE_CLIENT_CERTS_URL=
-FIREBASE_UNIVERSE_DOMAIN=
 ```
+
+`.env.example` also contains `FIREBASE_UNIVERSE_DOMAIN`; the active Firebase Admin initialization does not currently read it.
 
 ### AI Providers
 

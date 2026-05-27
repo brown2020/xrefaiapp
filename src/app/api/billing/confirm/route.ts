@@ -72,6 +72,15 @@ function getStripe(): Stripe {
   return stripe;
 }
 
+function isSafeFirestoreDocSegment(value: string): boolean {
+  return (
+    value.length > 0 &&
+    value.length <= 255 &&
+    !value.includes("/") &&
+    !value.includes("\\")
+  );
+}
+
 export async function POST(req: NextRequest) {
   let uid: string | null = null;
   let sessionId: string | null = null;
@@ -84,8 +93,8 @@ export async function POST(req: NextRequest) {
       | { sessionId?: string }
       | null;
     sessionId = body?.sessionId?.toString() ?? "";
-    if (!sessionId) {
-      return Response.json({ error: "Missing sessionId" }, { status: 400 });
+    if (!isSafeFirestoreDocSegment(sessionId)) {
+      return Response.json({ error: "Invalid sessionId" }, { status: 400 });
     }
 
     lockAcquired = await tryAcquirePaymentLock(uid, sessionId);

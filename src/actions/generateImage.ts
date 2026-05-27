@@ -12,6 +12,7 @@ import {
   markIdempotencyComplete,
   markIdempotencyFailed,
 } from "@/utils/idempotency";
+import { checkRateLimit } from "@/utils/rateLimit";
 
 type GenerateImageOptions = {
   useCredits?: boolean;
@@ -38,6 +39,11 @@ export async function generateImage(
   try {
     const uid = await requireAuthedUid();
     chargedUid = uid;
+
+    const rateLimit = await checkRateLimit(uid, "image");
+    if (!rateLimit.allowed) {
+      return { error: "RATE_LIMITED" };
+    }
 
     const apiKey = useCredits
       ? (process.env.FIREWORKS_API_KEY || "").trim()
@@ -70,6 +76,7 @@ export async function generateImage(
         await debitCreditsOrThrow(uid, CREDITS_COSTS.imageGeneration, {
           reason: "image_generation",
           tool: "image",
+          refId: idempotencyKey,
         });
         creditsCharged = true;
       } catch (error) {

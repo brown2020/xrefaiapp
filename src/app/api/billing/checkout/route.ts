@@ -1,7 +1,9 @@
 import { NextRequest } from "next/server";
 import Stripe from "stripe";
 import { CREDIT_PACKS } from "@/constants/creditPacks";
+import { ROUTES } from "@/constants/routes";
 import { requireAuthedUidFromRequest } from "@/utils/requireAuthedRequest";
+import { sanitizeInternalRedirectPath } from "@/utils/redirectPath";
 
 export const runtime = "nodejs";
 
@@ -26,7 +28,10 @@ export async function POST(req: NextRequest) {
       | { packId?: string; redirectPath?: string }
       | null;
     const packId = body?.packId?.toString() ?? "";
-    const redirectPath = body?.redirectPath?.toString() ?? "/account";
+    const redirectPath = sanitizeInternalRedirectPath(
+      body?.redirectPath,
+      ROUTES.account
+    );
 
     const pack = CREDIT_PACKS.find((p) => p.id === packId);
     if (!pack) {
@@ -80,4 +85,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-
