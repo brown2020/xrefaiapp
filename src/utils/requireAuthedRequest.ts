@@ -1,5 +1,4 @@
 import { NextRequest } from "next/server";
-import { cookies } from "next/headers";
 import { adminAuth } from "@/firebase/firebaseAdmin";
 import { getAuthCookieName } from "@/utils/getAuthCookieName";
 
@@ -12,7 +11,7 @@ export async function requireAuthedUidFromRequest(
   req: NextRequest
 ): Promise<string> {
   const cookieName = getAuthCookieName();
-  const token = (await cookies()).get(cookieName)?.value;
+  const cookieToken = req.cookies.get(cookieName)?.value;
   const bearer =
     req.headers.get("authorization") || req.headers.get("Authorization");
   const bearerToken =
@@ -20,9 +19,14 @@ export async function requireAuthedUidFromRequest(
       ? bearer.slice("bearer ".length).trim()
       : "";
 
-  const idToken = token || bearerToken;
+  const idToken = bearerToken || cookieToken;
   if (!idToken) throw new Error("AUTH_REQUIRED");
-  const decoded = await adminAuth.verifyIdToken(idToken);
-  if (!decoded?.uid) throw new Error("AUTH_REQUIRED");
-  return decoded.uid;
+
+  try {
+    const decoded = await adminAuth.verifyIdToken(idToken);
+    if (!decoded?.uid) throw new Error("AUTH_REQUIRED");
+    return decoded.uid;
+  } catch {
+    throw new Error("AUTH_REQUIRED");
+  }
 }

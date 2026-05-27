@@ -8,11 +8,15 @@ import Link from "next/link";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { auth } from "@/firebase/firebaseClient";
 import { getIdToken } from "firebase/auth";
+import { sanitizeInternalRedirectPath } from "@/utils/redirectPath";
 
 export default function PaymentAttemptClient() {
   const searchParams = useSearchParams();
   const packId = searchParams?.get("pack") ?? null;
-  const redirect = searchParams?.get("redirect") || ROUTES.account;
+  const redirect = sanitizeInternalRedirectPath(
+    searchParams?.get("redirect"),
+    ROUTES.account
+  );
   const pack = getCreditPack(packId);
   const [error, setError] = useState<string | null>(null);
 

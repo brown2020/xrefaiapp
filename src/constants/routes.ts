@@ -40,6 +40,7 @@ export const PUBLIC_ROUTES = [
   ROUTES.terms,
   ROUTES.privacy,
   ROUTES.support,
+  ROUTES.loginFinish,
 ] as const;
 
 /**

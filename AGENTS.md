@@ -191,11 +191,11 @@ Writing tools call `generateAIResponse()` through `generateResponse()` in `src/a
 - always requires an authenticated user;
 - uses server `FIREWORKS_API_KEY` in credits mode or the profile Fireworks key in API-key mode;
 - debits `CREDITS_COSTS.imageGeneration` in credits mode;
+- rate-limits authenticated image requests under endpoint `image`;
 - uploads generated JPEGs to Firebase Storage and returns a signed URL;
 - saves image outputs as history entries with `words: "image"`.
 
-Important current limitation: image clients do not yet pass a fresh client idempotency key, so image generation falls back to payload-hash idempotency. This protects retries but can collapse intentional identical re-submits until the idempotency record expires.
-`generateImage()` already accepts an optional `idempotencyKey`; close this by updating the Generate Image and Designer Tool clients to pass `createClientIdempotencyKey()` rather than changing the server-side idempotency model.
+Image clients pass a fresh client idempotency key so retries can be deduplicated without collapsing intentional repeat generations. Keep the payload-hash fallback for legacy/defensive server-side use.
 
 ### Authentication And Route Protection
 
@@ -461,6 +461,6 @@ Stop and report instead of continuing when:
 - `buildContextFromHistory()` and `truncateText()` in `src/utils/messages.ts` are exported but not used by the active chat path.
 - `GenerationNextActions` exists for fresh text tool outputs, but expanded History cards currently expose repurpose actions only; "continue in chat" from History is still roadmap work.
 - `src/constants/index.ts` contains some historical constants that are not read by active server paths, such as `IDEMPOTENCY_TIME_WINDOW_MS` and the exported rate-limit constants. Check actual imports before treating constants as active behavior.
-- Image generation idempotency should eventually be moved to fresh client request IDs like text generation.
+- Image generation uses fresh client request IDs like text generation, with a payload-hash fallback on the server action.
 - Payment confirmation is return-page driven; Stripe webhooks or reconciliation are future reliability work.
 - Firebase/GA4 measurement config exists, but there is no product analytics helper yet.

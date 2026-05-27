@@ -150,8 +150,7 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
 - Image generation costs `CREDITS_COSTS.imageGeneration` credits in credits mode.
 - Image results can be copied or downloaded.
 - Image outputs are saved to History with `words: "image"`.
-
-Current limitation: image submissions do not yet pass fresh client idempotency keys, so identical prompts can be treated as duplicate requests until idempotency expiry.
+- Image generation is authenticated, rate-limited, and uses fresh client idempotency keys to protect retries without blocking intentional repeat prompts.
 
 #### History
 
@@ -353,22 +352,21 @@ Acceptance criteria:
 - Any retained billing records are explicitly documented and minimize prompt/output content.
 - The delete flow reports success only after required cleanup succeeds.
 
-### Milestone 5: Image Generation Request Reliability
+### Milestone 5: Image Generation Request Controls
 
-User value: image retries are safe without blocking intentional identical prompts.
+User value: image creation feels predictable, controllable, and easy to diagnose.
 
 Implementation intent:
 
-- Pass fresh client idempotency keys from Generate Image and Designer Tool; the server action already accepts an optional key.
-- Include image tool/ref metadata in debit ledger entries.
-- Preserve retry collapse for true retries and allow intentional repeat generations.
-- Add a Playwright or focused testable smoke path where feasible without calling Fireworks.
+- Expand user-facing request controls where provider behavior and pricing are predictable.
+- Improve image generation error copy for rate limiting, provider failures, and missing keys.
+- Add a non-provider test path for image request state where feasible without calling Fireworks.
 
 Acceptance criteria:
 
-- Re-click/retry protection remains intact.
-- Generating the same prompt twice intentionally is not blocked by payload-hash idempotency.
-- Credits/refunds remain deterministic.
+- Users understand whether an image request failed because of credits, rate limits, provider keys, or provider failure.
+- New controls show exact credit cost before generation.
+- Credits, rate limits, idempotency, and refunds remain deterministic.
 
 ### Milestone 6: Single-User Projects And Brand Voice
 

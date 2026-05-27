@@ -10,6 +10,7 @@ import { usePaywallStore } from "@/zustand/usePaywallStore";
 import { CREDITS_COSTS } from "@/constants/credits";
 import { ROUTES } from "@/constants/routes";
 import { useShallow } from "zustand/react/shallow";
+import { createClientIdempotencyKey } from "@/utils/clientIdempotencyKey";
 
 const IMAGE_ERROR_MESSAGE =
   "I can't do that. I can't do real people or anything that violates the terms of service. Please try changing the prompt.";
@@ -51,6 +52,7 @@ export function useImageGeneration(uid: string | null) {
       result = await generateImage(generatedPrompt, {
         useCredits: generationConfig.useCredits,
         fireworksApiKey: generationConfig.fireworksApiKey,
+        idempotencyKey: createClientIdempotencyKey(),
       });
     } catch (error) {
       console.error("Error generating image:", error);
@@ -105,6 +107,11 @@ export function useImageGeneration(uid: string | null) {
     ) {
       toast.error("That request is already being handled. Please wait a moment.");
       completeWithError("Duplicate request");
+      return;
+    }
+    if (result.error === "RATE_LIMITED") {
+      toast.error("Too many image requests. Please wait a moment.");
+      completeWithError("Rate limited");
       return;
     }
     completeWithError(IMAGE_ERROR_MESSAGE);

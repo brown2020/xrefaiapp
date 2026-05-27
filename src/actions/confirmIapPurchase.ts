@@ -71,12 +71,22 @@ function normalizeCurrency(value: unknown): string {
   return /^[A-Z]{3}$/.test(trimmed) ? trimmed : "USD";
 }
 
+function isSafeFirestoreDocSegment(value: string): boolean {
+  return (
+    value.length > 0 &&
+    value.length <= 255 &&
+    !value.includes("/") &&
+    !value.includes("\\")
+  );
+}
+
 export async function confirmIapPurchase(
   input: IapConfirmInput
 ): Promise<IapConfirmResult> {
   const uid = await requireAuthedUid();
+  const transactionId = String(input.transactionId || "");
 
-  if (!input.transactionId || !input.signature) {
+  if (!isSafeFirestoreDocSegment(transactionId) || !input.signature) {
     throw new Error("INVALID_IAP_MESSAGE");
   }
   if (!Number.isFinite(input.credits) || input.credits <= 0) {
@@ -102,12 +112,12 @@ export async function confirmIapPurchase(
 
   const normalizedCurrency = normalizeCurrency(input.currency);
   const paymentRef = adminDb.doc(
-    `users/${uid}/payments/iap_${input.transactionId}`
+    `users/${uid}/payments/iap_${transactionId}`
   );
-  const globalClaimRef = adminDb.doc(`iapTransactions/${input.transactionId}`);
+  const globalClaimRef = adminDb.doc(`iapTransactions/${transactionId}`);
   const profileRef = adminDb.doc(`users/${uid}/profile/userData`);
   const ledgerRef = adminDb.doc(
-    `users/${uid}/creditsLedger/iap_${input.transactionId}`
+    `users/${uid}/creditsLedger/iap_${transactionId}`
   );
 
   return await adminDb.runTransaction(
@@ -149,7 +159,7 @@ export async function confirmIapPurchase(
           uid,
           platform: input.platform,
           productId: input.productId,
-          transactionId: input.transactionId,
+          transactionId,
           claimedAt: admin.firestore.FieldValue.serverTimestamp(),
         },
         { merge: true }
@@ -166,7 +176,7 @@ export async function confirmIapPurchase(
           platform: String(input.platform || "ios"),
           productId: String(input.productId || "iap"),
           currency: normalizedCurrency,
-          transactionId: input.transactionId,
+          transactionId,
         },
         { merge: true }
       );
@@ -181,7 +191,7 @@ export async function confirmIapPurchase(
           reason: "purchase",
           tool: "iap",
           modelKey: null,
-          refId: input.transactionId,
+          refId: transactionId,
           balanceAfter: nextCredits,
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
         },

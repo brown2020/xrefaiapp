@@ -17,7 +17,11 @@ export async function requireAuthedUid(): Promise<string> {
   const token = (await cookies()).get(cookieName)?.value;
   if (!token) throw new Error("AUTH_REQUIRED");
 
-  const decoded = await adminAuth.verifyIdToken(token);
-  if (!decoded?.uid) throw new Error("AUTH_REQUIRED");
-  return decoded.uid;
+  try {
+    const decoded = await adminAuth.verifyIdToken(token);
+    if (!decoded?.uid) throw new Error("AUTH_REQUIRED");
+    return decoded.uid;
+  } catch {
+    throw new Error("AUTH_REQUIRED");
+  }
 }
