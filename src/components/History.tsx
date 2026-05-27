@@ -29,6 +29,21 @@ import { generateResponse } from "@/actions/generateAIResponse";
 import { isInsufficientCreditsError } from "@/utils/errors";
 import { createClientIdempotencyKey } from "@/utils/clientIdempotencyKey";
 
+function readHistorySettings(value: unknown): Record<string, string> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const settings: Record<string, string> = {};
+  for (const [key, settingValue] of Object.entries(value)) {
+    if (typeof settingValue === "string") {
+      settings[key] = settingValue;
+    }
+  }
+
+  return Object.keys(settings).length > 0 ? settings : undefined;
+}
+
 export default function History() {
   const uid = useAuthStore((state) => state.uid);
   const profile = useProfileStore((s) => s.profile);
@@ -52,6 +67,8 @@ export default function History() {
         xrefs: (d.xrefs as string[]) || [],
         derivedFromId: (d.derivedFromId as string) || undefined,
         tool: (d.tool as string) || undefined,
+        starterIntentId: (d.starterIntentId as string) || undefined,
+        settings: readHistorySettings(d.settings),
       };
     },
     []
@@ -305,6 +322,7 @@ function HistoryCard({
         tool:
           repurposeTargets.find((t) => t.label === repurposeLabel)?.key ??
           "repurpose",
+        starterIntentId: summary.starterIntentId,
         xrefs: [],
       });
 
@@ -320,6 +338,7 @@ function HistoryCard({
           tool:
             repurposeTargets.find((t) => t.label === repurposeLabel)?.key ??
             "repurpose",
+          starterIntentId: summary.starterIntentId,
           timestamp: Timestamp.now(),
         });
       }
@@ -337,6 +356,7 @@ function HistoryCard({
     saveHistory,
     summary.id,
     summary.prompt,
+    summary.starterIntentId,
     summary.topic,
   ]);
 

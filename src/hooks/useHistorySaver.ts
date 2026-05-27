@@ -9,6 +9,8 @@ export interface HistoryEntry {
   xrefs?: string[];
   derivedFromId?: string;
   tool?: string;
+  starterIntentId?: string;
+  settings?: Record<string, string>;
 }
 
 export function useHistorySaver() {

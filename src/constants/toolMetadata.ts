@@ -39,21 +39,21 @@ export const TOOL_GUIDES: Record<ToolKey, ToolGuide> = {
   },
   "Summarize Text": {
     title: "Summarize Text",
-    expectedInput: "Pasted notes, article text, transcripts, or research snippets.",
-    exampleInput: "Paste meeting notes and ask for the decisions and next steps.",
+    expectedInput: "Pasted notes, article text, transcripts, or research snippets plus optional summary controls.",
+    exampleInput: "Paste meeting notes and choose Actions and decisions emphasis.",
     estimatedCreditCost: `${getTextGenerationCreditsCost(
       DEFAULT_WORD_COUNT
     )}+ credits depending on requested length`,
-    likelyOutput: "A shorter version with the main points preserved.",
+    likelyOutput: "A shorter version shaped by format, audience, emphasis, and focus.",
   },
   "Freestyle Writing": {
     title: "Freestyle Writing",
-    expectedInput: "A topic, rough idea, audience, format, or draft direction.",
-    exampleInput: "Write a product launch email for a new design template pack.",
+    expectedInput: "A topic or rough idea, plus optional deliverable controls.",
+    exampleInput: "Choose Professional email, then describe a product launch.",
     estimatedCreditCost: `${getTextGenerationCreditsCost(
       DEFAULT_WORD_COUNT
     )}+ credits depending on requested length`,
-    likelyOutput: "A ready-to-edit draft in the format you requested.",
+    likelyOutput: "A ready-to-edit draft shaped by format, tone, audience, and CTA.",
   },
   "Simplify Writing": {
     title: "Simplify Writing",

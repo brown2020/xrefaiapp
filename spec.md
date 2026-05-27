@@ -1,6 +1,6 @@
 # Xref.ai Product Spec And Roadmap
 
-Current as of 2026-05-26.
+Current as of 2026-05-27.
 
 ## Purpose
 
@@ -132,15 +132,15 @@ API routes:
 The `/tools` page dynamically loads six tools:
 
 - Summarize Website: fetches a public HTTPS URL through `/api/proxy`, extracts browser-side text, and summarizes it.
-- Summarize Text: summarizes pasted text.
-- Freestyle Writing: drafts open-ended writing from a prompt.
+- Summarize Text: summarizes pasted text with format, audience, emphasis, and focus controls.
+- Freestyle Writing: drafts open-ended writing from a prompt with deliverable, tone, audience, length, and call-to-action controls.
 - Simplify Writing: rewrites text at a selected reading level.
 - Generate Image: sends a direct image prompt with optional artist inspiration.
 - Designer Tool: builds an image prompt from structured style/object/flavor/color choices and a topic.
 
 Tool text generation uses `generateAIResponse()` and word-count based pricing. Tool guide panels show expected input, examples, estimated cost, and likely output.
 
-Successful text tool outputs show next-step actions to continue in Chat, create an image prompt from the output, or open History.
+Successful text tool outputs show next-step actions to continue in Chat, create an image prompt from the output, or open History. Freestyle Writing and Summarize Text save optional tool, starter intent, and generation-settings metadata with history entries.
 
 #### Image Generation
 
@@ -280,24 +280,69 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
 - Prefer product capability, usability, reliability, performance, onboarding, activation, and core workflow improvements over generic cleanup.
 - Preserve browser and Expo WebView behavior in every milestone.
 
-Recently completed foundation: Activation Starter Paths. The homepage now routes common creator, marketer, student, and researcher starter intents into Chat or Tools with prefills and guidance.
+Recently completed:
 
-### Milestone 1: Writing Controls And Deliverable Builders
+- Activation Starter Paths. The homepage routes common creator, marketer, student, and researcher starter intents into Chat or Tools with prefills and guidance.
+- Freestyle Writing Deliverable Builder. Freestyle Writing now has reusable deliverable, tone, audience, length, and call-to-action controls, and saves backward-compatible generation metadata with history entries.
+- Summarize Text Summary Controls. Summarize Text now has summary format, audience, emphasis, and focus controls, and saves backward-compatible generation metadata with history entries.
+
+### Completed Milestone: Freestyle Writing Deliverable Builder
 
 User value: users can steer output quality without writing long prompts manually.
 
+Implementation note: completed on 2026-05-27 as the first PR-sized slice of Writing Controls And Deliverable Builders. The initial implementation focuses on Freestyle Writing because it is the open-ended text tool where social posts, professional emails, blog outlines, product descriptions, and study guides naturally fit without changing summarization or simplification behavior.
+
+What shipped:
+
+- Added reusable writing-control option models for deliverable, tone, audience, length, and call to action.
+- Added first-class Freestyle Writing flows for social post, professional email, blog outline, product description, study guide, and freeform draft.
+- Updated prompt construction so controls shape the generated output.
+- Saved optional `tool`, `starterIntentId`, and `settings` metadata on generated history records while preserving existing history fields.
+- Kept existing credit pricing tied to requested word count.
+
+Acceptance criteria:
+
+- A user can choose a deliverable format and guide voice, audience, and length before generation in Freestyle Writing.
+- Generated Freestyle history records include backward-compatible metadata.
+- Existing tools continue to work without selecting advanced options.
+
+### Completed Milestone: Summarize Text Summary Controls
+
+User value: pasted text summaries can be shaped for the reader and job-to-be-done without rewriting the prompt manually.
+
+Implementation note: completed on 2026-05-27 as the next PR-sized slice of Writing Controls Across Remaining Text Tools. The implementation focuses on Summarize Text because it can add summary-specific controls without touching website scraping or simplification behavior.
+
+What shipped:
+
+- Added reusable summary-control option models for summary format, audience, emphasis, and focus.
+- Added Summarize Text controls for concise summary, key takeaways, executive brief, and study notes formats.
+- Updated prompt construction so summary format, audience, emphasis, and focus guide the generated output.
+- Saved optional `tool` and `settings` metadata on generated Summarize Text history records while preserving existing history fields.
+- Kept credit pricing tied to requested word count.
+
+Acceptance criteria:
+
+- A user can guide summary format, audience, emphasis, and focus before generation in Summarize Text.
+- Generated Summarize Text history records include backward-compatible metadata.
+- The default Summarize Text flow remains one-step and usable.
+
+### Milestone 1: Website And Simplify Writing Controls
+
+User value: remaining text tools gain useful control without adding clutter.
+
 Implementation intent:
 
-- Add reusable controls for tone, audience, format, length, reading level, and call to action across the text tools where they naturally apply.
-- Add first-class flows for social post, professional email, blog outline, product description, and study guide.
-- Save tool type, starter intent, and generation settings in history metadata.
+- Extend appropriate controls to Summarize Website and Simplify Writing.
+- Add website-summary controls such as summary format, audience, and source focus where they complement the existing URL/focus fields.
+- Add simplification controls such as output format and audience where they complement the existing reading-level selector.
+- Carry generation settings into history metadata for these tools.
 - Keep credit costs visible and action-based.
 
 Acceptance criteria:
 
-- A user can choose a deliverable format and guide voice/audience/length before generation.
-- Generated history records include backward-compatible metadata.
-- Existing tools continue to work without selecting advanced options.
+- Website-summary and simplification users can guide output shape without writing long prompt instructions.
+- Generated history records from supported text tools include backward-compatible metadata.
+- Existing default flows remain one-step and usable.
 
 ### Milestone 2: Text Revision Actions
 
