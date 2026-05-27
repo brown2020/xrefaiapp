@@ -75,3 +75,32 @@ test.describe("Freestyle Writing controls", () => {
     );
   });
 });
+
+test.describe("Summarize Text controls", () => {
+  test("shows summary format, audience, emphasis, and focus controls", async ({
+    page,
+    context,
+  }) => {
+    await addSoftAuthCookie(context);
+    await page.goto("/tools?tool=Summarize%20Text");
+
+    await expect(
+      page.getByRole("heading", { name: "Summarize Text" })
+    ).toBeVisible();
+    await expect(page.getByLabel("Summary format")).toHaveValue("concise");
+    await expect(page.getByLabel("Audience")).toHaveValue("general");
+    await expect(page.getByLabel("Emphasis")).toHaveValue("main-ideas");
+
+    await page.getByLabel("Summary format").selectOption("executive-brief");
+    await page.getByLabel("Audience").selectOption("executives");
+    await page.getByLabel("Emphasis").selectOption("actions-decisions");
+    await page.getByLabel("Focus").fill("launch risks");
+
+    await expect(page.getByLabel("Summary format")).toHaveValue(
+      "executive-brief"
+    );
+    await expect(page.getByLabel("Audience")).toHaveValue("executives");
+    await expect(page.getByLabel("Emphasis")).toHaveValue("actions-decisions");
+    await expect(page.getByLabel("Focus")).toHaveValue("launch risks");
+  });
+});

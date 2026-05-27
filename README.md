@@ -21,7 +21,7 @@ Xref.ai currently includes:
 - Homepage with sign-in CTA, feature overview, responsive hero, and stable mobile typewriter.
 - Firebase authentication with Google, email/password, password reset, and email-link sign-in.
 - AI chat with streaming responses, recent-history context, persistence, rate limiting, credit debits, idempotency, and refund-on-failure behavior.
-- Tools for website summary, text summary, freestyle writing with deliverable controls, simplification, image generation, and structured design prompt generation.
+- Tools for website summary, text summary with summary controls, freestyle writing with deliverable controls, simplification, image generation, and structured design prompt generation.
 - History with search, pagination, expandable cards, markdown rendering, image copy/download, and text repurposing actions.
 - Account area with credits, credit packs, Stripe checkout, payment history, credits ledger, API key mode, model selection, and account deletion.
 - Public `/about`, `/terms`, `/privacy`, and `/support` pages using a shared public-page layout.
