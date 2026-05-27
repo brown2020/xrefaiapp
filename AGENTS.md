@@ -195,6 +195,7 @@ Writing tools call `generateAIResponse()` through `generateResponse()` in `src/a
 - saves image outputs as history entries with `words: "image"`.
 
 Important current limitation: image clients do not yet pass a fresh client idempotency key, so image generation falls back to payload-hash idempotency. This protects retries but can collapse intentional identical re-submits until the idempotency record expires.
+`generateImage()` already accepts an optional `idempotencyKey`; close this by updating the Generate Image and Designer Tool clients to pass `createClientIdempotencyKey()` rather than changing the server-side idempotency model.
 
 ### Authentication And Route Protection
 
@@ -249,6 +250,8 @@ iapTransactions/{transactionId}
 ```
 
 Profile strings from client writes are allowlisted and clamped in `serverProfile.ts`. History strings are clamped in `serverHistory.ts`.
+
+Account deletion currently calls `deleteAccountServer()` from `serverProfile.ts`, which deletes `users/{uid}/profile/userData` and the Firebase Auth user. It does not cascade `chats`, `summaries`, `payments`, `creditsLedger`, `idempotency`, `rateLimit`, `locks`, global IAP claim docs, or generated Storage files. Treat complete account-data deletion as an open product/privacy gap until implemented.
 
 ### State Management
 
@@ -323,6 +326,7 @@ Do not remove WebView branches as dead code.
 - Run `npm run build` for routing, server action, API, auth, payment, credit, shared UI, or config changes.
 - Run `npm run test:browser` for visible UI, activation, routing, homepage, auth modal, protected-route, paywall, or starter-path changes.
 - Add or update Playwright tests for new user-visible flows that can be verified without manual login.
+- No formatter script is configured. Do not invent a new formatter command for routine validation unless the project adds one.
 - There is no unit test runner configured. If adding one, keep it intentional and document the new command here.
 
 ## Files Requiring Extra Caution
@@ -362,6 +366,13 @@ High-risk UX/platform paths:
 - `src/components/Tools.tsx`
 - `src/components/History.tsx`
 
+## Deployment And Infrastructure Notes
+
+- No `vercel.json`, `firebase.json`, Dockerfile, GitHub Actions workflow, cron config, or queue worker config is present in the repository.
+- Deployment is currently inferred to be a standard Next.js deployment driven by `package.json`, `next.config.mjs`, environment variables, and the hosting platform configuration outside this repo.
+- `public/.well-known/apple-app-site-association` and `public/.well-known/assetlinks.json` support native app/WebView association paths. Do not remove them as unused website assets.
+- `next.config.mjs` allows Firebase/Google Storage image hosts and has `reactStrictMode: false`; re-enabling Strict Mode requires auditing auth/profile effects first.
+
 ## Environment Variables
 
 Firebase client:
@@ -386,7 +397,8 @@ Firebase Admin:
 - `FIREBASE_TOKEN_URI`
 - `FIREBASE_AUTH_PROVIDER_X509_CERT_URL`
 - `FIREBASE_CLIENT_CERTS_URL`
-- `FIREBASE_UNIVERSE_DOMAIN`
+
+`.env.example` includes `FIREBASE_UNIVERSE_DOMAIN`, but `src/firebase/firebaseAdmin.ts` does not currently read it.
 
 AI providers:
 
@@ -447,6 +459,8 @@ Stop and report instead of continuing when:
 - `/api/chat` is the active chat streaming path; `useChatGeneration` is legacy/unused.
 - `usePaymentsStore.addPayment()` and `serverPayments.addPaymentServer()` are not currently connected to user-facing purchase UI.
 - `buildContextFromHistory()` and `truncateText()` in `src/utils/messages.ts` are exported but not used by the active chat path.
+- `GenerationNextActions` exists for fresh text tool outputs, but expanded History cards currently expose repurpose actions only; "continue in chat" from History is still roadmap work.
+- `src/constants/index.ts` contains some historical constants that are not read by active server paths, such as `IDEMPOTENCY_TIME_WINDOW_MS` and the exported rate-limit constants. Check actual imports before treating constants as active behavior.
 - Image generation idempotency should eventually be moved to fresh client request IDs like text generation.
 - Payment confirmation is return-page driven; Stripe webhooks or reconciliation are future reliability work.
 - Firebase/GA4 measurement config exists, but there is no product analytics helper yet.
