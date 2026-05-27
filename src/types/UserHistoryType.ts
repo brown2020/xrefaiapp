@@ -17,4 +17,12 @@ export type UserHistoryType = {
    * Optional tool/action identifier (e.g. "repurpose:linkedin").
    */
   tool?: string;
+  /**
+   * Optional homepage starter intent that created this entry.
+   */
+  starterIntentId?: string;
+  /**
+   * Optional generation settings for backward-compatible metadata.
+   */
+  settings?: Record<string, string>;
 };

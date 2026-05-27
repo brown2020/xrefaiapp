@@ -138,7 +138,7 @@ Root config files include `package.json`, `package-lock.json`, `next.config.mjs`
 - Firebase auth with Google sign-in, email/password, password reset, and email-link sign-in.
 - Protected Chat, Tools, History, Account, payment attempt, and payment success routes.
 - Streaming AI chat through `/api/chat`.
-- Writing tools: Summarize Website, Summarize Text, Freestyle Writing, Simplify Writing.
+- Writing tools: Summarize Website, Summarize Text, Freestyle Writing with deliverable controls, Simplify Writing.
 - Image tools: Generate Image and Designer Tool.
 - Firestore-backed saved chat and summary history.
 - History search, pagination, expandable cards, markdown rendering, copy/download, and text repurpose actions.
@@ -183,6 +183,8 @@ Writing tools call `generateAIResponse()` through `generateResponse()` in `src/a
 - streams through AI SDK RSC streamable values;
 - refunds on generation errors;
 - saves summaries through `saveHistoryServer()`.
+
+Freestyle Writing adds client-side controls for deliverable, tone, audience, length, and call to action. The controls only shape the generated prompt and optional history metadata; credit cost remains based on requested word count.
 
 ### Image Generation Path
 
