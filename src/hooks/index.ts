@@ -18,7 +18,6 @@ export { useClientSetup } from "./useClientSetup";
 
 // Generation hooks
 export { useGenerationState } from "./useGenerationState";
-export { useChatGeneration } from "./useChatGeneration";
 export { useImageGeneration } from "./useImageGeneration";
 
 // Utility hooks

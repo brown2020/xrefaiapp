@@ -171,7 +171,7 @@ The active chat UI is `src/components/Chat.tsx` using `@ai-sdk/react` and `Defau
 - refunds and clears idempotency on stream failure or abort;
 - saves chat history from the client after successful stream completion.
 
-`src/hooks/useChatGeneration.ts` is a legacy exported hook that is not used by the current Chat component. Prefer `Chat.tsx` plus `/api/chat` for chat work.
+Chat work should use `Chat.tsx` plus `/api/chat`. (A previously legacy `useChatGeneration` hook has been removed.)
 
 ### Tool Text Generation Path
 
@@ -458,9 +458,9 @@ Stop and report instead of continuing when:
 
 ## Current Known Architecture Notes
 
-- `/api/chat` is the active chat streaming path; `useChatGeneration` is legacy/unused.
+- `/api/chat` is the active chat streaming path. (The legacy `useChatGeneration` hook has been removed.)
 - `usePaymentsStore.addPayment()` and `serverPayments.addPaymentServer()` are not currently connected to user-facing purchase UI.
-- `buildContextFromHistory()` and `truncateText()` in `src/utils/messages.ts` are exported but not used by the active chat path.
+- `src/utils/messages.ts` exposes `getMessageText()` and `calculateWordCount()` (both used by the chat path). The previously unused `buildContextFromHistory()` and `truncateText()` helpers have been removed.
 - `GenerationNextActions` exists for fresh text tool outputs, but expanded History cards currently expose repurpose actions only; "continue in chat" from History is still roadmap work.
 - `src/constants/index.ts` contains some historical constants that are not read by active server paths, such as `IDEMPOTENCY_TIME_WINDOW_MS` and the exported rate-limit constants. Check actual imports before treating constants as active behavior.
 - Image generation uses fresh client request IDs like text generation, with a payload-hash fallback on the server action.

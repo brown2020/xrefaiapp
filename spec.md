@@ -262,7 +262,6 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
 - Chat cannot explicitly reference selected history items or project context.
 - API-key mode currently requires Fireworks even for text-first users.
 - Account deletion currently leaves user subcollections and generated image storage behind unless removed separately.
-- `src/hooks/useChatGeneration.ts` is legacy/unused by the current Chat component.
 - `usePaymentsStore.addPayment()` and `serverPayments.addPaymentServer()` are not connected to the active purchase UI.
 - `src/constants/index.ts` includes some historical exported constants that are not read by active server paths.
 - Product analytics/event taxonomy is not implemented.
