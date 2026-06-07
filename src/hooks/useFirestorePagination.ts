@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   collection,
   getDocs,
@@ -54,6 +54,9 @@ export function useFirestorePagination<T>({
   const [lastDoc, setLastDoc] =
     useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [hasMore, setHasMore] = useState(false);
+  // Synchronous in-flight guard: `loadingMore` is async state, so two calls in
+  // the same tick can both see it as false and fetch/append the same page.
+  const loadMoreInFlightRef = useRef(false);
 
   const fetchData = useCallback(
     async (isInitial: boolean = true) => {
@@ -128,8 +131,12 @@ export function useFirestorePagination<T>({
   }, [uid, collectionName]);
 
   const loadMore = useCallback(async () => {
-    if (!loadingMore && hasMore) {
+    if (loadMoreInFlightRef.current || loadingMore || !hasMore) return;
+    loadMoreInFlightRef.current = true;
+    try {
       await fetchData(false);
+    } finally {
+      loadMoreInFlightRef.current = false;
     }
   }, [fetchData, loadingMore, hasMore]);
 

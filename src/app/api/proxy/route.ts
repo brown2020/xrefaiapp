@@ -45,16 +45,90 @@ const isNonPublicIPv4 = (address: string): boolean => {
   });
 };
 
+/**
+ * Expands any valid IPv6 textual form (compressed `::`, zone id, embedded
+ * IPv4) into its 16 raw bytes. Returns null if the input is not IPv6 or cannot
+ * be parsed. Expanding before classification prevents SSRF bypasses where a
+ * private address is written in a non-prefixed compressed form (e.g.
+ * `::fd00:1`, which does not start with "fc"/"fd").
+ */
+const expandIPv6ToBytes = (address: string): number[] | null => {
+  if (!net.isIPv6(address)) return null;
+  let addr = address.toLowerCase();
+
+  const zone = addr.indexOf("%");
+  if (zone !== -1) addr = addr.slice(0, zone);
+
+  // Pull out a trailing embedded IPv4 (e.g. ::ffff:127.0.0.1) and replace it
+  // with two placeholder 16-bit groups so group counting stays correct.
+  let ipv4Tail: number[] | null = null;
+  const lastColon = addr.lastIndexOf(":");
+  const tail = addr.slice(lastColon + 1);
+  if (tail.includes(".")) {
+    if (!net.isIPv4(tail)) return null;
+    ipv4Tail = tail.split(".").map((o) => Number(o));
+    addr = `${addr.slice(0, lastColon + 1)}0:0`;
+  }
+
+  const halves = addr.split("::");
+  if (halves.length > 2) return null;
+
+  const head = halves[0] ? halves[0].split(":").filter(Boolean) : [];
+  const back =
+    halves.length === 2 && halves[1] ? halves[1].split(":").filter(Boolean) : [];
+
+  const groups: number[] = [...head.map((g) => parseInt(g, 16))];
+  if (halves.length === 2) {
+    const missing = 8 - head.length - back.length;
+    if (missing < 0) return null;
+    for (let i = 0; i < missing; i++) groups.push(0);
+  }
+  groups.push(...back.map((g) => parseInt(g, 16)));
+
+  if (groups.length !== 8) return null;
+
+  const bytes: number[] = [];
+  for (const g of groups) {
+    if (!Number.isFinite(g) || g < 0 || g > 0xffff) return null;
+    bytes.push((g >> 8) & 0xff, g & 0xff);
+  }
+
+  if (ipv4Tail && ipv4Tail.length === 4) {
+    bytes[12] = ipv4Tail[0];
+    bytes[13] = ipv4Tail[1];
+    bytes[14] = ipv4Tail[2];
+    bytes[15] = ipv4Tail[3];
+  }
+
+  return bytes;
+};
+
 const isNonPublicIPv6 = (address: string): boolean => {
   if (!net.isIPv6(address)) return false;
-  const normalized = address.toLowerCase();
-  if (normalized === "::1" || normalized === "::") return true;
-  if (normalized.startsWith("fc") || normalized.startsWith("fd")) return true;
-  if (/^fe[89ab]/.test(normalized)) return true;
-  if (normalized.startsWith("::ffff:")) {
-    const maybeIpv4 = normalized.slice("::ffff:".length);
-    if (net.isIPv4(maybeIpv4)) return isNonPublicIPv4(maybeIpv4);
+  const bytes = expandIPv6ToBytes(address);
+  // If we cannot confidently parse it, fail closed (treat as non-public).
+  if (!bytes) return true;
+
+  // Unspecified ::
+  if (bytes.every((b) => b === 0)) return true;
+  // Loopback ::1
+  if (bytes.slice(0, 15).every((b) => b === 0) && bytes[15] === 1) return true;
+  // Unique local addresses fc00::/7
+  if ((bytes[0] & 0xfe) === 0xfc) return true;
+  // Link-local / site-local / other fe00::/8 reserved space
+  if (bytes[0] === 0xfe) return true;
+  // Multicast ff00::/8
+  if (bytes[0] === 0xff) return true;
+
+  // Embedded IPv4: mapped (::ffff:0:0/96) or compatible (::/96)
+  const first10Zero = bytes.slice(0, 10).every((b) => b === 0);
+  const isMapped = bytes[10] === 0xff && bytes[11] === 0xff;
+  const isCompat = bytes[10] === 0 && bytes[11] === 0;
+  if (first10Zero && (isMapped || isCompat)) {
+    const v4 = `${bytes[12]}.${bytes[13]}.${bytes[14]}.${bytes[15]}`;
+    if (net.isIPv4(v4)) return isNonPublicIPv4(v4);
   }
+
   return false;
 };
 

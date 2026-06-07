@@ -77,6 +77,10 @@ const useProfileStore = create<ProfileState>((set, get) => ({
         authPhotoUrl,
         authEmailVerified,
       });
+      // Guard against a stale write: if the signed-in user changed while this
+      // request was in flight, discard the result so we never show user A's
+      // profile to user B.
+      if (useAuthStore.getState().uid !== uid) return;
       set({ profile: profile as ProfileType });
     } catch (error) {
       handleProfileError("fetching or creating profile", error);

@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { adminAuth } from "@/firebase/firebaseAdmin";
 import { getAuthCookieName } from "@/utils/getAuthCookieName";
+import { isTokenVerificationError } from "@/utils/authErrors";
 
 /**
  * Strict server-side auth: verifies the ID token is present AND valid.
@@ -17,11 +18,16 @@ export async function requireAuthedUid(): Promise<string> {
   const token = (await cookies()).get(cookieName)?.value;
   if (!token) throw new Error("AUTH_REQUIRED");
 
+  let decoded;
   try {
-    const decoded = await adminAuth.verifyIdToken(token);
-    if (!decoded?.uid) throw new Error("AUTH_REQUIRED");
-    return decoded.uid;
-  } catch {
-    throw new Error("AUTH_REQUIRED");
+    decoded = await adminAuth.verifyIdToken(token);
+  } catch (error) {
+    if (isTokenVerificationError(error)) {
+      throw new Error("AUTH_REQUIRED", { cause: error });
+    }
+    // Infra/config failure (network, Firebase outage): don't mask as a 401.
+    throw error;
   }
+  if (!decoded?.uid) throw new Error("AUTH_REQUIRED");
+  return decoded.uid;
 }

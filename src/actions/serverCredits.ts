@@ -92,8 +92,27 @@ export async function creditCredits(
 
   const normalizedAmount = Math.floor(amount);
   const profileRef = adminDb.doc(`users/${uid}/profile/userData`);
+  const deterministicId = meta?.deterministicId;
+  const ledgerRef = deterministicId
+    ? adminDb.doc(`users/${uid}/creditsLedger/${deterministicId}`)
+    : null;
 
   return await adminDb.runTransaction(async (tx: FirebaseFirestore.Transaction) => {
+    // Idempotency: a credit pinned to a deterministic ledger id (e.g. a refund)
+    // must only ever apply once. If the ledger doc already exists, treat the
+    // credit as already applied and return the current balance unchanged.
+    // (All reads must precede writes within a Firestore transaction.)
+    if (ledgerRef) {
+      const existing = await tx.get(ledgerRef);
+      if (existing.exists) {
+        const profileSnap = await tx.get(profileRef);
+        return coerceCredits(
+          profileSnap.exists ? profileSnap.data()?.credits : 0,
+          0
+        );
+      }
+    }
+
     const snap = await tx.get(profileRef);
     const current = coerceCredits(snap.exists ? snap.data()?.credits : 0, 0);
     const next = calculateNewBalance(current, normalizedAmount);
@@ -113,7 +132,7 @@ export async function creditCredits(
           refId: meta.refId,
           balanceAfter: next,
         },
-        meta.deterministicId ? { deterministicId: meta.deterministicId } : undefined
+        deterministicId ? { deterministicId } : undefined
       );
     }
     return next;

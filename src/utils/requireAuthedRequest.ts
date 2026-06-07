@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { adminAuth } from "@/firebase/firebaseAdmin";
 import { getAuthCookieName } from "@/utils/getAuthCookieName";
+import { isTokenVerificationError } from "@/utils/authErrors";
 
 /**
  * Extracts and verifies the Firebase ID token from a NextRequest.
@@ -22,11 +23,16 @@ export async function requireAuthedUidFromRequest(
   const idToken = bearerToken || cookieToken;
   if (!idToken) throw new Error("AUTH_REQUIRED");
 
+  let decoded;
   try {
-    const decoded = await adminAuth.verifyIdToken(idToken);
-    if (!decoded?.uid) throw new Error("AUTH_REQUIRED");
-    return decoded.uid;
-  } catch {
-    throw new Error("AUTH_REQUIRED");
+    decoded = await adminAuth.verifyIdToken(idToken);
+  } catch (error) {
+    if (isTokenVerificationError(error)) {
+      throw new Error("AUTH_REQUIRED", { cause: error });
+    }
+    // Infra/config failure (network, Firebase outage): don't mask as a 401.
+    throw error;
   }
+  if (!decoded?.uid) throw new Error("AUTH_REQUIRED");
+  return decoded.uid;
 }

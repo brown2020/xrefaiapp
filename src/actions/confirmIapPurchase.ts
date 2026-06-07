@@ -125,7 +125,10 @@ export async function confirmIapPurchase(
       const globalClaimSnap = await tx.get(globalClaimRef);
       if (globalClaimSnap.exists) {
         const claimedByUid = String(globalClaimSnap.data()?.uid || "");
-        if (claimedByUid && claimedByUid !== uid) {
+        // Fail closed: a claim that exists but is not owned by the current user
+        // (including a corrupt/missing uid) must block re-fulfillment by anyone
+        // other than the original claimant.
+        if (claimedByUid !== uid) {
           throw new Error("IAP_ALREADY_CLAIMED");
         }
       }

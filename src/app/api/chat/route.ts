@@ -1,7 +1,8 @@
 import { ModelMessage, streamText, type UIMessage } from "ai";
+import { NextRequest } from "next/server";
 import type { AiModelKey } from "@/ai/models";
 import { getTextModel } from "@/ai/getTextModel";
-import { requireAuthedUid } from "@/actions/serverAuth";
+import { requireAuthedUidFromRequest } from "@/utils/requireAuthedRequest";
 import { creditCredits, debitCreditsOrThrow } from "@/actions/serverCredits";
 import { CREDITS_COSTS } from "@/constants/credits";
 import {
@@ -54,7 +55,7 @@ function buildMessages(
   return messages;
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as ChatRequestBody;
     const messages = Array.isArray(body?.messages) ? body.messages : [];
@@ -65,7 +66,7 @@ export async function POST(req: Request) {
       return Response.json({ error: "Missing user message" }, { status: 400 });
     }
 
-    const uid = await requireAuthedUid();
+    const uid = await requireAuthedUidFromRequest(req);
     const useCredits = body.useCredits !== false;
 
     const rateLimitResponse = await rateLimitMiddleware(uid, "chat");

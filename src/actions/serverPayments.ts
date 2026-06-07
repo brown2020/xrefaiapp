@@ -47,8 +47,10 @@ export async function checkPaymentProcessedServer(
   const uid = await requireAuthedUid();
   const snap = await adminDb
     .collection(`users/${uid}/payments`)
+    // Stripe checkout fulfillment stores `payment_status` ("paid"); IAP stores
+    // "succeeded". Match both so web purchases are recognized as processed.
     .where("id", "==", paymentId)
-    .where("status", "==", "succeeded")
+    .where("status", "in", ["paid", "succeeded"])
     .limit(1)
     .get();
 

@@ -157,7 +157,7 @@ export default function History() {
                 />
               ))}
 
-              {!loading && summaries.length === 0 && (
+              {!loading && filteredSummaries.length === 0 && (
                 <div className="text-center py-12 text-muted-foreground bg-card rounded-2xl border border-border border-dashed">
                   <p>No history found.</p>
                 </div>

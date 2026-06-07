@@ -51,6 +51,9 @@ export default function Chat({ initialPrompt, starterIntentId }: ChatProps) {
   const [input, setInput] = useState("");
   const isSubmittingRef = useRef(false);
   const appliedInitialPromptRef = useRef<string | undefined>(undefined);
+  // Remembers the text of the in-flight send so it can be restored to the
+  // input box if the request fails (otherwise a failed send loses the message).
+  const lastSentInputRef = useRef("");
 
   const {
     chatlist,
@@ -74,6 +77,8 @@ export default function Chat({ initialPrompt, starterIntentId }: ChatProps) {
     transport,
     experimental_throttle: 100,
     onFinish: async ({ message, messages: allMessages }) => {
+      // The send succeeded; drop the remembered draft so it can't be restored later.
+      lastSentInputRef.current = "";
       const latestUser = [...allMessages]
         .reverse()
         .find((m) => m.role === "user");
@@ -100,6 +105,11 @@ export default function Chat({ initialPrompt, starterIntentId }: ChatProps) {
       }
     },
     onError: (error) => {
+      // Restore the failed message so the user doesn't lose their text, unless
+      // they've already started typing something new.
+      if (lastSentInputRef.current) {
+        setInput((current) => current || lastSentInputRef.current);
+      }
       if (isInsufficientCreditsError(error)) {
         toast.error("Not enough credits. Please buy more credits in Account.");
         openPaywall({
@@ -161,6 +171,7 @@ export default function Chat({ initialPrompt, starterIntentId }: ChatProps) {
 
     isSubmittingRef.current = true;
     const inputValue = input.trim();
+    lastSentInputRef.current = inputValue;
     setInput("");
 
     try {

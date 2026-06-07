@@ -30,7 +30,11 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
+.env.production
 service_key.json
+
+# security: malware quarantine artifacts
+.malware_quarantine/
 
 # vercel
 .vercel

@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+#
+# Pre-commit guard against EtherHiding / blockchain-C2 malware markers.
+# Blocks any commit whose staged content contains a known IOC string or the
+# "hidden code after export default" technique used to smuggle obfuscated
+# loaders into postcss/tailwind/next/babel config files.
+#
+# Activate with either:
+#   git config core.hooksPath .githooks
+# or copy this file to .git/hooks/pre-commit and make it executable.
+
+set -uo pipefail
+
+# High-confidence fixed-string IOCs. Keep in sync with .github/workflows/malware-scan.yml.
+IOCS=(
+  '_$_1e42'
+  'rmcej%otb%'
+  'Tgw(2509)'
+  "global['!']='9-"
+  '2[gWfGj;<:-93Z^C'
+  'm6:tTh^D)cBz?NM]'
+  'api.trongrid.io'
+  'fullnode.mainnet.aptoslabs.com'
+  'bsc-dataseed'
+  'bsc-rpc.publicnode.com'
+)
+
+staged_files=$(git diff --cached --name-only --diff-filter=ACM)
+[ -z "$staged_files" ] && exit 0
+
+violations=0
+
+while IFS= read -r file; do
+  [ -z "$file" ] && continue
+
+  # Skip the security tooling itself: these files legitimately contain the IOC
+  # strings as detection signatures.
+  case "$file" in
+    .githooks/pre-commit | .github/workflows/malware-scan.yml | MALWARE_REMEDIATION_REPORT.md)
+      continue
+      ;;
+    .malware_quarantine/*)
+      continue
+      ;;
+  esac
+
+  # Read the staged blob (index version), skip if unreadable/binary.
+  content=$(git show ":$file" 2>/dev/null) || continue
+
+  for ioc in "${IOCS[@]}"; do
+    if printf '%s' "$content" | grep -Fq -- "$ioc"; then
+      echo "BLOCKED: IOC marker '$ioc' found in staged file: $file"
+      violations=1
+    fi
+  done
+
+  # Structural check: legitimate config export followed by 100+ spaces then more code.
+  if printf '%s' "$content" | grep -Eq 'export default config;[[:space:]]{100,}[^[:space:]]'; then
+    echo "BLOCKED: hidden code after 'export default config;' (padding technique) in: $file"
+    violations=1
+  fi
+done <<< "$staged_files"
+
+if [ "$violations" -ne 0 ]; then
+  echo ""
+  echo "Commit rejected: potential EtherHiding/blockchain-C2 malware detected."
+  echo "Run a full scan and review .github/workflows/malware-scan.yml IOC list."
+  echo "If this is a verified false positive, re-run with: git commit --no-verify"
+  exit 1
+fi
+
+exit 0
