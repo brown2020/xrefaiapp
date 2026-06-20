@@ -16,9 +16,9 @@ AGENTS.md, spec.md, package.json, playwright.config.ts, tests/activation-starter
 
 - Branch: dev
 - Upstream: origin/dev
-- Commit: pending
-- Pushed to: pending
-- Sync status: local dev matched origin/dev before workflow-owned report/doc edits
+- Commit: e5ab196
+- Pushed to: origin/dev
+- Sync status: local dev matched origin/dev after push
 
 ## Loop
 
@@ -27,7 +27,7 @@ AGENTS.md, spec.md, package.json, playwright.config.ts, tests/activation-starter
 - Verify gate: workflow scaffold validates, docs reflect current repo evidence, and npm run lint passes before push
 - Stop condition: plan/state/queue/docs/report are committed and pushed, or a real blocker is recorded
 - Attempt: 1/2
-- Result: in progress
+- Result: passed and pushed
 
 ## Run State
 
@@ -92,12 +92,12 @@ Scaffold validation passed. Git remote read and dry-run push passed. npm run lin
 
 ## Commit-Push Checkpoint
 
-- Status inspected: pending after report update
-- Diff checked: pending
-- Files staged: pending
-- Dry-run push: initial preflight passed; phase dry-run pending
-- Push: pending
-- Post-push sync: pending
+- Status inspected: clean before phase, workflow-owned docs/reports before commit
+- Diff checked: git diff --cached --check passed
+- Files staged: AGENTS.md, spec.md, agent-runs/2026-06-20-codebase-pass
+- Dry-run push: passed
+- Push: passed to origin/dev
+- Post-push sync: passed
 
 ## Stabilization
 

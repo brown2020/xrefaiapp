@@ -11,28 +11,26 @@
 
 ## Current State
 
-- Phase: Preflight and Repo Docs
-- Task: T-002
-- Status: In progress
-- Last command: npm run lint
-- Last result: passed
-- Last pushed commit: af2bf33 (origin/dev before this run)
-- Branch sync: local dev matches origin/dev before run-report/doc edits
-- Working tree: only workflow-owned run reports and docs edits are dirty
-- Next action: inspect diff, commit/push preflight docs and reports
+- Phase: Baseline Validation
+- Task: T-003
+- Status: Done
+- Last command: npm outdated
+- Last result: exited 1 with package drift list for safe package cleanup
+- Last pushed commit: e5ab196 (docs: map repository guidance and spec)
+- Branch sync: local dev matches origin/dev before baseline report edits
+- Working tree: only workflow-owned baseline report edits are dirty
+- Next action: commit/push baseline report, then build findings backlog
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| agent-runs/2026-06-20-codebase-pass/* | Safe-to-commit | Workflow-owned run reports created by codebase-improvement |
-| AGENTS.md | Safe-to-commit | Docs Sweep Loop current-state test coverage correction |
-| spec.md | Safe-to-commit | Docs Sweep Loop current-state validation coverage correction |
+| agent-runs/2026-06-20-codebase-pass/* | Safe-to-commit | Workflow-owned report updates |
 
 ## Blockers
 
-- None.
+- npm audit reports high severity form-data advisory and moderate protobufjs advisory. This does not block report-only baseline push, but it is queued for package cleanup.
 
 ## Deferred Items
 
-- None.
+- Major firebase-admin and sharp updates are deferred until package cleanup risk assessment.
