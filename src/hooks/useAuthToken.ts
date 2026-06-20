@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { getIdToken } from "firebase/auth";
 import { deleteCookie, setCookie } from "cookies-next";
-import { debounce } from "lodash";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import useProfileStore from "@/zustand/useProfileStore";
@@ -26,6 +25,33 @@ function isFirebaseError(error: unknown): error is { code: string; message: stri
     "code" in error &&
     typeof (error as { code: unknown }).code === "string"
   );
+}
+
+type DebouncedStorageHandler = ((event: StorageEvent) => void) & {
+  cancel: () => void;
+};
+
+function debounceStorageHandler(
+  handler: (event: StorageEvent) => void,
+  delayMs: number
+): DebouncedStorageHandler {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+
+  const debounced = ((event: StorageEvent) => {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      timeout = null;
+      handler(event);
+    }, delayMs);
+  }) as DebouncedStorageHandler;
+
+  debounced.cancel = () => {
+    if (!timeout) return;
+    clearTimeout(timeout);
+    timeout = null;
+  };
+
+  return debounced;
 }
 
 /**
@@ -114,7 +140,7 @@ const useAuthToken = (cookieName = getAuthCookieName()) => {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const handleStorageChange = debounce((e: StorageEvent) => {
+    const handleStorageChange = debounceStorageHandler((e: StorageEvent) => {
       if (e.key === lastTokenRefreshKey) {
         scheduleTokenRefresh();
       }

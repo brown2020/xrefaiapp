@@ -16,9 +16,9 @@ Fixed T-006, a realtime pagination duplicate-fetch race in the chat/history real
 
 - Branch: dev
 - Upstream: origin/dev
-- Commit: pending
-- Pushed to: pending
-- Sync status: local dev matched origin/dev before execution edits
+- Commit: 58d634c
+- Pushed to: origin/dev
+- Sync status: local dev matched origin/dev after push
 
 ## Loop
 
@@ -84,12 +84,12 @@ Checks performed and results:
 
 ## Commit-Push Checkpoint
 
-- Status inspected: pending after report update
-- Diff checked: pending
-- Files staged: pending
-- Dry-run push: pending
-- Push: pending
-- Post-push sync: pending
+- Status inspected: source/report changes before commit
+- Diff checked: git diff --cached --check passed
+- Files staged: useFirestoreRealtime plus execution report and run ledger files
+- Dry-run push: passed
+- Push: passed to origin/dev
+- Post-push sync: passed
 
 ## Stabilization
 
