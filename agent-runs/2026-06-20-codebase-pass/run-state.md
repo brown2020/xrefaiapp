@@ -11,15 +11,15 @@
 
 ## Current State
 
-- Phase: Baseline Validation
-- Task: T-003
+- Phase: Findings Backlog
+- Task: T-004
 - Status: Done
-- Last command: npm outdated
-- Last result: exited 1 with package drift list for safe package cleanup
-- Last pushed commit: e5ab196 (docs: map repository guidance and spec)
-- Branch sync: local dev matches origin/dev before baseline report edits
-- Working tree: only workflow-owned baseline report edits are dirty
-- Next action: commit/push baseline report, then build findings backlog
+- Last command: npm run lint
+- Last result: passed
+- Last pushed commit: d1cc718 (test: document baseline validation)
+- Branch sync: local dev matches origin/dev before findings report edits
+- Working tree: only workflow-owned findings report edits are dirty
+- Next action: inspect diff, commit/push findings backlog, then fix T-006 realtime pagination race
 
 ## Dirty File Classification
 
@@ -29,7 +29,7 @@
 
 ## Blockers
 
-- npm audit reports high severity form-data advisory and moderate protobufjs advisory. This does not block report-only baseline push, but it is queued for package cleanup.
+- None for findings report. npm audit advisories are queued for package cleanup.
 
 ## Deferred Items
 

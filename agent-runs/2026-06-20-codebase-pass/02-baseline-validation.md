@@ -16,9 +16,9 @@ package.json scripts, AGENTS.md validation expectations, Playwright config, npm 
 
 - Branch: dev
 - Upstream: origin/dev
-- Commit: pending
-- Pushed to: pending
-- Sync status: local dev matched origin/dev before baseline report edits
+- Commit: d1cc718
+- Pushed to: origin/dev
+- Sync status: local dev matched origin/dev after push
 
 ## Loop
 
@@ -89,12 +89,12 @@ Checks performed and results:
 
 ## Commit-Push Checkpoint
 
-- Status inspected: pending after report update
-- Diff checked: pending
-- Files staged: pending
-- Dry-run push: pending
-- Push: pending
-- Post-push sync: pending
+- Status inspected: report-only changes before commit
+- Diff checked: git diff --cached --check passed
+- Files staged: baseline report and run ledger files
+- Dry-run push: passed
+- Push: passed to origin/dev
+- Post-push sync: passed
 
 ## Stabilization
 
