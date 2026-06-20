@@ -92,6 +92,9 @@ export function useFirestoreRealtime<T>({
    * the "live window" size and thus whether more old docs may exist.
    */
   const initializedRef = useRef(false);
+  // Synchronous in-flight guard: React state updates asynchronously, so rapid
+  // same-tick calls can otherwise fetch/append the same older page twice.
+  const loadMoreInFlightRef = useRef(false);
 
   const onDataChangeRef = useRef(onDataChange);
   useEffect(() => {
@@ -188,10 +191,19 @@ export function useFirestoreRealtime<T>({
   }, [uid, collectionName, orderByField, orderDirection, pageSize]);
 
   const loadMore = useCallback(async () => {
-    if (!uid || !state.nextPageCursor || loadingMore || !state.hasMore) return;
+    if (
+      !uid ||
+      !state.nextPageCursor ||
+      loadMoreInFlightRef.current ||
+      loadingMore ||
+      !state.hasMore
+    ) {
+      return;
+    }
 
-    setLoadingMore(true);
+    loadMoreInFlightRef.current = true;
     try {
+      setLoadingMore(true);
       const constraints: QueryConstraint[] = [
         orderBy(orderByField, orderDirection),
         startAfter(state.nextPageCursor),
@@ -228,6 +240,7 @@ export function useFirestoreRealtime<T>({
       console.error(`Error loading more ${collectionName}:`, error);
     } finally {
       setLoadingMore(false);
+      loadMoreInFlightRef.current = false;
     }
   }, [
     uid,

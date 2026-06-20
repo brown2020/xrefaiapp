@@ -16,9 +16,9 @@ AGENTS.md, spec.md, package.json, npm audit/outdated output, npm ls form-data/pr
 
 - Branch: dev
 - Upstream: origin/dev
-- Commit: pending
-- Pushed to: pending
-- Sync status: local dev matched origin/dev before findings report edits
+- Commit: 8119851
+- Pushed to: origin/dev
+- Sync status: local dev matched origin/dev after push
 
 ## Loop
 
@@ -90,12 +90,12 @@ Source searches and dependency tree diagnostics completed. No source/package fil
 
 ## Commit-Push Checkpoint
 
-- Status inspected: pending after report update
-- Diff checked: pending
-- Files staged: pending
-- Dry-run push: pending
-- Push: pending
-- Post-push sync: pending
+- Status inspected: report-only changes before commit
+- Diff checked: git diff --cached --check passed
+- Files staged: findings report and run ledger files
+- Dry-run push: passed
+- Push: passed to origin/dev
+- Post-push sync: passed
 
 ## Stabilization
 
