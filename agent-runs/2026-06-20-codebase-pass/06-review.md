@@ -16,9 +16,9 @@ git log, git diff/stat from `af2bf33..HEAD`, package cleanup diff, hook diffs, v
 
 - Branch: dev
 - Upstream: origin/dev
-- Commit: pending
-- Pushed to: pending
-- Sync status: local dev matched origin/dev before review report edits
+- Commit: 965a09e
+- Pushed to: origin/dev
+- Sync status: local dev matched origin/dev after push
 
 ## Loop
 
@@ -81,12 +81,12 @@ Review evidence shows all source/package changes were pushed. Prior package phas
 
 ## Commit-Push Checkpoint
 
-- Status inspected: pending after report update
-- Diff checked: pending
-- Files staged: pending
-- Dry-run push: pending
-- Push: pending
-- Post-push sync: pending
+- Status inspected: report-only changes before commit
+- Diff checked: git diff --cached --check passed
+- Files staged: review report and run ledger files
+- Dry-run push: passed
+- Push: passed to origin/dev
+- Post-push sync: passed
 
 ## Stabilization
 
