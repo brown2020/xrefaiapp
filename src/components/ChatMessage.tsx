@@ -70,6 +70,7 @@ export default function ChatMessage({
               <GenerationNextActions
                 content={message.response}
                 sourceLabel="chat response"
+                showContinue={false}
               />
             </div>
           </div>

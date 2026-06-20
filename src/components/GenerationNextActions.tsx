@@ -10,6 +10,7 @@ const MAX_PREFILL_CHARS = 900;
 interface GenerationNextActionsProps {
   content: string;
   sourceLabel?: string;
+  showContinue?: boolean;
   className?: string;
   showHistory?: boolean;
 }
@@ -17,6 +18,7 @@ interface GenerationNextActionsProps {
 export default function GenerationNextActions({
   content,
   sourceLabel = "output",
+  showContinue = true,
   className = "",
   showHistory = true,
 }: GenerationNextActionsProps) {
@@ -42,13 +44,15 @@ export default function GenerationNextActions({
 
   return (
     <div className={`flex flex-wrap gap-2 ${className}`}>
-      <Link
-        href={buildPrefilledHref(ROUTES.chat, { prompt: continuePrompt })}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
-      >
-        <MessageSquare className="h-3.5 w-3.5" />
-        Continue in chat
-      </Link>
+      {showContinue ? (
+        <Link
+          href={buildPrefilledHref(ROUTES.chat, { prompt: continuePrompt })}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
+        >
+          <MessageSquare className="h-3.5 w-3.5" />
+          Continue in chat
+        </Link>
+      ) : null}
       <Link
         href={buildPrefilledHref(ROUTES.tools, {
           tool: "Generate Image",
