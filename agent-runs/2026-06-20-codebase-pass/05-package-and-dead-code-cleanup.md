@@ -16,9 +16,9 @@ package.json, package-lock.json, src/hooks/useAuthToken.ts, npm audit, npm ls fo
 
 - Branch: dev
 - Upstream: origin/dev
-- Commit: pending
-- Pushed to: pending
-- Sync status: local dev matched origin/dev before package cleanup edits
+- Commit: dde6ba3
+- Pushed to: origin/dev
+- Sync status: local dev matched origin/dev after push
 
 ## Loop
 
@@ -96,12 +96,12 @@ Checks performed and results:
 
 ## Commit-Push Checkpoint
 
-- Status inspected: pending after report update
-- Diff checked: pending
-- Files staged: pending
-- Dry-run push: pending
-- Push: pending
-- Post-push sync: pending
+- Status inspected: package/source/report changes before commit
+- Diff checked: git diff --cached --check passed
+- Files staged: package.json, package-lock.json, useAuthToken, package cleanup report, run ledger files
+- Dry-run push: passed
+- Push: passed to origin/dev
+- Post-push sync: passed
 
 ## Stabilization
 
