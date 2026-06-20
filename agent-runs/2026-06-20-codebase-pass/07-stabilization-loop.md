@@ -16,9 +16,9 @@ Ran the stabilization completion gate after fixes, package cleanup, and review.
 
 - Branch: dev
 - Upstream: origin/dev
-- Commit: pending
-- Pushed to: pending
-- Sync status: local dev matched origin/dev before stabilization report edits
+- Commit: df5a018
+- Pushed to: origin/dev
+- Sync status: local dev matched origin/dev after push
 
 ## Loop
 
@@ -91,12 +91,12 @@ Checks performed and results:
 
 ## Commit-Push Checkpoint
 
-- Status inspected: pending after report update
-- Diff checked: pending
-- Files staged: pending
-- Dry-run push: pending
-- Push: pending
-- Post-push sync: pending
+- Status inspected: report-only changes before commit
+- Diff checked: git diff --cached --check passed
+- Files staged: stabilization report and run ledger files
+- Dry-run push: passed
+- Push: passed to origin/dev
+- Post-push sync: passed
 
 ## Stabilization
 
