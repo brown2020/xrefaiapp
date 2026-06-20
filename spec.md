@@ -1,6 +1,6 @@
 # Xref.ai Product Spec And Roadmap
 
-Current as of 2026-05-27.
+Current as of 2026-06-20.
 
 ## Purpose
 
@@ -239,7 +239,7 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
 - `main` is the production branch and `dev` is the autonomous working branch.
 - npm is the package manager.
 - No unit test runner is configured.
-- Playwright has a small activation starter-path smoke suite.
+- Playwright has smoke coverage for activation starter paths, route protection, unauthenticated API rejection, external payment-success redirect normalization, Freestyle Writing controls, and Summarize Text controls.
 - `npm run build` may require valid enough environment configuration for build-time code paths.
 - Firebase Admin is lazy-initialized so build/prerender can complete without immediately touching credentials.
 - `reactStrictMode` is disabled; re-enabling requires auth/profile effect audit.

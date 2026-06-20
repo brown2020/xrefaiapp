@@ -1,0 +1,9 @@
+# Task Queue
+
+| ID | Phase | Priority | Type | Status | Owned Files | Evidence | Done-Check | Attempts | Stop Condition | Verification | Next Action |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| T-001 | Preflight | P1 | Setup | Done | 00-orchestration-plan.md, run-state.md, task-queue.md | Repo metadata, Git state, validated workflow scaffold | Plan, state, and queue have verifiable gates | 1/1 | First executable task is clear or blocked | validate_skill.py passed | Continue docs sweep |
+| T-002 | Preflight | P1 | Documentation | Done | AGENTS.md, spec.md, 01-preflight-and-repo-docs.md, run-state.md, task-queue.md | tests/*.spec.ts and package.json scripts | Current-state docs reflect existing tests without roadmap changes | 1/2 | Docs updated and quality gate passes, or blocker recorded | npm run lint passed | Commit/push preflight phase |
+| T-003 | Baseline Validation | P1 | Validation | Open | 02-baseline-validation.md, run-state.md, task-queue.md | package.json scripts, AGENTS.md canonical validation | Baseline check results are recorded and failures classified | 0/2 | Baseline clean or exact blockers recorded | npm run lint; tsc; npm run build; npm run test:browser | Run baseline checks after preflight commit |
+| T-004 | Findings | P1 | Architecture | Open | 03-findings-backlog.md, task-queue.md | Architecture map and source search | Scorecard has evidence or deferrals | 0/2 | Scorecard complete or blocked by non-local decision | Architecture Fitness Loop | Build architecture scorecard |
+| T-005 | Execute Fixes | P1 | Bug/Lean code | Open | To be assigned from findings | Baseline/finding evidence | One highest-priority local fix is implemented and verified | 0/3 | Fix done, deferred, or blocked | Targeted check plus npm run lint | Select after findings backlog |

@@ -106,7 +106,7 @@ npm run test:browser
 - AI text: Vercel AI SDK 6 with OpenAI, Anthropic, xAI, and Google providers.
 - AI images: Fireworks AI `stable-diffusion-xl-1024-v1-0`.
 - Payments: Stripe 22 Checkout Sessions on web plus signed React Native WebView IAP confirmation.
-- Tests: Playwright smoke tests under `tests/`; no unit test runner is currently configured.
+- Tests: Playwright smoke tests under `tests/` cover activation starter paths, proxy route protection, API auth rejection, redirect normalization, and writing-control surfaces. No unit test runner is currently configured.
 
 ## Repository Structure
 
@@ -127,6 +127,8 @@ src/
 
 tests/
   activation-starter-paths.spec.ts
+  route-protection.spec.ts
+  writing-controls.spec.ts
 ```
 
 Root config files include `package.json`, `package-lock.json`, `next.config.mjs`, `eslint.config.mjs`, `playwright.config.ts`, `tailwind.config.ts`, `postcss.config.mjs`, and `tsconfig.json`.
@@ -145,7 +147,7 @@ Root config files include `package.json`, `package-lock.json`, `next.config.mjs`
 - Credit balances, credit ledger, credit packs, Stripe checkout, payment confirmation, and paywall modal.
 - BYO API key mode for text providers and Fireworks image generation.
 - Expo/React Native WebView branches for IAP, auth differences, cookie consent suppression, and localStorage differences.
-- Headless Playwright coverage for activation starter paths.
+- Headless Playwright coverage for activation starter paths, protected/public route behavior, unauthenticated API rejection, payment-success redirect normalization, Freestyle Writing controls, and Summarize Text controls.
 
 ## Core Architecture
 
