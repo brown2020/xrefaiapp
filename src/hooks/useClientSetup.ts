@@ -1,4 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
+
+function subscribeToNothing() {
+  return () => {};
+}
+
+function readIsBrowser() {
+  return true;
+}
+
+function readIsServer() {
+  return false;
+}
+
+function readIsWebView() {
+  return Boolean(window.ReactNativeWebView);
+}
 
 /**
  * Hook to handle client-side setup tasks:
@@ -6,17 +22,18 @@ import { useEffect, useState } from "react";
  * - WebView detection for React Native
  */
 export function useClientSetup() {
-  const [isClient, setIsClient] = useState(false);
-  const [isWebView, setIsWebView] = useState(false);
+  const isClient = useSyncExternalStore(
+    subscribeToNothing,
+    readIsBrowser,
+    readIsServer
+  );
+  const isWebView = useSyncExternalStore(
+    subscribeToNothing,
+    readIsWebView,
+    readIsServer
+  );
 
   useEffect(() => {
-    // Mark as client-side
-    setIsClient(true);
-
-    // Detect React Native WebView
-    setIsWebView(Boolean(window.ReactNativeWebView));
-
-    // Adjust viewport height for mobile browsers
     function adjustHeight() {
       const vh = window.innerHeight * 0.01;
       document.documentElement.style.setProperty("--vh", `${vh}px`);

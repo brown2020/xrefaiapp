@@ -5,9 +5,8 @@ import { useState, useCallback } from "react";
 import DeleteConfirmModal from "./DeleteConfirmModal";
 import useProfileStore from "@/zustand/useProfileStore";
 import { signOut } from "firebase/auth";
-import { deleteCookie } from "cookies-next";
+import { clearAuthCookie } from "@/utils/authCookieClient";
 import { auth } from "@/firebase/firebaseClient";
-import { getAuthCookieName } from "@/utils/getAuthCookieName";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { ROUTES } from "@/constants/routes";
@@ -28,7 +27,7 @@ export default function DeleteAccount() {
     setShowDeleteModal(false);
     try {
       await deleteAccount();
-      deleteCookie(getAuthCookieName(), { path: "/" });
+      await clearAuthCookie();
       await signOut(auth);
       clearAuthDetails();
       toast.success("Account deleted successfully.");
@@ -36,6 +35,7 @@ export default function DeleteAccount() {
     } catch (error) {
       console.error("Error on deletion of account:", error);
       toast.error("Could not delete your account. Please try again.");
+    } finally {
       setLoadingDelete(false);
     }
   }, [deleteAccount, clearAuthDetails, router]);

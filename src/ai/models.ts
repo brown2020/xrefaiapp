@@ -8,7 +8,7 @@ export type AiModelKey =
   | "openai:gpt-5.4"
   | "anthropic:claude-sonnet-4-6"
   | "xai:grok-4"
-  | "google:gemini-3-pro-preview";
+  | "google:gemini-3.1-pro-preview";
 
 export type AiModelDefinition = {
   key: AiModelKey;
@@ -44,13 +44,17 @@ export const AI_MODELS: Record<AiModelKey, AiModelDefinition> = {
     label: "Grok 4",
     family: "xAI",
   },
-  "google:gemini-3-pro-preview": {
-    key: "google:gemini-3-pro-preview",
+  "google:gemini-3.1-pro-preview": {
+    key: "google:gemini-3.1-pro-preview",
     provider: "google",
-    modelId: "gemini-3-pro-preview",
-    label: "Gemini 3",
+    modelId: "gemini-3.1-pro-preview",
+    label: "Gemini 3.1 Pro",
     family: "Google",
   },
+};
+
+const RETIRED_MODEL_KEYS: Record<string, AiModelKey> = {
+  "google:gemini-3-pro-preview": "google:gemini-3.1-pro-preview",
 };
 
 export const DEFAULT_TEXT_MODEL_KEY: AiModelKey = "openai:gpt-5.4";
@@ -62,5 +66,8 @@ export function isAiModelKey(value: unknown): value is AiModelKey {
 }
 
 export function resolveAiModelKey(value: unknown): AiModelKey {
+  if (typeof value === "string" && value in RETIRED_MODEL_KEYS) {
+    return RETIRED_MODEL_KEYS[value];
+  }
   return isAiModelKey(value) ? value : DEFAULT_TEXT_MODEL_KEY;
 }

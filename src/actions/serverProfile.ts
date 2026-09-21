@@ -3,6 +3,8 @@
 import { adminDb, admin } from "@/firebase/firebaseAdmin";
 import { requireAuthedUid } from "@/actions/serverAuth";
 import { coerceCredits } from "@/utils/credits";
+import { creditsForNewProfile } from "@/utils/starterGrant";
+import { sanitizeProfileUpdate } from "@/utils/profileContract";
 import { resolveAiModelKey } from "@/ai/models";
 import type { AiModelKey } from "@/ai/models";
 
@@ -47,64 +49,6 @@ const PROFILE_DEFAULTS: ServerProfileData = {
   text_model: "openai:gpt-5.4",
 };
 
-const CLIENT_WRITABLE_FIELDS = {
-  contactEmail: "string",
-  displayName: "string",
-  photoUrl: "string",
-  fireworks_api_key: "string",
-  openai_api_key: "string",
-  anthropic_api_key: "string",
-  xai_api_key: "string",
-  google_api_key: "string",
-  stability_api_key: "string",
-  selectedAvatar: "string",
-  selectedTalkingPhoto: "string",
-  useCredits: "boolean",
-  text_model: "model",
-  firstName: "string",
-  lastName: "string",
-  headerUrl: "string",
-} as const;
-
-type ClientWritableProfileField = keyof typeof CLIENT_WRITABLE_FIELDS;
-
-/**
- * Maximum length of a string field written from the client. Protects
- * Firestore from oversized documents and prevents abuse.
- */
-const MAX_STRING_FIELD_LENGTH = 4_000;
-
-function sanitizeProfileUpdate(
-  fields: Partial<ServerProfileData>
-): Partial<ServerProfileData> {
-  const sanitized: Record<string, unknown> = {};
-
-  for (const [key, value] of Object.entries(fields) as [
-    ClientWritableProfileField,
-    unknown,
-  ][]) {
-    if (!(key in CLIENT_WRITABLE_FIELDS) || value === undefined) continue;
-    if (typeof value === "function") continue;
-
-    const expectedType = CLIENT_WRITABLE_FIELDS[key];
-    if (expectedType === "boolean") {
-      if (typeof value === "boolean") sanitized[key] = value;
-      continue;
-    }
-
-    if (expectedType === "model") {
-      if (typeof value === "string") sanitized[key] = resolveAiModelKey(value);
-      continue;
-    }
-
-    if (typeof value === "string") {
-      sanitized[key] = value.slice(0, MAX_STRING_FIELD_LENGTH);
-    }
-  }
-
-  return sanitized as Partial<ServerProfileData>;
-}
-
 export async function fetchProfileServer(authOverrides?: {
   authEmail?: string;
   authDisplayName?: string;
@@ -113,6 +57,7 @@ export async function fetchProfileServer(authOverrides?: {
 }): Promise<ServerProfileData> {
   const uid = await requireAuthedUid();
   const profileRef = adminDb.doc(`users/${uid}/profile/userData`);
+  const claimRef = adminDb.doc(`users/${uid}/account/bootstrap`);
   const snap = await profileRef.get();
 
   const authEmail = authOverrides?.authEmail ?? "";
@@ -124,6 +69,13 @@ export async function fetchProfileServer(authOverrides?: {
 
   if (snap.exists) {
     const data = snap.data() as Partial<ServerProfileData>;
+    const existingClaim = await claimRef.get();
+    if (!existingClaim.exists) {
+      await claimRef.set({
+        starterGrantClaimed: true,
+        claimedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
     return {
       ...PROFILE_DEFAULTS,
       ...data,
@@ -140,18 +92,55 @@ export async function fetchProfileServer(authOverrides?: {
     };
   }
 
-  const newProfile: ServerProfileData = {
-    ...PROFILE_DEFAULTS,
-    email: authEmail,
-    displayName: authDisplayName,
-    photoUrl: authPhotoUrl,
-    emailVerified: authEmailVerified,
-    firstName: authFirstName,
-    lastName: authLastName,
-  };
+  const created = await adminDb.runTransaction(async (tx: FirebaseFirestore.Transaction) => {
+    const [profileSnap, claimSnap] = await Promise.all([
+      tx.get(profileRef),
+      tx.get(claimRef),
+    ]);
+    if (profileSnap.exists) {
+      if (!claimSnap.exists) {
+        tx.set(claimRef, {
+          starterGrantClaimed: true,
+          claimedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+      return profileSnap.data() as Partial<ServerProfileData>;
+    }
 
-  await profileRef.set(newProfile);
-  return newProfile;
+    const newProfile: ServerProfileData = {
+      ...PROFILE_DEFAULTS,
+      email: authEmail,
+      displayName: authDisplayName,
+      photoUrl: authPhotoUrl,
+      emailVerified: authEmailVerified,
+      firstName: authFirstName,
+      lastName: authLastName,
+      credits: creditsForNewProfile(claimSnap.exists, PROFILE_DEFAULTS.credits),
+    };
+    tx.set(profileRef, newProfile);
+    if (!claimSnap.exists) {
+      tx.set(claimRef, {
+        starterGrantClaimed: true,
+        claimedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+    return newProfile;
+  });
+
+  return {
+    ...PROFILE_DEFAULTS,
+    ...created,
+    email: created.email || authEmail || "",
+    contactEmail: created.contactEmail || authEmail || "",
+    displayName: created.displayName || authDisplayName || "",
+    photoUrl: created.photoUrl || authPhotoUrl || "",
+    emailVerified: created.emailVerified ?? authEmailVerified,
+    credits: coerceCredits(created.credits, 0),
+    firstName: created.firstName || authFirstName || "",
+    lastName: created.lastName || authLastName || "",
+    headerUrl: created.headerUrl || "",
+    text_model: resolveAiModelKey(created.text_model),
+  };
 }
 
 export async function updateProfileServer(
@@ -169,6 +158,6 @@ export async function updateProfileServer(
 export async function deleteAccountServer(): Promise<void> {
   const uid = await requireAuthedUid();
   const profileRef = adminDb.doc(`users/${uid}/profile/userData`);
-  await profileRef.delete();
   await admin.auth().deleteUser(uid);
+  await profileRef.delete();
 }

@@ -1,6 +1,5 @@
-import { ModelMessage, streamText, type UIMessage } from "ai";
+import { ModelMessage, streamText } from "ai";
 import { NextRequest } from "next/server";
-import type { AiModelKey } from "@/ai/models";
 import { getTextModel } from "@/ai/getTextModel";
 import { requireAuthedUidFromRequest } from "@/utils/requireAuthedRequest";
 import { creditCredits, debitCreditsOrThrow } from "@/actions/serverCredits";
@@ -14,23 +13,12 @@ import {
 } from "@/utils/idempotency";
 import { rateLimitMiddleware } from "@/utils/rateLimit";
 import { getMessageText } from "@/utils/messages";
+import { chatRequestSchema } from "@/utils/actionContracts";
+import { boundChatInput } from "@/utils/providerInputBudget";
 
 export const runtime = "nodejs";
 
 type ChatHistoryItem = { prompt: string; response: string };
-
-type ChatRequestBody = {
-  messages: UIMessage[];
-  history?: ChatHistoryItem[];
-  modelKey?: AiModelKey;
-  useCredits?: boolean;
-  openaiApiKey?: string;
-  anthropicApiKey?: string;
-  xaiApiKey?: string;
-  googleApiKey?: string;
-  /** Optional client-provided idempotency key to prevent duplicate charges on retries */
-  idempotencyKey?: string;
-};
 
 const SYSTEM_PROMPT = "The user will ask you questions. Respond in a helpful way.";
 
@@ -57,13 +45,33 @@ function buildMessages(
 
 export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json()) as ChatRequestBody;
-    const messages = Array.isArray(body?.messages) ? body.messages : [];
+    let json: unknown;
+    try {
+      json = await req.json();
+    } catch {
+      return Response.json({ error: "Invalid chat request" }, { status: 400 });
+    }
+    const parsed = chatRequestSchema.safeParse(json);
+    if (!parsed.success) {
+      return Response.json({ error: "Invalid chat request" }, { status: 400 });
+    }
+    const body = parsed.data;
+    const messages = body.messages;
     const latestUser = [...messages].reverse().find((m) => m.role === "user");
-    const userText = latestUser ? getMessageText(latestUser).trim() : "";
+    const userText = latestUser
+      ? getMessageText({
+          content: typeof latestUser.content === "string" ? latestUser.content : undefined,
+          parts: latestUser.parts?.map((part) => ({ type: part.type, text: part.text })),
+        }).trim()
+      : "";
 
     if (!userText) {
       return Response.json({ error: "Missing user message" }, { status: 400 });
+    }
+
+    const bounded = boundChatInput(userText, body.history);
+    if (!bounded.ok) {
+      return Response.json({ error: bounded.error }, { status: 400 });
     }
 
     const uid = await requireAuthedUidFromRequest(req);
@@ -85,7 +93,7 @@ export async function POST(req: NextRequest) {
 
     const idempotencyKey = body.idempotencyKey
       ? generateClientIdempotencyKey(uid, body.idempotencyKey)
-      : generateIdempotencyKey(uid, { userText, modelKey: body.modelKey });
+      : generateIdempotencyKey(uid, { userText: bounded.userText, modelKey: body.modelKey });
 
     let requestSettled = false;
     let creditsCharged = false;
@@ -165,7 +173,7 @@ export async function POST(req: NextRequest) {
     try {
       const result = streamText({
         model,
-        messages: buildMessages(body.history, userText),
+        messages: buildMessages(bounded.history, bounded.userText),
         abortSignal: abortController.signal,
         onFinish: async () => {
           successfullyStreamed = true;

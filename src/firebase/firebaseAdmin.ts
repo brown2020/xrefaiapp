@@ -29,10 +29,19 @@ function ensureInitialized(): void {
     initialized = true;
     return;
   }
-  admin.initializeApp({
-    credential: admin.credential.cert(adminCredentials as admin.ServiceAccount),
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGEBUCKET,
-  });
+  const emulator =
+    Boolean(process.env.FIRESTORE_EMULATOR_HOST) ||
+    Boolean(process.env.FIREBASE_AUTH_EMULATOR_HOST);
+  if (emulator) {
+    admin.initializeApp({
+      projectId: process.env.FIREBASE_PROJECT_ID || "demo-xref",
+    });
+  } else {
+    admin.initializeApp({
+      credential: admin.credential.cert(adminCredentials as admin.ServiceAccount),
+      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGEBUCKET,
+    });
+  }
   initialized = true;
 }
 

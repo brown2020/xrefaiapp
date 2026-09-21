@@ -44,7 +44,7 @@ export default function ChatInput({
   return (
     <div className="w-full bg-background/80 backdrop-blur-lg border-t border-border p-4 md:p-6 pb-8 md:pb-8">
       <div className="max-w-4xl mx-auto relative">
-        <div className="relative flex items-end gap-2 bg-muted border border-border rounded-2xl shadow-sm focus-within:ring-2 focus-within:ring-ring/20 focus-within:border-ring transition-all overflow-hidden">
+        <div className="relative flex items-end gap-2 bg-muted border border-border rounded-2xl shadow-sm focus-within:ring-2 focus-within:ring-ring/20 focus-within:border-ring transition-colors overflow-hidden">
           <TextareaAutosize
             className="w-full py-3.5 pl-4 pr-12 bg-transparent text-foreground placeholder:text-muted-foreground resize-none focus:outline-hidden text-base leading-relaxed max-h-[200px]"
             placeholder="Ask me anything..."
@@ -61,7 +61,7 @@ export default function ChatInput({
               type="button"
               onClick={() => void doSubmit()}
               disabled={isLoading || !value.trim()}
-              className={`p-2 rounded-xl flex items-center justify-center transition-all duration-200 cursor-pointer ${
+              className={`p-2 rounded-xl flex items-center justify-center transition-transform duration-200 cursor-pointer ${
                 value.trim() && !isLoading
                   ? "bg-primary text-primary-foreground hover:opacity-90 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                   : "bg-muted text-muted-foreground cursor-not-allowed"

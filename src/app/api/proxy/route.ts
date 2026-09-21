@@ -3,6 +3,8 @@ import dns from "dns/promises";
 import net from "net";
 import https from "https";
 import { requireAuthedUidFromRequest } from "@/utils/requireAuthedRequest";
+import { abortUpstreamRequest } from "@/utils/abortUpstream";
+import { safeProxyHeaders } from "@/utils/proxyResponse";
 import { rateLimitMiddleware } from "@/utils/rateLimit";
 
 export const runtime = "nodejs";
@@ -157,7 +159,7 @@ function fetchFromVerifiedIp(
   targetUrl: URL,
   publicIp: string,
   signal: AbortSignal
-): Promise<{ status: number; headers: Map<string, string>; body: Buffer }> {
+): Promise<{ status: number; headers: Record<string, string>; body: Buffer }> {
   return new Promise((resolve, reject) => {
     const req = https.request(
       {
@@ -175,10 +177,10 @@ function fetchFromVerifiedIp(
         signal,
       },
       (res) => {
-        const headers = new Map<string, string>();
+        const responseHeaders: Record<string, string> = {};
         for (const [key, value] of Object.entries(res.headers)) {
-          if (typeof value === "string") headers.set(key, value);
-          else if (Array.isArray(value)) headers.set(key, value.join(", "));
+          if (typeof value === "string") responseHeaders[key] = value;
+          else if (Array.isArray(value)) responseHeaders[key] = value.join(", ");
         }
 
         const chunks: Buffer[] = [];
@@ -192,10 +194,10 @@ function fetchFromVerifiedIp(
             aborted = true;
             const remaining = MAX_RESPONSE_BYTES - (received - chunk.length);
             if (remaining > 0) chunks.push(chunk.slice(0, remaining));
-            req.destroy();
+            abortUpstreamRequest(req);
             resolve({
               status: res.statusCode ?? 502,
-              headers,
+              headers: responseHeaders,
               body: Buffer.concat(chunks),
             });
             return;
@@ -206,7 +208,7 @@ function fetchFromVerifiedIp(
           if (aborted) return;
           resolve({
             status: res.statusCode ?? 502,
-            headers,
+            headers: responseHeaders,
             body: Buffer.concat(chunks),
           });
         });
@@ -306,17 +308,17 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const contentType = response.headers.get("content-type") || "text/plain";
-
+    const headers = safeProxyHeaders();
     // Node's `Buffer` is not always recognized as a `BodyInit` depending on
     // which DOM/BodyInit types are in scope. Wrap into a Blob which is
-    // universally accepted as a Response body.
+    // universally accepted as a Response body. The type stays plain text so a
+    // browser navigation cannot execute the remote document on this origin.
     const bodyBlob = new Blob([new Uint8Array(response.body)], {
-      type: contentType,
+      type: headers["content-type"],
     });
     return new NextResponse(bodyBlob, {
       status: response.status,
-      headers: { "content-type": contentType },
+      headers,
     });
   } catch (error) {
     clearTimeout(timeout);

@@ -16,6 +16,8 @@ import {
   markIdempotencyComplete,
   markIdempotencyFailed,
 } from "@/utils/idempotency";
+import { generationInputSchema } from "@/utils/actionContracts";
+import { boundConversation, boundPromptPair } from "@/utils/providerInputBudget";
 
 interface SimpleMessage {
   type: "simple";
@@ -56,7 +58,23 @@ type MessageInput = SimpleMessage | ConversationMessage;
  * - If the stream errors or is aborted, credits are refunded and the
  *   idempotency record is cleared so the user can retry cleanly.
  */
-export async function generateAIResponse(input: MessageInput) {
+export async function generateAIResponse(rawInput: MessageInput) {
+  const authedUid = await requireAuthedUid();
+  const parsed = generationInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    throw new Error("INVALID_GENERATION_INPUT");
+  }
+  const bounded =
+    parsed.data.type === "simple"
+      ? { ...parsed.data, ...boundPromptPair(parsed.data.systemPrompt, parsed.data.userPrompt) }
+      : { ...parsed.data, ...boundConversation(parsed.data.systemPrompt, parsed.data.messages) };
+  if (
+    (bounded.type === "simple" && !bounded.userPrompt.trim()) ||
+    (bounded.type === "conversation" && bounded.messages.length === 0)
+  ) {
+    throw new Error("PROMPT_TOO_LONG");
+  }
+  const input = bounded;
   const model = getTextModel({
     modelKey: input.modelKey,
     useCredits: input.useCredits,
@@ -151,7 +169,7 @@ export async function generateAIResponse(input: MessageInput) {
   };
 
   if (useCredits) {
-    chargedUid = await requireAuthedUid();
+    chargedUid = authedUid;
     idempotencyKey = input.idempotencyKey
       ? generateClientIdempotencyKey(chargedUid, input.idempotencyKey)
       : generateIdempotencyKey(chargedUid, payloadForIdempotency);

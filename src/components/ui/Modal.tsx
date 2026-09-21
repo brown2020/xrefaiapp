@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, ReactNode } from "react";
+import { useEffect, useEffectEvent, useLayoutEffect, useRef, ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
@@ -27,65 +27,50 @@ export function Modal({
   showCloseButton = true,
   maxWidth = "md",
 }: ModalProps) {
-  const modalRef = useRef<HTMLDivElement>(null);
-  // Track the element under the mousedown so we can distinguish "click
-  // outside the modal" from "mousedown inside then drag-release outside"
-  // (e.g. text selection that ends off the modal).
-  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const onCloseEvent = useEffectEvent(() => {
+    onClose();
+  });
 
-  // Close on click outside, but only when the press STARTED outside the modal.
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleMouseDown = (event: MouseEvent) => {
-      mouseDownTargetRef.current = event.target;
-    };
-    const handleMouseUp = (event: MouseEvent) => {
-      const startTarget = mouseDownTargetRef.current;
-      mouseDownTargetRef.current = null;
-      if (!(startTarget instanceof Node)) return;
-      if (!modalRef.current) return;
-
-      const startedInside = modalRef.current.contains(startTarget);
-      const endedInside =
-        event.target instanceof Node && modalRef.current.contains(event.target);
-
-      if (!startedInside && !endedInside) {
-        onClose();
-      }
-    };
-
-    document.addEventListener("mousedown", handleMouseDown);
-    document.addEventListener("mouseup", handleMouseUp);
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current;
+    if (!isOpen || !dialog) return;
+    if (!dialog.open) dialog.showModal();
     document.body.style.overflow = "hidden";
-
     return () => {
-      document.removeEventListener("mousedown", handleMouseDown);
-      document.removeEventListener("mouseup", handleMouseUp);
       document.body.style.overflow = "";
+      if (dialog.open) dialog.close();
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
-  // Close on Escape key
   useEffect(() => {
-    if (!isOpen) return;
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+    const dialog = dialogRef.current;
+    if (!isOpen || !dialog) return;
+    const handleCancel = (event: Event) => {
+      event.preventDefault();
+      onCloseEvent();
     };
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, [isOpen, onClose]);
+    const handleBackdropClick = (event: MouseEvent) => {
+      if (event.target === dialog) onCloseEvent();
+    };
+    dialog.addEventListener("cancel", handleCancel);
+    dialog.addEventListener("click", handleBackdropClick);
+    return () => {
+      dialog.removeEventListener("cancel", handleCancel);
+      dialog.removeEventListener("click", handleBackdropClick);
+    };
+  }, [isOpen]);
 
-  if (!isOpen || typeof window === "undefined") return null;
+  if (!isOpen) return null;
 
   const modalContent = (
-    <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-20000 p-4">
+    <dialog
+      ref={dialogRef}
+      className="m-auto w-[calc(100%-2rem)] max-h-[calc(100dvh-2rem)] overflow-visible border-0 bg-transparent p-0 backdrop:bg-black/60"
+      aria-labelledby={title ? "modal-title" : undefined}
+    >
       <div
-        ref={modalRef}
         className={`relative bg-card text-card-foreground border border-border p-6 rounded-lg shadow-lg w-full ${maxWidthClasses[maxWidth]} max-h-[calc(100dvh-2rem)] overflow-y-auto mx-auto`}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={title ? "modal-title" : undefined}
       >
         {showCloseButton && (
           <button
@@ -109,13 +94,13 @@ export function Modal({
 
         {children}
       </div>
-    </div>
+    </dialog>
   );
 
+  if (typeof document === "undefined") return modalContent;
   return createPortal(modalContent, document.body);
 }
 
-// Preset modal for confirmations
 interface ConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;

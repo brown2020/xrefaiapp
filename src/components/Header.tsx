@@ -12,13 +12,12 @@ import {
   LogOut,
 } from "lucide-react";
 import { signOut } from "firebase/auth";
-import { deleteCookie } from "cookies-next";
+import { clearAuthCookie } from "@/utils/authCookieClient";
 import { NAV_MENU_ITEMS, PROTECTED_ROUTES, ROUTES } from "@/constants/routes";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui";
 import { CreditsBadge } from "@/components/ui/CreditsBadge";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { auth } from "@/firebase/firebaseClient";
-import { getAuthCookieName } from "@/utils/getAuthCookieName";
 import toast from "react-hot-toast";
 
 type MenuItem = {
@@ -51,7 +50,7 @@ export default function Header() {
 
   const handleSignOut = async () => {
     try {
-      deleteCookie(getAuthCookieName(), { path: "/" });
+      await clearAuthCookie();
       await signOut(auth);
       clearAuthDetails();
       // If we're on a protected route, navigate home so the user doesn't

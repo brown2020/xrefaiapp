@@ -176,7 +176,7 @@ src/
 - Chargeable generation is idempotency-protected.
 - Failed or aborted downstream generation attempts refund credits when a debit occurred.
 - Stripe fulfillment validates authenticated user, metadata, payment status, and amount before crediting.
-- Native IAP fulfillment requires HMAC signature, timestamp freshness, credit caps, and global transaction claim guards.
+- Native IAP fulfillment requires an HMAC signature that covers the store receipt, timestamp freshness, a catalog pack id with that pack's exact credit count, a store receipt for that same product and transaction, and global transaction claim guards.
 - `/api/proxy` must remain SSRF-hardened.
 - Expo WebView branches are intentional and should not be removed as dead code.
 

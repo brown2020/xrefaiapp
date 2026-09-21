@@ -9,6 +9,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { auth } from "@/firebase/firebaseClient";
 import { getIdToken } from "firebase/auth";
 import { sanitizeInternalRedirectPath } from "@/utils/redirectPath";
+import { startCheckoutSession } from "@/utils/billingClient";
 
 export default function PaymentAttemptClient() {
   const searchParams = useSearchParams();
@@ -34,28 +35,11 @@ export default function PaymentAttemptClient() {
         const idToken = auth.currentUser
           ? await getIdToken(auth.currentUser, true)
           : "";
-
-        const headers: Record<string, string> = {
-          "Content-Type": "application/json",
-        };
-        if (idToken) headers.Authorization = `Bearer ${idToken}`;
-
-        const res = await fetch("/api/billing/checkout", {
-          method: "POST",
-          credentials: "include",
-          headers,
-          body: JSON.stringify(payload),
-        });
-        const json = (await res.json().catch(() => null)) as
-          | { url?: string; error?: string }
-          | null;
-
-        if (!json) throw new Error("Invalid response from billing service");
-        if (!res.ok) throw new Error(json.error || "Failed to start checkout");
-        if (!json.url) throw new Error("Missing checkout URL");
+        const result = await startCheckoutSession(payload, idToken);
+        if ("error" in result) throw new Error(result.error);
 
         if (!isCancelled) {
-          window.location.href = json.url;
+          window.location.href = result.url;
         }
       } catch (e) {
         if (isCancelled) return;

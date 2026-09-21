@@ -165,7 +165,9 @@ The active chat UI is `src/components/Chat.tsx` using `@ai-sdk/react` and `Defau
 
 `/api/chat`:
 
-- verifies auth with `requireAuthedUid()` from the auth cookie;
+- parses the body with the shared chat schema and returns 400 for a malformed payload before any credit mutation;
+- rejects a user message over 5,000 words or 40,000 characters before debiting, and drops older history that does not fit in that same budget;
+- verifies auth with `requireAuthedUidFromRequest()` (Bearer token or auth cookie);
 - rate-limits the user under endpoint `chat`;
 - debits `CREDITS_COSTS.chatMessage` when in credits mode;
 - gates debits with idempotency;
@@ -179,7 +181,9 @@ Chat work should use `Chat.tsx` plus `/api/chat`. (A previously legacy `useChatG
 
 Writing tools call `generateAIResponse()` through `generateResponse()` in `src/actions/generateAIResponse.ts`. This path:
 
-- verifies auth when credits are used;
+- always verifies auth before building a model, including API-key mode;
+- rejects a malformed generation payload before debiting credits;
+- trims the prompt sent to the provider to 5,000 words and 40,000 characters before debiting;
 - calculates text-generation cost from requested word count;
 - idempotency-gates debits;
 - streams through AI SDK RSC streamable values;
@@ -207,9 +211,9 @@ Image clients pass a fresh client idempotency key so retries can be deduplicated
 - Protected routes are defined in `src/constants/routes.ts` and mirrored in the proxy matcher.
 - Every mutation and money path must verify the Firebase ID token server-side.
 - Server actions use `requireAuthedUid()` from `src/actions/serverAuth.ts`.
-- Billing and proxy API routes use `requireAuthedUidFromRequest()` so browser cookies and React Native Bearer tokens both work.
-- `/api/chat` currently uses cookie-based `requireAuthedUid()`.
-- `useAuthToken()` writes the Firebase ID token to the `xrefAuthToken` cookie before profile sync and refreshes it on interval/focus/visibility.
+- Billing, chat, and proxy API routes use `requireAuthedUidFromRequest()` so browser cookies and React Native Bearer tokens both work.
+- `POST /api/auth/session` verifies the Firebase ID token and sets `xrefAuthToken` as an HttpOnly cookie. Clients do not write that cookie from JavaScript.
+- `useAuthToken()` posts the ID token to that route before profile sync and refreshes it on interval/focus/visibility. Sign-out calls `DELETE /api/auth/session`.
 - Do not treat proxy access as authorization. A forged or expired cookie must still fail at the server action/API layer.
 
 ### Credits And Payments
@@ -234,7 +238,7 @@ Invariants:
 - Refunds use deterministic IDs where needed.
 - Stripe confirmation validates auth, metadata UID, payment status, pack ID, and amount before crediting.
 - Stripe fulfillment uses a Firestore lock at `users/{uid}/locks/payment_{sessionId}`.
-- IAP fulfillment verifies HMAC signature, timestamp freshness, max credits, and global transaction claim docs.
+- IAP fulfillment verifies HMAC signature over the payload including the store receipt, timestamp freshness, a catalog pack id with that pack's exact credit count, a store receipt that names that same product and transaction, and global transaction claim docs. A claim for the same user does not grant again. The signed credit amount is not a grant ceiling. A signature alone does not grant credits.
 - Payment confirmation is currently return-page driven; there is no Stripe webhook route yet.
 
 ### Firestore Data Model
@@ -249,13 +253,14 @@ users/{uid}/
   idempotency/{key}
   rateLimit/{endpoint}
   locks/payment_{sessionId}
+  account/bootstrap
 
 iapTransactions/{transactionId}
 ```
 
-Profile strings from client writes are allowlisted and clamped in `serverProfile.ts`. History strings are clamped in `serverHistory.ts`.
+Profile strings from client writes are allowlisted and clamped in `profileContract.ts`, which `serverProfile.ts` uses. Credit balance and email are not client-writable. History strings are clamped in `serverHistory.ts`.
 
-Account deletion currently calls `deleteAccountServer()` from `serverProfile.ts`, which deletes `users/{uid}/profile/userData` and the Firebase Auth user. It does not cascade `chats`, `summaries`, `payments`, `creditsLedger`, `idempotency`, `rateLimit`, `locks`, global IAP claim docs, or generated Storage files. Treat complete account-data deletion as an open product/privacy gap until implemented.
+Account deletion currently calls `deleteAccountServer()` from `serverProfile.ts`, which deletes the Firebase Auth user and then `users/{uid}/profile/userData`. It leaves `users/{uid}/account/bootstrap` in place so a later profile recreate does not grant the starter balance again. It does not cascade `chats`, `summaries`, `payments`, `creditsLedger`, `idempotency`, `rateLimit`, `locks`, global IAP claim docs, or generated Storage files. Treat complete account-data deletion as an open product/privacy gap until implemented.
 
 ### State Management
 
@@ -287,7 +292,8 @@ Account deletion currently calls `deleteAccountServer()` from `serverProfile.ts`
 - blocks private/link-local/reserved IP ranges;
 - rejects redirects;
 - caps response body at 1 MB;
-- times out at 8 seconds.
+- times out at 8 seconds;
+- returns the body as `text/plain` with `nosniff` and `content-disposition: attachment`.
 
 Do not replace it with plain `fetch(targetUrl)` unless the same protections are rebuilt.
 
@@ -298,7 +304,7 @@ React Native WebView support is intentional:
 - `window.ReactNativeWebView` detection lives in `src/utils/platform.ts` and `src/hooks/useClientSetup.ts`.
 - Google popup sign-in is hidden in WebView.
 - Web Stripe checkout controls are hidden in WebView; native purchase starts with `INIT_IAP`.
-- Native success returns `IAP_SUCCESS`, then `confirmIapPurchase()` verifies the signed payload.
+- Native success returns `IAP_SUCCESS`, then `confirmIapPurchase()` verifies the signed payload. `productId` must be a credit pack id (`starter`, `plus`, `pro`, or `power`) and `credits` must equal that pack.
 - Cookie consent is suppressed in WebView.
 - Some localStorage coordination is skipped in WebView.
 - The restricted-word guard is client-only and WebView-only. It is UX protection, not server moderation.

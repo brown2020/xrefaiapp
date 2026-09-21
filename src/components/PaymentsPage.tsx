@@ -5,6 +5,7 @@ import { usePaymentsStore, PaymentType } from "@/zustand/usePaymentsStore";
 import { useEffect } from "react";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { CreditCard, Calendar, DollarSign, CheckCircle } from "lucide-react";
+import { formatStableDateTime } from "@/utils/formatDateTime";
 
 export default function PaymentsPage() {
   const uid = useAuthStore((state) => state.uid);
@@ -87,10 +88,7 @@ function PaymentCard({ payment }: { payment: PaymentType }) {
             <div className="text-sm text-gray-500 flex items-center gap-1">
               <Calendar size={14} />
               {payment.createdAt
-                ? new Date(payment.createdAt).toLocaleString(undefined, {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })
+                ? formatStableDateTime(new Date(payment.createdAt).getTime())
                 : "N/A"}
             </div>
             <div className="text-xs text-gray-400 mt-0.5">

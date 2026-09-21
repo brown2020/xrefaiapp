@@ -10,27 +10,23 @@ import { ROUTES } from "@/constants/routes";
 import { auth } from "@/firebase/firebaseClient";
 import { getIdToken } from "firebase/auth";
 import { sanitizeInternalRedirectPath } from "@/utils/redirectPath";
+import {
+  confirmCheckoutSession,
+  type PaymentConfirmResult,
+} from "@/utils/billingClient";
 
-type ConfirmResponse =
-  | {
-      ok: true;
-      alreadyProcessed: boolean;
-      creditsAdded: number;
-      creditsBalance: number;
-      pack: { id: string; name: string; usdCents: number };
-    }
-  | { error: string; paymentStatus?: string };
+const usdFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+});
 
 function formatUsd(cents: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(cents / 100);
+  return usdFormatter.format(cents / 100);
 }
 
 export default function PaymentSuccessPage() {
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<ConfirmResponse | null>(null);
+  const [data, setData] = useState<PaymentConfirmResult | null>(null);
 
   const searchParams = useSearchParams();
   const redirectPath = useMemo(
@@ -49,44 +45,37 @@ export default function PaymentSuccessPage() {
   const fetchProfile = useProfileStore((state) => state.fetchProfile);
 
   useEffect(() => {
+    let ignore = false;
     const handlePaymentSuccess = async () => {
       try {
-        setData(null);
+        if (!ignore) setData(null);
         if (!sessionId) {
-          setData({ error: "Missing session_id" });
+          if (!ignore) setData({ error: "Missing session_id" });
           return;
         }
 
         const idToken = auth.currentUser ? await getIdToken(auth.currentUser, true) : "";
-        const headers: Record<string, string> = { "Content-Type": "application/json" };
-        if (idToken) headers.Authorization = `Bearer ${idToken}`;
-
-        const res = await fetch("/api/billing/confirm", {
-          method: "POST",
-          credentials: "include",
-          headers,
-          body: JSON.stringify({ sessionId }),
-        });
-        const json = (await res.json().catch(() => null)) as
-          | ConfirmResponse
-          | null;
-        if (!json) throw new Error("Invalid response");
+        const json = await confirmCheckoutSession(sessionId, idToken);
+        if (ignore) return;
         setData(json);
 
-        // Refresh local credits balance from Firestore after server fulfillment.
-        if (res.ok && "ok" in json && json.ok) {
+        if ("ok" in json && json.ok) {
           await fetchProfile();
         }
       } catch (error) {
+        if (ignore) return;
         setData({
           error: error instanceof Error ? error.message : "Error handling payment success.",
         });
       } finally {
-        setLoading(false);
+        if (!ignore) setLoading(false);
       }
     };
 
     void handlePaymentSuccess();
+    return () => {
+      ignore = true;
+    };
   }, [fetchProfile, sessionId]);
 
   const isOk = data && "ok" in data && data.ok;

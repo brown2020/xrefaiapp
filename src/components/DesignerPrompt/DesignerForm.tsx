@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { StyledSelect } from "./StyledSelect";
 import { PromptDataType } from "@/types/PromptDataType";
 import { iceCreams } from "@/data/iceCreams";
@@ -30,20 +30,23 @@ export function DesignerForm({
   active,
   initialTopic,
 }: DesignerFormProps) {
-  const [promptData, setPromptData] = useState<PromptDataType>(initialPrompt);
+  const promptDataRef = useRef<PromptDataType>(initialPrompt);
   const [topic, setTopic] = useState<string>(initialTopic ?? "");
 
   // Generic handler for all select fields
   const handleSelectChange = useCallback(
     (field: keyof PromptDataType) => (v: { value: string } | null) => {
-      setPromptData((prev) => ({ ...prev, [field]: v ? [v.value] : [] }));
+      promptDataRef.current = {
+        ...promptDataRef.current,
+        [field]: v ? [v.value] : [],
+      };
     },
     []
   );
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    onSubmit(promptData, topic);
+    onSubmit(promptDataRef.current, topic);
   };
 
   return (

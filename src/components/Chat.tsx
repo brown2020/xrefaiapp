@@ -25,7 +25,9 @@ import { isInsufficientCreditsError } from "@/utils/errors";
 import {
   STARTER_INTENTS,
   getStarterIntentById,
+  type StarterIntent,
 } from "@/constants/starterIntents";
+import { ChatType } from "@/types/ChatType";
 
 interface ChatProps {
   initialPrompt?: string;
@@ -49,6 +51,7 @@ export default function Chat({ initialPrompt, starterIntentId }: ChatProps) {
   const openPaywall = usePaywallStore((s) => s.openPaywall);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
+  const [pendingSeconds, setPendingSeconds] = useState(0);
   const isSubmittingRef = useRef(false);
   const appliedInitialPromptRef = useRef<string | undefined>(undefined);
   // Remembers the text of the in-flight send so it can be restored to the
@@ -109,6 +112,10 @@ export default function Chat({ initialPrompt, starterIntentId }: ChatProps) {
       // they've already started typing something new.
       if (lastSentInputRef.current) {
         setInput((current) => current || lastSentInputRef.current);
+      }
+      if (error instanceof Error && error.message.includes("PROMPT_TOO_LONG")) {
+        toast.error("That message is too long. Shorten it and try again.");
+        return;
       }
       if (isInsufficientCreditsError(error)) {
         toast.error("Not enough credits. Please buy more credits in Account.");
@@ -173,6 +180,7 @@ export default function Chat({ initialPrompt, starterIntentId }: ChatProps) {
     const inputValue = input.trim();
     lastSentInputRef.current = inputValue;
     setInput("");
+    setPendingSeconds(Math.floor(Date.now() / 1000));
 
     try {
       // Generate a unique client idempotency key so the server can
@@ -247,154 +255,22 @@ export default function Chat({ initialPrompt, starterIntentId }: ChatProps) {
               followButtonClassName="hidden"
             >
               <div className="max-w-4xl mx-auto pt-8 pb-4">
-                {lastKey && (
-                  <div className="flex justify-center mb-8">
-                    <button
-                      onClick={loadMoreChats}
-                      disabled={loadingMore}
-                      className="text-xs font-medium text-foreground bg-card border border-border hover:bg-muted px-4 py-2 rounded-full transition-all shadow-sm flex items-center gap-2 disabled:opacity-50 cursor-pointer"
-                    >
-                      {loadingMore && <InlineSpinner size="sm" />}
-                      {loadingMore
-                        ? "Loading older messages..."
-                        : "Load older messages"}
-                    </button>
-                  </div>
-                )}
-
-                <div className="flex flex-col space-y-2">
-                  {!isLoading && reversedChatlist.length === 0 && (
-                    <div className="py-10">
-                      <div className="max-w-2xl mx-auto bg-card text-card-foreground border border-border rounded-2xl shadow-sm p-6">
-                        {starterIntent ? (
-                          <div className="mb-5 rounded-lg border border-accent/40 bg-accent/10 p-4">
-                            <div className="text-xs font-bold uppercase tracking-[0.18em] text-accent">
-                              {starterIntent.audience} starter
-                            </div>
-                            <h2 className="mt-2 text-lg font-bold text-foreground">
-                              {starterIntent.title}
-                            </h2>
-                            <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                              {starterIntent.description}
-                            </p>
-                          </div>
-                        ) : null}
-
-                        <h2 className="text-lg font-bold text-foreground">
-                          Start a conversation
-                        </h2>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Ask a question, paste notes, or start from a guided
-                          prompt. A chat message costs {CREDITS_COSTS.chatMessage}{" "}
-                          credits in credits mode.
-                        </p>
-
-                        <div className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
-                          <ActivationFact
-                            label="Expected input"
-                            value="A question, rough idea, notes, or content you want help improving."
-                          />
-                          <ActivationFact
-                            label="Likely output"
-                            value="A conversational answer you can copy, continue, or save in chat history."
-                          />
-                        </div>
-
-                        <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {[
-                            ...chatStarterIntents.map((intent) => ({
-                              label: intent.audience,
-                              prompt: intent.prompt ?? "",
-                            })),
-                            {
-                              label: "Example",
-                              prompt:
-                                "Give me 10 blog post ideas about sustainable travel.",
-                            },
-                            {
-                              label: "Example",
-                              prompt:
-                                "Turn these notes into a professional email: ",
-                            },
-                          ].map((example) => (
-                            <button
-                              key={example.prompt}
-                              type="button"
-                              onClick={() => setInput(example.prompt)}
-                              className="text-left p-3 rounded-xl bg-muted border border-border hover:opacity-90 transition-opacity"
-                            >
-                              <div className="text-xs font-medium text-muted-foreground">
-                                {example.label}
-                              </div>
-                              <div className="text-sm text-foreground mt-1">
-                                {example.prompt}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-
-                        <div className="mt-6 flex flex-col sm:flex-row gap-3 sm:justify-end">
-                          <Link
-                            href={ROUTES.tools}
-                            className="inline-flex items-center justify-center px-5 py-2.5 bg-card text-foreground rounded-xl border border-border hover:opacity-90 transition-opacity"
-                          >
-                            Explore tools
-                          </Link>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setInput(
-                                "Help me write a blog post outline about:"
-                              )
-                            }
-                            className="inline-flex items-center justify-center px-5 py-2.5 bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition-opacity"
-                          >
-                            Get started
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {reversedChatlist.length > MAX_VISIBLE_CHATS && (
-                    <div className="flex justify-center mb-4">
-                      <span className="text-xs text-muted-foreground">
-                        Showing the most recent {MAX_VISIBLE_CHATS} messages.
-                        Load older messages to view more.
-                      </span>
-                    </div>
-                  )}
-                  {visibleChatlist.map((chat) => (
-                    <div key={chat.id} className="flex flex-col">
-                      <ChatMessage
-                        message={chat}
-                        profilePhoto={profilePhotoUrl}
-                        isUser={true}
-                      />
-                      <ChatMessage
-                        message={chat}
-                        profilePhoto={profilePhotoUrl}
-                        isUser={false}
-                      />
-                    </div>
-                  ))}
-
-                  {isLoading && streamingUserText && (
-                    <div className="flex flex-col">
-                      <ChatMessage
-                        message={{
-                          id: "pending",
-                          prompt: streamingUserText,
-                          response: "",
-                          seconds: Math.floor(Date.now() / 1000),
-                        }}
-                        profilePhoto={profilePhotoUrl}
-                        isUser={true}
-                      />
-                      <StreamingResponse content={streamingAssistantText} />
-                    </div>
-                  )}
-                </div>
-                <div ref={scrollRef} className="h-1" />
+                <ChatTranscript
+                  lastKey={lastKey}
+                  loadingMore={loadingMore}
+                  onLoadMore={loadMoreChats}
+                  isLoading={isLoading}
+                  reversedCount={reversedChatlist.length}
+                  starterIntent={starterIntent}
+                  chatStarterIntents={chatStarterIntents}
+                  onUsePrompt={setInput}
+                  visibleChatlist={visibleChatlist}
+                  profilePhotoUrl={profilePhotoUrl}
+                  streamingUserText={streamingUserText}
+                  streamingAssistantText={streamingAssistantText}
+                  pendingSeconds={pendingSeconds}
+                  scrollRef={scrollRef}
+                />
               </div>
             </ScrollToBottom>
           </div>
@@ -421,5 +297,184 @@ function ActivationFact({ label, value }: { label: string; value: string }) {
       </div>
       <p className="mt-1 leading-6 text-foreground">{value}</p>
     </div>
+  );
+}
+
+function ChatTranscript({
+  lastKey,
+  loadingMore,
+  onLoadMore,
+  isLoading,
+  reversedCount,
+  starterIntent,
+  chatStarterIntents,
+  onUsePrompt,
+  visibleChatlist,
+  profilePhotoUrl,
+  streamingUserText,
+  streamingAssistantText,
+  pendingSeconds,
+  scrollRef,
+}: {
+  lastKey: boolean | undefined;
+  loadingMore: boolean;
+  onLoadMore: () => void;
+  isLoading: boolean;
+  reversedCount: number;
+  starterIntent: StarterIntent | null | undefined;
+  chatStarterIntents: StarterIntent[];
+  onUsePrompt: (prompt: string) => void;
+  visibleChatlist: ChatType[];
+  profilePhotoUrl: string;
+  streamingUserText: string;
+  streamingAssistantText: string;
+  pendingSeconds: number;
+  scrollRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  return (
+    <>
+      {lastKey && (
+        <div className="flex justify-center mb-8">
+          <button
+            onClick={onLoadMore}
+            disabled={loadingMore}
+            className="text-xs font-medium text-foreground bg-card border border-border hover:bg-muted px-4 py-2 rounded-full transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+          >
+            {loadingMore && <InlineSpinner size="sm" />}
+            {loadingMore ? "Loading older messages..." : "Load older messages"}
+          </button>
+        </div>
+      )}
+
+      <div className="flex flex-col space-y-2">
+        {!isLoading && reversedCount === 0 && (
+          <div className="py-10">
+            <div className="max-w-2xl mx-auto bg-card text-card-foreground border border-border rounded-2xl shadow-sm p-6">
+              {starterIntent ? (
+                <div className="mb-5 rounded-lg border border-accent/40 bg-accent/10 p-4">
+                  <div className="text-xs font-bold uppercase tracking-[0.18em] text-accent">
+                    {starterIntent.audience} starter
+                  </div>
+                  <h2 className="mt-2 text-lg font-bold text-foreground">
+                    {starterIntent.title}
+                  </h2>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                    {starterIntent.description}
+                  </p>
+                </div>
+              ) : null}
+
+              <h2 className="text-lg font-bold text-foreground">
+                Start a conversation
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Ask a question, paste notes, or start from a guided prompt. A
+                chat message costs {CREDITS_COSTS.chatMessage} credits in
+                credits mode.
+              </p>
+
+              <div className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
+                <ActivationFact
+                  label="Expected input"
+                  value="A question, rough idea, notes, or content you want help improving."
+                />
+                <ActivationFact
+                  label="Likely output"
+                  value="A conversational answer you can copy, continue, or save in chat history."
+                />
+              </div>
+
+              <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {[
+                  ...chatStarterIntents.map((intent) => ({
+                    label: intent.audience,
+                    prompt: intent.prompt ?? "",
+                  })),
+                  {
+                    label: "Example",
+                    prompt: "Give me 10 blog post ideas about sustainable travel.",
+                  },
+                  {
+                    label: "Example",
+                    prompt: "Turn these notes into a professional email: ",
+                  },
+                ].map((example) => (
+                  <button
+                    key={example.prompt}
+                    type="button"
+                    onClick={() => onUsePrompt(example.prompt)}
+                    className="text-left p-3 rounded-xl bg-muted border border-border hover:opacity-90 transition-opacity"
+                  >
+                    <div className="text-xs font-medium text-muted-foreground">
+                      {example.label}
+                    </div>
+                    <div className="text-sm text-foreground mt-1">
+                      {example.prompt}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-6 flex flex-col sm:flex-row gap-3 sm:justify-end">
+                <Link
+                  href={ROUTES.tools}
+                  className="inline-flex items-center justify-center px-5 py-2.5 bg-card text-foreground rounded-xl border border-border hover:opacity-90 transition-opacity"
+                >
+                  Explore tools
+                </Link>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onUsePrompt("Help me write a blog post outline about:")
+                  }
+                  className="inline-flex items-center justify-center px-5 py-2.5 bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition-opacity"
+                >
+                  Get started
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {reversedCount > MAX_VISIBLE_CHATS && (
+          <div className="flex justify-center mb-4">
+            <span className="text-xs text-muted-foreground">
+              Showing the most recent {MAX_VISIBLE_CHATS} messages. Load older
+              messages to view more.
+            </span>
+          </div>
+        )}
+        {visibleChatlist.map((chat) => (
+          <div key={chat.id} className="flex flex-col">
+            <ChatMessage
+              message={chat}
+              profilePhoto={profilePhotoUrl}
+              isUser={true}
+            />
+            <ChatMessage
+              message={chat}
+              profilePhoto={profilePhotoUrl}
+              isUser={false}
+            />
+          </div>
+        ))}
+
+        {isLoading && streamingUserText && (
+          <div className="flex flex-col">
+            <ChatMessage
+              message={{
+                id: "pending",
+                prompt: streamingUserText,
+                response: "",
+                seconds: pendingSeconds,
+              }}
+              profilePhoto={profilePhotoUrl}
+              isUser={true}
+            />
+            <StreamingResponse content={streamingAssistantText} />
+          </div>
+        )}
+      </div>
+      <div ref={scrollRef} className="h-1" />
+    </>
   );
 }

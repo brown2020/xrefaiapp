@@ -10,10 +10,11 @@ import {
   type SummarySettings,
 } from "@/constants/summaryControls";
 import { inputClassName, labelClassName } from "@/components/ui/FormInput";
+import type { Dispatch, SetStateAction } from "react";
 
 interface SummaryControlsProps {
   value: SummarySettings;
-  onChange: (value: SummarySettings) => void;
+  onChange: Dispatch<SetStateAction<SummarySettings>>;
 }
 
 export default function SummaryControls({
@@ -24,7 +25,7 @@ export default function SummaryControls({
     key: Key,
     nextValue: SummarySettings[Key]
   ) => {
-    onChange({ ...value, [key]: nextValue });
+    onChange((current) => ({ ...current, [key]: nextValue }));
   };
 
   return (

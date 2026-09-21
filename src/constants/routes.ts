@@ -31,6 +31,13 @@ export const PROTECTED_ROUTES = [
   ROUTES.paymentSuccess,
 ] as const;
 
+export function isProtectedPath(pathname: string | null | undefined): boolean {
+  if (!pathname) return false;
+  return PROTECTED_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`)
+  );
+}
+
 /**
  * Routes that don't require authentication
  */

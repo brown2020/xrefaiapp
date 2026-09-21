@@ -42,7 +42,11 @@ export default function DeleteConfirmModal({
         </p>
 
         <div>
+          <label htmlFor="delete-confirmation" className="mb-1 block text-sm font-medium text-gray-900">
+            Type DELETE ACCOUNT
+          </label>
           <input
+            id="delete-confirmation"
             type="text"
             value={deleteConfirmation}
             onChange={(e) => {
@@ -50,10 +54,9 @@ export default function DeleteConfirmModal({
               if (error) setError("");
             }}
             className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-hidden focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
-            placeholder="Type DELETE ACCOUNT"
+            placeholder="DELETE ACCOUNT"
             aria-invalid={Boolean(error)}
             aria-describedby={errorId}
-            autoFocus
           />
           {error && (
             <p id={errorId} className="mt-2 text-sm text-red-600">

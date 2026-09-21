@@ -11,8 +11,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { FirebaseError } from "firebase/app";
 import useProfileStore from "@/zustand/useProfileStore";
-import { setCookie } from "cookies-next";
-import { getAuthCookieName } from "@/utils/getAuthCookieName";
+import { persistIdTokenCookie } from "@/utils/authCookieClient";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { ROUTES } from "@/constants/routes";
@@ -68,17 +67,10 @@ export default function LoginFinishPage() {
 
         // Explicitly set cookie before redirect to avoid race condition with proxy
         const token = await getIdToken(user, true);
-        const cookieName = getAuthCookieName();
-        const isSecure =
-          process.env.NODE_ENV === "production" &&
-          window.location.protocol === "https:";
-
-        setCookie(cookieName, token, {
-          secure: isSecure,
-          sameSite: "lax",
-          path: "/",
-          maxAge: 60 * 60 * 24 * 7,
-        });
+        const wrote = await persistIdTokenCookie(token);
+        if (!wrote) {
+          throw new Error("Failed to persist auth cookie after sign-in.");
+        }
 
         setAuthDetails({
           uid,

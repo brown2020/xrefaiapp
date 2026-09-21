@@ -106,11 +106,8 @@ export function useFirestorePagination<T>({
         console.error(`Error fetching ${collectionName}:`, error);
         toast.error(`Failed to load ${collectionName}`);
       } finally {
-        if (isInitial) {
-          setLoading(false);
-        } else {
-          setLoadingMore(false);
-        }
+        setLoading(false);
+        setLoadingMore(false);
       }
     },
     [

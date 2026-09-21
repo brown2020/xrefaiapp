@@ -1,7 +1,7 @@
 "use client";
 
 import useProfileStore from "@/zustand/useProfileStore";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { isIOSReactNativeWebView } from "@/utils/platform";
 import { usePaymentsStore } from "@/zustand/usePaymentsStore";
 import { inputClassName, labelClassName } from "@/components/ui/FormInput";
@@ -18,6 +18,66 @@ import {
 import { confirmIapPurchase } from "@/actions/confirmIapPurchase";
 import toast from "react-hot-toast";
 
+function subscribeNoop() {
+  return () => {};
+}
+
+type ApiKeyName =
+  | "fireworks"
+  | "openai"
+  | "anthropic"
+  | "xai"
+  | "google"
+  | "stability";
+
+function useIapSuccessListener(
+  fetchProfile: () => Promise<void>,
+  fetchPayments: () => Promise<void>
+) {
+  useEffect(() => {
+    const handleMessageFromRN = async (event: MessageEvent) => {
+      if (!isIOSReactNativeWebView() || !window.ReactNativeWebView) return;
+
+      const message = event.data;
+      if (message?.type !== "IAP_SUCCESS") return;
+
+      const transactionId = String(message.transactionId || message.message || "");
+      const signature = String(message.signature || "");
+      const credits =
+        typeof message.credits === "number" && Number.isFinite(message.credits)
+          ? Math.max(0, Math.floor(message.credits))
+          : 0;
+
+      if (!transactionId || !signature || !credits) {
+        console.error("IAP confirmation missing required fields");
+        return;
+      }
+
+      try {
+        await confirmIapPurchase({
+            transactionId,
+            productId: String(message.productId || "iap"),
+            amount: Number(message.amount || 0),
+            currency: String(message.currency || "USD"),
+            platform: String(message.platform || "ios"),
+            credits,
+            ts: Number(message.ts || Date.now()),
+            receipt: String(message.receipt || ""),
+            signature,
+          });
+
+        await fetchProfile();
+        await fetchPayments();
+      } catch (error) {
+        console.error("IAP confirmation failed:", error);
+      }
+    };
+
+    window.addEventListener("message", handleMessageFromRN);
+    return () => window.removeEventListener("message", handleMessageFromRN);
+  }, [fetchPayments, fetchProfile]);
+}
+
 export default function ProfileComponent() {
   const profile = useProfileStore((state) => state.profile);
   const updateProfile = useProfileStore((state) => state.updateProfile);
@@ -30,7 +90,6 @@ export default function ProfileComponent() {
   const [xaiApiKey, setXaiApiKey] = useState(profile.xai_api_key);
   const [googleApiKey, setGoogleApiKey] = useState(profile.google_api_key);
   const [stabilityAPIKey, setStabilityAPIKey] = useState(profile.stability_api_key);
-  const [showCreditsSection, setShowCreditsSection] = useState(true);
   const [isSavingApiKeys, setIsSavingApiKeys] = useState(false);
   const [visibleKeys, setVisibleKeys] = useState<Record<string, boolean>>({});
   const [selectedPackId, setSelectedPackId] =
@@ -47,51 +106,13 @@ export default function ProfileComponent() {
     stability: false,
   });
 
-  useEffect(() => {
-    setShowCreditsSection(!isIOSReactNativeWebView());
-  }, []);
+  const showCreditsSection = useSyncExternalStore(
+    subscribeNoop,
+    () => !isIOSReactNativeWebView(),
+    () => true
+  );
 
-  useEffect(() => {
-    const handleMessageFromRN = async (event: MessageEvent) => {
-      if (!isIOSReactNativeWebView() || !window.ReactNativeWebView) return;
-
-      const message = event.data;
-      if (message?.type === "IAP_SUCCESS") {
-        const transactionId = String(message.transactionId || message.message || "");
-        const signature = String(message.signature || "");
-        const credits =
-          typeof message.credits === "number" && Number.isFinite(message.credits)
-            ? Math.max(0, Math.floor(message.credits))
-            : 0;
-
-        if (!transactionId || !signature || !credits) {
-          console.error("IAP confirmation missing required fields");
-          return;
-        }
-
-        try {
-          await confirmIapPurchase({
-            transactionId,
-            productId: String(message.productId || "iap"),
-            amount: Number(message.amount || 0),
-            currency: String(message.currency || "USD"),
-            platform: String(message.platform || "ios"),
-            credits,
-            ts: Number(message.ts || Date.now()),
-            signature,
-          });
-
-          await fetchProfile();
-          await fetchPayments();
-        } catch (error) {
-          console.error("IAP confirmation failed:", error);
-        }
-      }
-    };
-
-    window.addEventListener("message", handleMessageFromRN);
-    return () => window.removeEventListener("message", handleMessageFromRN);
-  }, [fetchPayments, fetchProfile]);
+  useIapSuccessListener(fetchProfile, fetchPayments);
 
   // Sync individual key inputs from the profile only when the user hasn't
   // actively edited that particular field.
@@ -252,108 +273,38 @@ export default function ProfileComponent() {
         </div>
       </div>
 
-      <div className="flex flex-col p-5 space-y-3 bg-card border border-border rounded-2xl">
-        <ApiKeyField
-          id="fireworks-api-key"
-          label="Fireworks API Key"
-          value={fireworksApiKey}
-          onChange={(v) => {
-            isDirtyRef.current.fireworks = true;
-            setFireworksApiKey(v);
-          }}
-          isVisible={Boolean(visibleKeys["fireworks"])}
-          onToggleVisibility={() =>
-            setVisibleKeys((p) => ({ ...p, fireworks: !p.fireworks }))
-          }
-          placeholder="Enter your Fireworks API Key"
-        />
-        <ApiKeyField
-          id="openai-api-key"
-          label="OpenAI API Key"
-          value={openaiApiKey}
-          onChange={(v) => {
-            isDirtyRef.current.openai = true;
-            setOpenaiApiKey(v);
-          }}
-          isVisible={Boolean(visibleKeys["openai"])}
-          onToggleVisibility={() =>
-            setVisibleKeys((p) => ({ ...p, openai: !p.openai }))
-          }
-          placeholder="Enter your OpenAI API Key"
-        />
-        <ApiKeyField
-          id="anthropic-api-key"
-          label="Anthropic API Key (optional)"
-          value={anthropicApiKey}
-          onChange={(v) => {
-            isDirtyRef.current.anthropic = true;
-            setAnthropicApiKey(v);
-          }}
-          isVisible={Boolean(visibleKeys["anthropic"])}
-          onToggleVisibility={() =>
-            setVisibleKeys((p) => ({ ...p, anthropic: !p.anthropic }))
-          }
-          placeholder="Enter your Anthropic API Key"
-        />
-        <ApiKeyField
-          id="xai-api-key"
-          label="xAI API Key (optional)"
-          value={xaiApiKey}
-          onChange={(v) => {
-            isDirtyRef.current.xai = true;
-            setXaiApiKey(v);
-          }}
-          isVisible={Boolean(visibleKeys["xai"])}
-          onToggleVisibility={() =>
-            setVisibleKeys((p) => ({ ...p, xai: !p.xai }))
-          }
-          placeholder="Enter your xAI API Key"
-        />
-        <ApiKeyField
-          id="google-api-key"
-          label="Google API Key (optional)"
-          value={googleApiKey}
-          onChange={(v) => {
-            isDirtyRef.current.google = true;
-            setGoogleApiKey(v);
-          }}
-          isVisible={Boolean(visibleKeys["google"])}
-          onToggleVisibility={() =>
-            setVisibleKeys((p) => ({ ...p, google: !p.google }))
-          }
-          placeholder="Enter your Google API Key"
-        />
-        <ApiKeyField
-          id="stability-api-key"
-          label="Stability API Key"
-          value={stabilityAPIKey}
-          onChange={(v) => {
-            isDirtyRef.current.stability = true;
-            setStabilityAPIKey(v);
-          }}
-          isVisible={Boolean(visibleKeys["stability"])}
-          onToggleVisibility={() =>
-            setVisibleKeys((p) => ({ ...p, stability: !p.stability }))
-          }
-          placeholder="Enter your Stability API Key"
-        />
-        <button
-          onClick={handleApiKeyChange}
-          disabled={
-            isSavingApiKeys ||
-            (fireworksApiKey === profile.fireworks_api_key &&
-              openaiApiKey === profile.openai_api_key &&
-              anthropicApiKey === profile.anthropic_api_key &&
-              xaiApiKey === profile.xai_api_key &&
-              googleApiKey === profile.google_api_key &&
-              stabilityAPIKey === profile.stability_api_key)
-          }
-          className="mt-2 w-56 font-bold bg-primary hover:opacity-90 rounded-3xl text-primary-foreground px-3 py-2 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed mx-auto transition-opacity flex items-center justify-center gap-2"
-        >
-          {isSavingApiKeys && <InlineSpinner size="sm" />}
-          {isSavingApiKeys ? "Updating..." : "Update API Keys"}
-        </button>
-      </div>
+      <ApiKeysPanel
+        fireworksApiKey={fireworksApiKey}
+        openaiApiKey={openaiApiKey}
+        anthropicApiKey={anthropicApiKey}
+        xaiApiKey={xaiApiKey}
+        googleApiKey={googleApiKey}
+        stabilityApiKey={stabilityAPIKey}
+        savedFireworksApiKey={profile.fireworks_api_key}
+        savedOpenaiApiKey={profile.openai_api_key}
+        savedAnthropicApiKey={profile.anthropic_api_key}
+        savedXaiApiKey={profile.xai_api_key}
+        savedGoogleApiKey={profile.google_api_key}
+        savedStabilityApiKey={profile.stability_api_key}
+        visibleKeys={visibleKeys}
+        isSaving={isSavingApiKeys}
+        onChange={(key, value) => {
+          isDirtyRef.current[key] = true;
+          const setters = {
+            fireworks: setFireworksApiKey,
+            openai: setOpenaiApiKey,
+            anthropic: setAnthropicApiKey,
+            xai: setXaiApiKey,
+            google: setGoogleApiKey,
+            stability: setStabilityAPIKey,
+          };
+          setters[key](value);
+        }}
+        onToggleVisibility={(key) =>
+          setVisibleKeys((current) => ({ ...current, [key]: !current[key] }))
+        }
+        onSave={handleApiKeyChange}
+      />
 
       <div className="flex flex-col p-5 gap-2 bg-card border border-border rounded-2xl">
         <div>
@@ -407,6 +358,119 @@ export default function ProfileComponent() {
           />
         </div>
       </div>
+    </div>
+  );
+}
+
+function ApiKeysPanel({
+  fireworksApiKey,
+  openaiApiKey,
+  anthropicApiKey,
+  xaiApiKey,
+  googleApiKey,
+  stabilityApiKey,
+  savedFireworksApiKey,
+  savedOpenaiApiKey,
+  savedAnthropicApiKey,
+  savedXaiApiKey,
+  savedGoogleApiKey,
+  savedStabilityApiKey,
+  visibleKeys,
+  isSaving,
+  onChange,
+  onToggleVisibility,
+  onSave,
+}: {
+  fireworksApiKey: string;
+  openaiApiKey: string;
+  anthropicApiKey: string;
+  xaiApiKey: string;
+  googleApiKey: string;
+  stabilityApiKey: string;
+  savedFireworksApiKey: string;
+  savedOpenaiApiKey: string;
+  savedAnthropicApiKey: string;
+  savedXaiApiKey: string;
+  savedGoogleApiKey: string;
+  savedStabilityApiKey: string;
+  visibleKeys: Record<string, boolean>;
+  isSaving: boolean;
+  onChange: (key: ApiKeyName, value: string) => void;
+  onToggleVisibility: (key: ApiKeyName) => void;
+  onSave: () => void;
+}) {
+  const isUnchanged =
+    fireworksApiKey === savedFireworksApiKey &&
+    openaiApiKey === savedOpenaiApiKey &&
+    anthropicApiKey === savedAnthropicApiKey &&
+    xaiApiKey === savedXaiApiKey &&
+    googleApiKey === savedGoogleApiKey &&
+    stabilityApiKey === savedStabilityApiKey;
+
+  return (
+    <div className="flex flex-col p-5 space-y-3 bg-card border border-border rounded-2xl">
+      <ApiKeyField
+        id="fireworks-api-key"
+        label="Fireworks API Key"
+        value={fireworksApiKey}
+        onChange={(value) => onChange("fireworks", value)}
+        isVisible={Boolean(visibleKeys.fireworks)}
+        onToggleVisibility={() => onToggleVisibility("fireworks")}
+        placeholder="Enter your Fireworks API Key"
+      />
+      <ApiKeyField
+        id="openai-api-key"
+        label="OpenAI API Key"
+        value={openaiApiKey}
+        onChange={(value) => onChange("openai", value)}
+        isVisible={Boolean(visibleKeys.openai)}
+        onToggleVisibility={() => onToggleVisibility("openai")}
+        placeholder="Enter your OpenAI API Key"
+      />
+      <ApiKeyField
+        id="anthropic-api-key"
+        label="Anthropic API Key (optional)"
+        value={anthropicApiKey}
+        onChange={(value) => onChange("anthropic", value)}
+        isVisible={Boolean(visibleKeys.anthropic)}
+        onToggleVisibility={() => onToggleVisibility("anthropic")}
+        placeholder="Enter your Anthropic API Key"
+      />
+      <ApiKeyField
+        id="xai-api-key"
+        label="xAI API Key (optional)"
+        value={xaiApiKey}
+        onChange={(value) => onChange("xai", value)}
+        isVisible={Boolean(visibleKeys.xai)}
+        onToggleVisibility={() => onToggleVisibility("xai")}
+        placeholder="Enter your xAI API Key"
+      />
+      <ApiKeyField
+        id="google-api-key"
+        label="Google API Key (optional)"
+        value={googleApiKey}
+        onChange={(value) => onChange("google", value)}
+        isVisible={Boolean(visibleKeys.google)}
+        onToggleVisibility={() => onToggleVisibility("google")}
+        placeholder="Enter your Google API Key"
+      />
+      <ApiKeyField
+        id="stability-api-key"
+        label="Stability API Key"
+        value={stabilityApiKey}
+        onChange={(value) => onChange("stability", value)}
+        isVisible={Boolean(visibleKeys.stability)}
+        onToggleVisibility={() => onToggleVisibility("stability")}
+        placeholder="Enter your Stability API Key"
+      />
+      <button
+        onClick={onSave}
+        disabled={isSaving || isUnchanged}
+        className="mt-2 w-56 font-bold bg-primary hover:opacity-90 rounded-3xl text-primary-foreground px-3 py-2 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed mx-auto transition-opacity flex items-center justify-center gap-2"
+      >
+        {isSaving && <InlineSpinner size="sm" />}
+        {isSaving ? "Updating..." : "Update API Keys"}
+      </button>
     </div>
   );
 }

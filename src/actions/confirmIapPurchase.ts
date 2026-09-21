@@ -4,16 +4,12 @@ import crypto from "crypto";
 import { admin, adminDb } from "@/firebase/firebaseAdmin";
 import { requireAuthedUid } from "@/actions/serverAuth";
 import { coerceCredits } from "@/utils/credits";
-import { CREDIT_PACKS } from "@/constants/creditPacks";
+import { resolveIapCreditGrant } from "@/utils/iapGrant";
+import { verifyIapReceipt } from "@/utils/iapReceipt";
+import { signIapPayload, type IapSignedFields } from "@/utils/iapSignature";
+import { iapConfirmSchema } from "@/utils/actionContracts";
 
-export type IapConfirmInput = {
-  transactionId: string;
-  productId: string;
-  amount: number;
-  currency: string;
-  platform: string;
-  credits: number;
-  ts: number;
+export type IapConfirmInput = IapSignedFields & {
   signature: string;
 };
 
@@ -24,34 +20,12 @@ type IapConfirmResult = {
   creditsBalance: number;
 };
 
-/** Maximum credits allowed per IAP even if the signed payload asks for more. */
-const MAX_IAP_CREDITS = Math.max(...CREDIT_PACKS.map((p) => p.credits)) * 2;
-
 function requireIapSecret(): string {
   const secret = (process.env.IAP_WEBVIEW_SECRET || "").trim();
   if (!secret) {
     throw new Error("IAP_NOT_CONFIGURED");
   }
   return secret;
-}
-
-/**
- * HMAC over a JSON-encoded canonical form of the payload. Using JSON (rather
- * than pipe-separated fields) means that values containing the separator
- * character cannot be moved between fields without invalidating the signature.
- */
-function computeSignature(secret: string, input: IapConfirmInput): string {
-  const canonical = JSON.stringify({
-    transactionId: String(input.transactionId),
-    productId: String(input.productId),
-    amount: Number(input.amount),
-    currency: String(input.currency).toUpperCase(),
-    platform: String(input.platform),
-    credits: Number(input.credits),
-    ts: Number(input.ts),
-  });
-
-  return crypto.createHmac("sha256", secret).update(canonical).digest("hex");
 }
 
 function timingSafeEqualHex(a: string, b: string): boolean {
@@ -84,33 +58,51 @@ export async function confirmIapPurchase(
   input: IapConfirmInput
 ): Promise<IapConfirmResult> {
   const uid = await requireAuthedUid();
-  const transactionId = String(input.transactionId || "");
-
-  if (!isSafeFirestoreDocSegment(transactionId) || !input.signature) {
+  const parsed = iapConfirmSchema.safeParse(input);
+  if (!parsed.success) {
     throw new Error("INVALID_IAP_MESSAGE");
   }
-  if (!Number.isFinite(input.credits) || input.credits <= 0) {
-    throw new Error("INVALID_IAP_CREDITS");
-  }
+  const payload = parsed.data;
+  const transactionId = payload.transactionId;
 
-  const requestedCredits = Math.floor(input.credits);
-  if (requestedCredits > MAX_IAP_CREDITS) {
-    throw new Error("IAP_CREDITS_EXCEEDS_MAX");
+  if (!isSafeFirestoreDocSegment(transactionId)) {
+    throw new Error("INVALID_IAP_MESSAGE");
   }
 
   const secret = requireIapSecret();
-  const expected = computeSignature(secret, input);
-  if (!timingSafeEqualHex(expected, input.signature)) {
+  const expected = signIapPayload(secret, {
+    transactionId,
+    productId: payload.productId,
+    amount: payload.amount,
+    currency: payload.currency,
+    platform: payload.platform,
+    credits: payload.credits,
+    ts: payload.ts,
+    receipt: payload.receipt,
+  });
+  if (!timingSafeEqualHex(expected, payload.signature)) {
     throw new Error("INVALID_IAP_SIGNATURE");
+  }
+
+  const grant = resolveIapCreditGrant(payload.productId, payload.credits);
+  if (!grant.ok) {
+    throw new Error(grant.error);
   }
 
   const now = Date.now();
   const maxSkewMs = 5 * 60 * 1000;
-  if (!Number.isFinite(input.ts) || Math.abs(now - input.ts) > maxSkewMs) {
+  if (!Number.isFinite(payload.ts) || Math.abs(now - payload.ts) > maxSkewMs) {
     throw new Error("INVALID_IAP_TIMESTAMP");
   }
 
-  const normalizedCurrency = normalizeCurrency(input.currency);
+  await verifyIapReceipt({
+    platform: payload.platform,
+    receipt: payload.receipt,
+    productId: grant.packId,
+    transactionId,
+  });
+
+  const normalizedCurrency = normalizeCurrency(payload.currency);
   const paymentRef = adminDb.doc(
     `users/${uid}/payments/iap_${transactionId}`
   );
@@ -125,12 +117,23 @@ export async function confirmIapPurchase(
       const globalClaimSnap = await tx.get(globalClaimRef);
       if (globalClaimSnap.exists) {
         const claimedByUid = String(globalClaimSnap.data()?.uid || "");
-        // Fail closed: a claim that exists but is not owned by the current user
-        // (including a corrupt/missing uid) must block re-fulfillment by anyone
-        // other than the original claimant.
+        // A claim blocks every account, including the original claimant.
+        // Re-fulfillment requires the payment document to be the only record,
+        // so deleting that document must not grant the credits again.
         if (claimedByUid !== uid) {
           throw new Error("IAP_ALREADY_CLAIMED");
         }
+        const profileSnap = await tx.get(profileRef);
+        const currentCredits = coerceCredits(
+          profileSnap.exists ? profileSnap.data()?.credits : 0,
+          0
+        );
+        return {
+          ok: true as const,
+          alreadyProcessed: true,
+          creditsAdded: 0,
+          creditsBalance: currentCredits,
+        };
       }
 
       const existingPaymentSnap = await tx.get(paymentRef);
@@ -153,7 +156,7 @@ export async function confirmIapPurchase(
         profileSnap.exists ? profileSnap.data()?.credits : 0,
         0
       );
-      const nextCredits = currentCredits + requestedCredits;
+      const nextCredits = currentCredits + grant.credits;
       if (!Number.isFinite(nextCredits)) throw new Error("Invalid credits value");
 
       tx.set(
@@ -161,7 +164,7 @@ export async function confirmIapPurchase(
         {
           uid,
           platform: input.platform,
-          productId: input.productId,
+          productId: grant.packId,
           transactionId,
           claimedAt: admin.firestore.FieldValue.serverTimestamp(),
         },
@@ -177,7 +180,7 @@ export async function confirmIapPurchase(
           status: "succeeded",
           mode: "iap",
           platform: String(input.platform || "ios"),
-          productId: String(input.productId || "iap"),
+          productId: grant.packId,
           currency: normalizedCurrency,
           transactionId,
         },
@@ -190,7 +193,7 @@ export async function confirmIapPurchase(
         ledgerRef,
         {
           type: "credit",
-          amount: requestedCredits,
+          amount: grant.credits,
           reason: "purchase",
           tool: "iap",
           modelKey: null,
@@ -204,7 +207,7 @@ export async function confirmIapPurchase(
       return {
         ok: true,
         alreadyProcessed: false,
-        creditsAdded: requestedCredits,
+        creditsAdded: grant.credits,
         creditsBalance: nextCredits,
       };
     }

@@ -28,6 +28,7 @@ import { readStreamableValue } from "@ai-sdk/rsc";
 import { generateResponse } from "@/actions/generateAIResponse";
 import { isInsufficientCreditsError } from "@/utils/errors";
 import { createClientIdempotencyKey } from "@/utils/clientIdempotencyKey";
+import { formatStableDateTime } from "@/utils/formatDateTime";
 
 function readHistorySettings(value: unknown): Record<string, string> | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -168,7 +169,7 @@ export default function History() {
                   <button
                     onClick={loadMore}
                     disabled={loadingMore}
-                    className="text-sm font-medium text-[#192449] hover:text-blue-700 bg-white border border-gray-200 hover:bg-gray-50 px-6 py-3 rounded-full transition-all shadow-sm flex items-center gap-2 disabled:opacity-50 cursor-pointer hover:shadow-md"
+                    className="text-sm font-medium text-[#192449] hover:text-blue-700 bg-white border border-gray-200 hover:bg-gray-50 px-6 py-3 rounded-full transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50 cursor-pointer hover:shadow-md"
                   >
                     {loadingMore && <InlineSpinner size="sm" />}
                     {loadingMore
@@ -199,8 +200,12 @@ function SearchInput({
       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
         <Search className="h-4 w-4 text-muted-foreground group-focus-within:text-ring transition-colors" />
       </div>
+      <label htmlFor="history-search" className="mb-1 block text-sm font-medium text-foreground">
+        Search history
+      </label>
       <input
-        className="block w-full pl-9 pr-3 py-2.5 border border-border rounded-xl leading-5 bg-card text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring/20 focus:border-ring text-sm transition-all shadow-sm hover:shadow-md"
+        id="history-search"
+        className="block w-full pl-9 pr-3 py-2.5 border border-border rounded-xl leading-5 bg-card text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring/20 focus:border-ring text-sm transition-colors shadow-sm hover:shadow-md"
         type="text"
         placeholder="Search..."
         value={value}
@@ -361,16 +366,13 @@ function HistoryCard({
   ]);
 
   return (
-    <div className="flex flex-col bg-card text-card-foreground rounded-2xl border border-border shadow-sm overflow-hidden transition-all hover:shadow-md">
+    <div className="flex flex-col bg-card text-card-foreground rounded-2xl border border-border shadow-sm overflow-hidden transition-shadow hover:shadow-md">
       {/* Header */}
       <div className="bg-muted/50 border-b border-border px-5 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
           <Calendar size={14} />
           {summary.timestamp?.seconds
-            ? new Date(summary.timestamp.seconds * 1000).toLocaleString(
-                undefined,
-                { dateStyle: "medium", timeStyle: "short" }
-              )
+            ? formatStableDateTime(summary.timestamp.seconds * 1000)
             : "Pending…"}
           {summary.derivedFromId ? (
             <span className="ml-2 inline-flex items-center rounded-full border border-border bg-card px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
@@ -380,6 +382,7 @@ function HistoryCard({
         </div>
         <button
           onClick={onToggleExpand}
+          aria-label={isExpanded ? "Collapse history item" : "Expand history item"}
           className="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition-colors cursor-pointer"
         >
           {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
@@ -392,7 +395,7 @@ function HistoryCard({
           <div className="flex max-w-[90%] md:max-w-[80%] gap-3 items-start flex-row-reverse">
             <div className="flex flex-col items-end w-full">
               <div
-                className={`px-5 py-3.5 bg-[#2563EB] text-white rounded-2xl rounded-tr-sm shadow-sm text-left transition-all duration-300 w-full ${
+                className={`px-5 py-3.5 bg-[#2563EB] text-white rounded-2xl rounded-tr-sm shadow-sm text-left transition-[max-height] duration-300 w-full ${
                   isExpanded ? "" : "max-h-32 overflow-y-hidden relative"
                 }`}
               >
@@ -429,55 +432,15 @@ function HistoryCard({
                   </div>
                 )}
 
-                {/* Repurpose (text-only, shown when expanded) */}
                 {!isImage && isExpanded && (
-                  <div className="mt-4 border-t border-border pt-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="text-xs font-semibold text-muted-foreground">
-                        Repurpose
-                      </div>
-                      {repurposeLoading ? (
-                        <div className="text-xs text-muted-foreground flex items-center gap-2">
-                          <InlineSpinner size="sm" />
-                          Generating {repurposeLabel ?? "…"}
-                        </div>
-                      ) : null}
-                    </div>
-
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {repurposeTargets.map((t) => (
-                        <button
-                          key={t.key}
-                          type="button"
-                          disabled={repurposeLoading}
-                          onClick={() => handleRepurpose(t.key)}
-                          className="text-xs font-medium px-3 py-2 rounded-xl border border-border bg-card hover:bg-muted transition-colors disabled:opacity-50"
-                        >
-                          {t.label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {repurposeOutput ? (
-                      <div className="mt-4 rounded-xl border border-border bg-muted/30 p-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="text-xs font-semibold text-foreground">
-                            {repurposeLabel ?? "Repurposed output"}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={handleSaveRepurpose}
-                            className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
-                          >
-                            Save to History
-                          </button>
-                        </div>
-                        <div className="mt-3 prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:p-0 wrap-break-word">
-                          <MarkdownRenderer content={repurposeOutput} />
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
+                  <HistoryRepurpose
+                    loading={repurposeLoading}
+                    label={repurposeLabel}
+                    output={repurposeOutput}
+                    targets={repurposeTargets}
+                    onRepurpose={handleRepurpose}
+                    onSave={handleSaveRepurpose}
+                  />
                 )}
               </div>
             </div>
@@ -493,6 +456,72 @@ function HistoryCard({
           Show full conversation <ChevronDown size={14} />
         </button>
       )}
+    </div>
+  );
+}
+
+function HistoryRepurpose({
+  loading,
+  label,
+  output,
+  targets,
+  onRepurpose,
+  onSave,
+}: {
+  loading: boolean;
+  label: string | null;
+  output: string;
+  targets: readonly { key: string; label: string; words: number }[];
+  onRepurpose: (targetKey: string) => void;
+  onSave: () => void;
+}) {
+  return (
+    <div className="mt-4 border-t border-border pt-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-xs font-semibold text-muted-foreground">
+          Repurpose
+        </div>
+        {loading ? (
+          <div className="text-xs text-muted-foreground flex items-center gap-2">
+            <InlineSpinner size="sm" />
+            Generating {label ?? "…"}
+          </div>
+        ) : null}
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {targets.map((target) => (
+          <button
+            key={target.key}
+            type="button"
+            disabled={loading}
+            onClick={() => onRepurpose(target.key)}
+            className="text-xs font-medium px-3 py-2 rounded-xl border border-border bg-card hover:bg-muted transition-colors disabled:opacity-50"
+          >
+            {target.label}
+          </button>
+        ))}
+      </div>
+
+      {output ? (
+        <div className="mt-4 rounded-xl border border-border bg-muted/30 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-xs font-semibold text-foreground">
+              {label ?? "Repurposed output"}
+            </div>
+            <button
+              type="button"
+              onClick={onSave}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+            >
+              Save to History
+            </button>
+          </div>
+          <div className="mt-3 prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:p-0 wrap-break-word">
+            <MarkdownRenderer content={output} />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -548,7 +577,7 @@ function TextResponse({
 }) {
   return (
     <div
-      className={`prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:p-0 transition-all duration-300 wrap-break-word ${
+      className={`prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:p-0 transition-[max-height] duration-300 wrap-break-word ${
         isExpanded ? "" : "max-h-60 overflow-y-hidden relative"
       }`}
     >

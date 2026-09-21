@@ -2,6 +2,7 @@ import {
   PublicContentSection,
   PublicPageLayout,
 } from "@/components/PublicPageLayout";
+import { PublicContactSection } from "@/components/PublicContactSection";
 
 type Props = {
   appName: string;
@@ -281,21 +282,12 @@ export default function Terms({
           </p>
         </Section>
 
-        <Section title="Contact">
-          <p>
-            {companyName}
-            <br />
-            {companyAddress}
-            <br />
-            {companyLocation}
-          </p>
-          <p>
-            Email:{" "}
-            <a className="underline" href={`mailto:${companyEmail}`}>
-              {companyEmail}
-            </a>
-          </p>
-        </Section>
+        <PublicContactSection
+          companyName={companyName}
+          companyAddress={companyAddress}
+          companyLocation={companyLocation}
+          companyEmail={companyEmail}
+        />
     </PublicPageLayout>
   );
 }

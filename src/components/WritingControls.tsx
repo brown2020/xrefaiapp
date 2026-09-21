@@ -13,10 +13,11 @@ import {
   type WritingTone,
 } from "@/constants/writingControls";
 import { inputClassName, labelClassName } from "@/components/ui/FormInput";
+import type { Dispatch, SetStateAction } from "react";
 
 interface WritingControlsProps {
   value: WritingSettings;
-  onChange: (value: WritingSettings) => void;
+  onChange: Dispatch<SetStateAction<WritingSettings>>;
   onWordCountChange: (value: string) => void;
 }
 
@@ -29,7 +30,7 @@ export default function WritingControls({
     key: Key,
     nextValue: WritingSettings[Key]
   ) => {
-    onChange({ ...value, [key]: nextValue });
+    onChange((current) => ({ ...current, [key]: nextValue }));
   };
 
   const updateLength = (nextValue: WritingLengthPreset) => {

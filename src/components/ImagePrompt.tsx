@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { generateImage } from "@/actions/generateImage";
 import toast from "react-hot-toast";
 import Image from "next/image";
@@ -47,15 +47,16 @@ export default function ImagePrompt({ initialInput }: ToolInitialProps) {
   } = useGenerationState();
 
   const [topic, setTopic] = useState(initialInput ?? "");
-  const [selectedPainter, setSelectedPainter] = useState("");
+  const selectedPainterRef = useRef("");
 
   useScrollToResult(summary, flagged);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const finalTopic = selectedPainter
-      ? `${topic}. In the style of ${selectedPainter}`
+    const painter = selectedPainterRef.current;
+    const finalTopic = painter
+      ? `${topic}. In the style of ${painter}`
       : topic;
 
     if (!validateContentWithToast(finalTopic)) return;
@@ -148,7 +149,9 @@ export default function ImagePrompt({ initialInput }: ToolInitialProps) {
             label="Artist Inspiration (Optional)"
             name="painters"
             options={painters}
-            onChange={(v) => setSelectedPainter(v ? v.value : "")}
+            onChange={(v) => {
+              selectedPainterRef.current = v ? v.value : "";
+            }}
             placeholder="Select an artist style..."
           />
         </div>

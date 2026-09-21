@@ -191,7 +191,7 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
   - `openai:gpt-5.4`
   - `anthropic:claude-sonnet-4-6`
   - `xai:grok-4`
-  - `google:gemini-3-pro-preview`
+  - `google:gemini-3.1-pro-preview`
 - Credits mode uses server provider keys.
 - API-key mode uses profile provider keys.
 - Current UI requires a Fireworks key plus the selected text provider key before enabling API-key mode.
@@ -203,7 +203,7 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
 - WebView suppresses cookie consent.
 - WebView hides Google popup sign-in.
 - WebView hides web Stripe checkout controls and starts native purchase with `INIT_IAP`.
-- Native purchase success sends `IAP_SUCCESS`; the server action verifies HMAC signature, timestamp skew, credit cap, and global transaction claim docs.
+- Native purchase success sends `IAP_SUCCESS` with a store receipt; the server action verifies HMAC signature over that receipt, timestamp skew, a catalog pack id with that pack's exact credit count, that the receipt names the same product and transaction, and global transaction claim docs.
 - The restricted-word guard is client-only and WebView-only.
 
 #### Public Legal And Support Pages

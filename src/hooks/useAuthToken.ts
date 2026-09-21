@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { getIdToken } from "firebase/auth";
-import { deleteCookie, setCookie } from "cookies-next";
+import { clearAuthCookie, persistIdTokenCookie } from "@/utils/authCookieClient";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import useProfileStore from "@/zustand/useProfileStore";
@@ -62,30 +62,20 @@ function debounceStorageHandler(
  * This is broken out of the hook so sign-in paths can `await` it before
  * navigating to a protected route.
  */
-async function writeAuthCookie(
-  cookieName: string
-): Promise<boolean> {
+async function writeAuthCookie(): Promise<boolean> {
   const user = auth.currentUser;
   if (!user) return false;
 
   try {
     const idToken = await getIdToken(user, /* forceRefresh */ true);
-    const isSecure =
-      process.env.NODE_ENV === "production" &&
-      typeof window !== "undefined" &&
-      window.location.protocol === "https:";
-    setCookie(cookieName, idToken, {
-      secure: isSecure,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
-    });
+    const wrote = await persistIdTokenCookie(idToken);
+    if (!wrote) return false;
     return true;
   } catch (err: unknown) {
     const firebaseCode = isFirebaseError(err) ? err.code : "";
     if (firebaseCode && TOKEN_INVALID_CODES.has(firebaseCode)) {
       // Firebase explicitly says the token is invalid — safe to clear.
-      deleteCookie(cookieName, { path: "/" });
+      await clearAuthCookie();
     } else if (err instanceof Error) {
       // Transient (network, offline, CORS) — KEEP the existing cookie
       // so the user isn't logged out by a flaky connection.
@@ -109,7 +99,7 @@ const useAuthToken = (cookieName = getAuthCookieName()) => {
   const activityTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refreshAuthToken = useCallback(async () => {
-    const wrote = await writeAuthCookie(cookieName);
+    const wrote = await writeAuthCookie();
     if (!wrote) return;
     try {
       if (typeof window !== "undefined" && !window.ReactNativeWebView) {
@@ -118,7 +108,7 @@ const useAuthToken = (cookieName = getAuthCookieName()) => {
     } catch {
       // Ignore localStorage errors (private mode, quota, etc.).
     }
-  }, [cookieName, lastTokenRefreshKey]);
+  }, [lastTokenRefreshKey]);
 
   const scheduleTokenRefresh = useCallback(() => {
     if (activityTimeoutRef.current) {
@@ -209,8 +199,7 @@ const useAuthToken = (cookieName = getAuthCookieName()) => {
       // Genuine signed-out state (loading === false && user === null).
       resetProfile();
       resetPayments();
-      clearAuthDetails();
-      deleteCookie(cookieName, { path: "/" });
+      void clearAuthCookie();
     }
   }, [
     clearAuthDetails,

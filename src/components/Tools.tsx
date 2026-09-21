@@ -132,7 +132,7 @@ export default function Tools({
               <button
                 key={tool.title}
                 onClick={() => setSelectedTool(tool.title)}
-                className={`min-w-[11rem] md:min-w-0 md:w-full px-4 py-3 flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                className={`min-w-[11rem] md:min-w-0 md:w-full px-4 py-3 flex items-center gap-3 rounded-xl text-sm font-medium transition-colors duration-200 ${
                   tool.title === selectedTool
                     ? "bg-primary text-primary-foreground shadow-md"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
