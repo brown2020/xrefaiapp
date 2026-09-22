@@ -18,10 +18,12 @@ export default defineConfig({
     headless: true,
     trace: "retain-on-failure",
   },
-  webServer: {
-    command: `env -u FORCE_COLOR -u NO_COLOR npm run start -- --hostname 127.0.0.1 --port ${port}`,
-    url: baseURL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
-  },
+  webServer: process.env.PLAYWRIGHT_NO_WEBSERVER
+    ? undefined
+    : {
+        command: `env -u FORCE_COLOR -u NO_COLOR npm run start -- --hostname 127.0.0.1 --port ${port}`,
+        url: baseURL,
+        reuseExistingServer: !process.env.CI,
+        timeout: 60_000,
+      },
 });

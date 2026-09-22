@@ -1,7 +1,17 @@
-import { getApp, getApps, initializeApp } from "firebase/app";
-import { connectFirestoreEmulator, getFirestore } from "firebase/firestore";
-import { connectAuthEmulator, getAuth } from "firebase/auth";
-import { getStorage } from "firebase/storage";
+import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
+import {
+  connectFirestoreEmulator,
+  getFirestore,
+  type Firestore,
+} from "firebase/firestore";
+import {
+  connectAuthEmulator,
+  getAuth,
+  type Auth,
+  type Unsubscribe,
+  type User,
+} from "firebase/auth";
+import { getStorage, type FirebaseStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_APIKEY,
@@ -13,10 +23,37 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENTID,
 };
 
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-const storage = getStorage(app);
+const hasClientConfig = Boolean(firebaseConfig.apiKey?.trim());
+
+/** Minimal Auth stand-in so SSG/CI without secrets does not crash on .currentUser. */
+function createDeferredAuth(): Auth {
+  const authStub = {
+    get currentUser(): User | null {
+      return null;
+    },
+    onAuthStateChanged(
+      nextOrObserver:
+        | ((user: User | null) => void)
+        | { next?: (user: User | null) => void },
+      error?: (err: Error) => void,
+      completed?: () => void,
+    ): Unsubscribe {
+      const next =
+        typeof nextOrObserver === "function"
+          ? nextOrObserver
+          : nextOrObserver?.next;
+      try {
+        next?.(null);
+      } catch {
+        /* ignore */
+      }
+      void error;
+      void completed;
+      return () => {};
+    },
+  };
+  return authStub as unknown as Auth;
+}
 
 const emulatorState = globalThis as {
   __xrefAuthEmulator?: boolean;
@@ -37,24 +74,45 @@ function storedLoopbackHost(key: string): string | null {
   }
 }
 
-const authEmulatorHost =
-  loopbackHost(process.env.NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST) ||
-  storedLoopbackHost("xrefAuthEmulator");
-if (authEmulatorHost && !emulatorState.__xrefAuthEmulator) {
-  connectAuthEmulator(auth, `http://${authEmulatorHost}`, { disableWarnings: true });
-  emulatorState.__xrefAuthEmulator = true;
-}
+let app: FirebaseApp | undefined;
+let auth: Auth;
+let db: Firestore;
+let storage: FirebaseStorage;
 
-const firestoreEmulatorHost =
-  loopbackHost(process.env.NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST) ||
-  storedLoopbackHost("xrefFirestoreEmulator");
-if (firestoreEmulatorHost && !emulatorState.__xrefFirestoreEmulator) {
-  const [host, portText] = firestoreEmulatorHost.split(":");
-  const port = Number(portText);
-  if (host && Number.isInteger(port)) {
-    connectFirestoreEmulator(db, host, port);
-    emulatorState.__xrefFirestoreEmulator = true;
+if (hasClientConfig) {
+  app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+  storage = getStorage(app);
+
+  const authEmulatorHost =
+    loopbackHost(process.env.NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST) ||
+    storedLoopbackHost("xrefAuthEmulator");
+  if (authEmulatorHost && !emulatorState.__xrefAuthEmulator) {
+    connectAuthEmulator(auth, `http://${authEmulatorHost}`, {
+      disableWarnings: true,
+    });
+    emulatorState.__xrefAuthEmulator = true;
   }
+
+  const firestoreEmulatorHost =
+    loopbackHost(process.env.NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST) ||
+    storedLoopbackHost("xrefFirestoreEmulator");
+  if (firestoreEmulatorHost && !emulatorState.__xrefFirestoreEmulator) {
+    const [host, portText] = firestoreEmulatorHost.split(":");
+    const port = Number(portText);
+    if (host && Number.isInteger(port)) {
+      connectFirestoreEmulator(db, host, port);
+      emulatorState.__xrefFirestoreEmulator = true;
+    }
+  }
+} else {
+  console.warn(
+    "Firebase client config missing (NEXT_PUBLIC_FIREBASE_APIKEY); deferring init",
+  );
+  auth = createDeferredAuth();
+  db = null as unknown as Firestore;
+  storage = null as unknown as FirebaseStorage;
 }
 
-export { auth, db, storage };
+export { auth, db, storage, hasClientConfig };

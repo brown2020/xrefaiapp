@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { LockIcon, MailIcon, UserIcon } from "lucide-react";
+import { Eye, EyeOff, LockIcon, MailIcon, UserIcon } from "lucide-react";
 import { InlineSpinner } from "@/components/ui/LoadingSpinner";
 import type { AuthFeedback, useAuthSession } from "@/components/auth/useAuthSession";
 import { AuthButton, AuthFeedbackMessage } from "@/components/auth/AuthBits";
@@ -243,30 +244,42 @@ function AuthPasswordField({
   onPasswordChange: (value: string) => void;
   onReset: () => void;
 }) {
+  const [showPassword, setShowPassword] = useState(false);
   if (!show) return null;
   const isSignup = authMode === "signup";
   return (
     <>
-      <label className="block">
-        <span className="text-sm font-medium text-foreground">Password</span>
+      <div className="block">
+        <label htmlFor="auth-password" className="text-sm font-medium text-foreground">
+          Password
+        </label>
         <div className="relative mt-1">
           <LockIcon
             size={18}
             className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
           />
           <input
             id="auth-password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             value={password}
             onChange={(event) => onPasswordChange(event.target.value)}
             placeholder={isSignup ? "At least 8 characters" : "Enter your password"}
-            className="input-primary pl-10"
+            className="input-primary pl-10 pr-12"
             autoComplete={isSignup ? "new-password" : "current-password"}
             minLength={isSignup ? 8 : undefined}
             required
           />
+          <button
+            type="button"
+            onClick={() => setShowPassword((visible) => !visible)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? <EyeOff size={18} aria-hidden /> : <Eye size={18} aria-hidden />}
+          </button>
         </div>
-      </label>
+      </div>
       {authMode === "signin" && (
         <div className="-mt-2 text-right">
           <button

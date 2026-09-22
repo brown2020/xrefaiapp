@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -22,6 +22,14 @@ export const metadata: Metadata = {
     type: "website",
   },
 };
+
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Do not lock zoom — WCAG / axe require user scaling.
+};
+
 
 export default function RootLayout({
   children,

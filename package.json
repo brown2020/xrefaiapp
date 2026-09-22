@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test:browser": "env -u FORCE_COLOR -u NO_COLOR playwright test"
+    "test:browser": "env -u FORCE_COLOR -u NO_COLOR playwright test",
+    "typecheck": "tsc --noEmit",
+    "doctor": "npx -y react-doctor@latest . --verbose --yes",
+    "test": "env -u FORCE_COLOR -u NO_COLOR PLAYWRIGHT_NO_WEBSERVER=1 playwright test tests/code-reliability.spec.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.71",

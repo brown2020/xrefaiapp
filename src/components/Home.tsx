@@ -354,7 +354,8 @@ function HeroTypewriter({ words }: { words: readonly string[] }) {
   }, [characterCount, currentWord, isDeleting, visibleWords.length]);
 
   return (
-    <span className="home-typewriter" aria-label={currentWord}>
+    <span className="home-typewriter">
+      <span className="sr-only">{currentWord}</span>
       {visibleWords.map((word) => (
         <span key={word} aria-hidden="true" className="home-typewriter__sizer">
           {word}

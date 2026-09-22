@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      # Install without lifecycle scripts and without CI secrets in scope
+      # (react-doctor build-pipeline-secret-boundary).
+      - run: npm ci --ignore-scripts
+      - run: npm run lint
+      - run: npm run typecheck
+      # Client config only on the production build step so gate jobs tolerate
+      # missing secrets. Deferred Firebase init lets build succeed when empty.
+      # Never inline NEXT_PUBLIC_* / API keys — ${{ secrets.* }} only.
+      - name: Production build
+        env:
+          NEXT_PUBLIC_COOKIE_NAME: ${{ secrets.NEXT_PUBLIC_COOKIE_NAME }}
+          NEXT_PUBLIC_FIREBASE_APIKEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_APIKEY }}
+          NEXT_PUBLIC_FIREBASE_AUTHDOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTHDOMAIN }}
+          NEXT_PUBLIC_FIREBASE_PROJECTID: ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECTID }}
+          NEXT_PUBLIC_FIREBASE_STORAGEBUCKET: ${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGEBUCKET }}
+          NEXT_PUBLIC_FIREBASE_MESSAGINGSENDERID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGINGSENDERID }}
+          NEXT_PUBLIC_FIREBASE_APPID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APPID }}
+          NEXT_PUBLIC_FIREBASE_MEASUREMENTID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENTID }}
+          NEXT_PUBLIC_STRIPE_PRODUCT_NAME: ${{ secrets.NEXT_PUBLIC_STRIPE_PRODUCT_NAME }}
+        run: npm run build

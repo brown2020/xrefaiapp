@@ -2,6 +2,7 @@
 
 import useProfileStore from "@/zustand/useProfileStore";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
 import { isIOSReactNativeWebView } from "@/utils/platform";
 import { usePaymentsStore } from "@/zustand/usePaymentsStore";
 import { inputClassName, labelClassName } from "@/components/ui/FormInput";
@@ -79,6 +80,7 @@ function useIapSuccessListener(
 }
 
 export default function ProfileComponent() {
+  const router = useRouter();
   const profile = useProfileStore((state) => state.profile);
   const updateProfile = useProfileStore((state) => state.updateProfile);
   const fetchProfile = useProfileStore((state) => state.fetchProfile);
@@ -207,13 +209,15 @@ export default function ProfileComponent() {
   const handleBuyClick = useCallback(() => {
     if (showCreditsSection) {
       const pack = getCreditPack(selectedPackId);
-      window.location.href = `${ROUTES.paymentAttempt}?pack=${encodeURIComponent(
-        pack.id
-      )}&redirect=${encodeURIComponent(ROUTES.account)}`;
+      router.push(
+        `${ROUTES.paymentAttempt}?pack=${encodeURIComponent(
+          pack.id
+        )}&redirect=${encodeURIComponent(ROUTES.account)}`,
+      );
     } else {
       window.ReactNativeWebView?.postMessage("INIT_IAP");
     }
-  }, [selectedPackId, showCreditsSection]);
+  }, [selectedPackId, showCreditsSection, router]);
 
   // Effective select value — if apikeys isn't available, always show "credits"
   const useCreditsSelectValue =
