@@ -51,6 +51,7 @@ const defaultProfile: ProfileType = {
 
 interface ProfileState {
   profile: ProfileType;
+  profileLoaded: boolean;
   fetchProfile: () => Promise<void>;
   resetProfile: () => void;
   updateProfile: (newProfile: Partial<ProfileType>) => Promise<void>;
@@ -61,12 +62,13 @@ let profileUpdateQueue: Promise<void> = Promise.resolve();
 
 const useProfileStore = create<ProfileState>((set, get) => ({
   profile: defaultProfile,
+  profileLoaded: false,
 
   fetchProfile: async () => {
     const { uid, authEmail, authDisplayName, authPhotoUrl, authEmailVerified } =
       useAuthStore.getState();
     if (!uid) {
-      set({ profile: defaultProfile });
+      set({ profile: defaultProfile, profileLoaded: false });
       return;
     }
 
@@ -81,14 +83,14 @@ const useProfileStore = create<ProfileState>((set, get) => ({
       // request was in flight, discard the result so we never show user A's
       // profile to user B.
       if (useAuthStore.getState().uid !== uid) return;
-      set({ profile: profile as ProfileType });
+      set({ profile: profile as ProfileType, profileLoaded: true });
     } catch (error) {
       handleProfileError("fetching or creating profile", error);
     }
   },
 
   resetProfile: () => {
-    set({ profile: defaultProfile });
+    set({ profile: defaultProfile, profileLoaded: false });
   },
 
   updateProfile: async (newProfile: Partial<ProfileType>) => {

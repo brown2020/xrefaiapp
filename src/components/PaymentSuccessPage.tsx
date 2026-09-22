@@ -49,8 +49,10 @@ export default function PaymentSuccessPage() {
     const handlePaymentSuccess = async () => {
       try {
         if (!ignore) setData(null);
+        void fetchProfile();
+
         if (!sessionId) {
-          if (!ignore) setData({ error: "Missing session_id" });
+          if (!ignore) setData({ error: "unconfirmed" });
           return;
         }
 
@@ -98,7 +100,7 @@ export default function PaymentSuccessPage() {
                   Purchase not confirmed
                 </h1>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {"error" in (data ?? {}) ? (data as { error: string }).error : "Unknown error"}
+                  We could not confirm this purchase. Your balance was not changed.
                 </p>
               </div>
             </div>

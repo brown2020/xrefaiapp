@@ -383,6 +383,13 @@ High-risk UX/platform paths:
 - `public/.well-known/apple-app-site-association` and `public/.well-known/assetlinks.json` support native app/WebView association paths. Do not remove them as unused website assets.
 - `next.config.mjs` allows Firebase/Google Storage image hosts and has `reactStrictMode: false`; re-enabling Strict Mode requires auditing auth/profile effects first.
 
+## Failure Signals
+
+- An aborted or failed credits-mode chat restores the debit. If that restore throws, the server logs `Chat refund failed`. The user sees a sanitized error.
+- A rate-limit storage error logs `Rate limit check failed` and fails open so a Firestore hiccup does not become an outage.
+- This repository has no paging service. The deployment owner reads those server logs.
+- Stripe grants happen on the return page. The payment lock prevents a second grant for the same session. A missed return does not grant credits.
+
 ## Environment Variables
 
 Firebase client:
@@ -426,6 +433,10 @@ Billing/runtime:
 - `APP_URL`
 - `NEXT_PUBLIC_COOKIE_NAME`
 - `IAP_WEBVIEW_SECRET`
+
+`APPLE_IAP_SHARED_SECRET` is optional and is sent to Apple's verifyReceipt endpoint when `IAP_RECEIPT_VERIFY_URL` is unset. `IAP_RECEIPT_VERIFY_URL` is an optional local receipt verifier. Android grants stay closed unless that verifier is set.
+
+The deployment owner owns configuration drift. When a new environment name is read in `src/`, update this list, `README.md`, and `.env.example` together.
 
 Legacy/sample env files may mention `NEXT_PUBLIC_STRIPE_KEY` and `NEXT_PUBLIC_CREDITS_PER_IMAGE`, but the active web checkout and credit pricing code do not currently read them.
 

@@ -190,7 +190,7 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
 - Current text model whitelist:
   - `openai:gpt-5.4`
   - `anthropic:claude-sonnet-4-6`
-  - `xai:grok-4`
+  - `xai:grok-4.7`
   - `google:gemini-3.1-pro-preview`
 - Credits mode uses server provider keys.
 - API-key mode uses profile provider keys.

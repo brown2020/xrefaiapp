@@ -143,6 +143,12 @@ test.describe("code reliability contracts", () => {
     expect(JSON.stringify(AI_MODELS)).not.toContain("gemini-3-pro-preview");
   });
 
+  test("xAI text generation uses the current Grok model", () => {
+    expect(AI_MODELS["xai:grok-4.7"].modelId).toBe("grok-4.7");
+    expect(resolveAiModelKey("xai:grok-4")).toBe("xai:grok-4.7");
+    expect(JSON.stringify(AI_MODELS)).not.toContain("\"grok-4\"");
+  });
+
   test("provider input stays inside the credit budget", async ({ request }) => {
     const longSource = `word ${"detail ".repeat(20_000)}`;
     const bounded = boundPromptPair("Summarize this topic", longSource);
@@ -171,6 +177,63 @@ test.describe("code reliability contracts", () => {
     });
     expect(rejected.status()).toBe(400);
     expect(await rejected.json()).toEqual({ error: "PROMPT_TOO_LONG" });
+  });
+
+  test("text generation keeps a single conversation entry", () => {
+    const source = readFileSync("src/actions/generateAIResponse.ts", "utf8");
+    expect(source).toContain("export async function generateAIResponse(");
+    expect(source).toContain("export async function generateResponse(");
+    expect(source).not.toContain("generateResponseWithMemory");
+  });
+
+  test("a failed purchase keeps the real balance and a plain next step", () => {
+    const page = readFileSync("src/components/PaymentSuccessPage.tsx", "utf8");
+    const badge = readFileSync("src/components/ui/CreditsBadge.tsx", "utf8");
+    expect(page).toContain(
+      "We could not confirm this purchase. Your balance was not changed."
+    );
+    expect(page).not.toContain("Missing session_id");
+    expect(badge).toContain("Credits balance loading");
+    expect(badge).toContain("profileLoaded");
+    expect(readFileSync("src/app/globals.css", "utf8")).toContain(
+      "prefers-reduced-motion: reduce"
+    );
+    const history = readFileSync("src/components/History.tsx", "utf8");
+    expect(history).toContain("Nothing saved yet.");
+    expect(history).toContain("Could not load history. Please try again.");
+    expect(history).not.toContain("No history found.");
+  });
+
+  test("advisory floors stay on the patched next, postcss, and sharp lines", () => {
+    const pkg = JSON.parse(readFileSync("package.json", "utf8")) as {
+      dependencies: { next: string; sharp: string };
+      devDependencies: { "@next/eslint-plugin-next": string; postcss: string };
+      overrides: { postcss: string };
+    };
+    expect(pkg.dependencies.next).toBe("^16.3.5");
+    expect(pkg.devDependencies["@next/eslint-plugin-next"]).toBe("^16.3.5");
+    expect(pkg.dependencies.sharp).toBe("^0.35.4");
+    expect(pkg.devDependencies.postcss).toBe("8.5.28");
+    expect(pkg.overrides.postcss).toBe("8.5.28");
+  });
+
+  test("setup commands and env names match the docs", () => {
+    const pkg = JSON.parse(readFileSync("package.json", "utf8")) as {
+      scripts: Record<string, string>;
+    };
+    const readme = readFileSync("README.md", "utf8");
+    const agents = readFileSync("AGENTS.md", "utf8");
+    for (const script of ["dev", "build", "start", "lint", "test:browser"]) {
+      expect(pkg.scripts[script]).toBeTruthy();
+      expect(readme).toContain(`npm run ${script}`);
+    }
+    expect(readme).toContain("npm install");
+    for (const name of ["APPLE_IAP_SHARED_SECRET", "IAP_RECEIPT_VERIFY_URL"]) {
+      expect(agents).toContain(name);
+      expect(readme).toContain(name);
+      expect(readFileSync(".env.example", "utf8")).toContain(name);
+    }
+    expect(agents).toContain("deployment owner owns configuration drift");
   });
 
   test("the cookie action uses one label", () => {

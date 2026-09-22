@@ -120,9 +120,11 @@ NEXT_PUBLIC_STRIPE_PRODUCT_NAME=
 APP_URL=
 NEXT_PUBLIC_COOKIE_NAME=
 IAP_WEBVIEW_SECRET=
+APPLE_IAP_SHARED_SECRET=
+IAP_RECEIPT_VERIFY_URL=
 ```
 
-`NEXT_PUBLIC_COOKIE_NAME` defaults to `xrefAuthToken`. `IAP_WEBVIEW_SECRET` is required only for the native WebView IAP flow. Legacy samples may mention `NEXT_PUBLIC_STRIPE_KEY` and `NEXT_PUBLIC_CREDITS_PER_IMAGE`, but active checkout and credit pricing do not currently read them.
+`NEXT_PUBLIC_COOKIE_NAME` defaults to `xrefAuthToken`. `IAP_WEBVIEW_SECRET` is required only for the native WebView IAP flow. `APPLE_IAP_SHARED_SECRET` is optional for Apple receipt checks. `IAP_RECEIPT_VERIFY_URL` is an optional local verifier, and Android grants stay closed unless it is set. Legacy samples may mention `NEXT_PUBLIC_STRIPE_KEY` and `NEXT_PUBLIC_CREDITS_PER_IMAGE`, but active checkout and credit pricing do not currently read them.
 
 ## Routes
 

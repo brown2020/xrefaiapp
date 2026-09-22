@@ -17,6 +17,7 @@ import { DEFAULT_CREDIT_PACK_ID } from "@/constants/creditPacks";
 export function CreditsBadge() {
   const uid = useAuthStore((s) => s.uid);
   const credits = useProfileStore((s) => s.profile.credits);
+  const profileLoaded = useProfileStore((s) => s.profileLoaded);
   const pathname = usePathname();
 
   const LOW_CREDITS_THRESHOLD = 200;
@@ -37,22 +38,26 @@ export function CreditsBadge() {
 
   if (!uid) return null;
 
+  const balanceLabel = profileLoaded
+    ? `Credits balance: ${creditsLabel}. Open account to buy more.`
+    : "Credits balance loading";
+
   return (
     <div className="flex items-center gap-2">
       <Link
         href={ROUTES.account}
         className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-sm font-semibold text-foreground hover:opacity-90 transition-opacity"
-        aria-label={`Credits balance: ${creditsLabel}. Open account to buy more.`}
+        aria-label={balanceLabel}
         title="Open account / buy credits"
       >
         <Coins className="h-4 w-4 text-muted-foreground" />
-        <span className="tabular-nums">{creditsLabel}</span>
+        <span className="tabular-nums">{profileLoaded ? creditsLabel : "…"}</span>
         <span className="text-muted-foreground font-medium hidden md:inline">
           credits
         </span>
       </Link>
 
-      {numericCredits > 0 && numericCredits < LOW_CREDITS_THRESHOLD ? (
+      {profileLoaded && numericCredits > 0 && numericCredits < LOW_CREDITS_THRESHOLD ? (
         <Link
           href={topUpHref}
           className="hidden md:inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-sm font-semibold hover:opacity-90 transition-opacity"

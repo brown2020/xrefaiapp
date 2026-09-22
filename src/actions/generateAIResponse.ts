@@ -273,38 +273,3 @@ export async function generateResponse(
     ...options,
   });
 }
-
-/**
- * Conversation response generation with memory (wrapper for backward compatibility)
- */
-export async function generateResponseWithMemory(
-  systemPrompt: string,
-  chatHistory: Array<{ prompt: string; response: string }>,
-  options?: {
-    modelKey?: AiModelKey;
-    useCredits?: boolean;
-    openaiApiKey?: string;
-    anthropicApiKey?: string;
-    xaiApiKey?: string;
-    googleApiKey?: string;
-    idempotencyKey?: string;
-  }
-) {
-  const messages: Array<{ role: "user" | "assistant"; content: string }> = [];
-
-  for (const chat of chatHistory) {
-    if (chat.prompt) {
-      messages.push({ role: "user", content: chat.prompt });
-    }
-    if (chat.response) {
-      messages.push({ role: "assistant", content: chat.response });
-    }
-  }
-
-  return generateAIResponse({
-    type: "conversation",
-    systemPrompt,
-    messages,
-    ...options,
-  });
-}

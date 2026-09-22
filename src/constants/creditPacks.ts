@@ -32,11 +32,6 @@ export function getCreditPack(id: string | null | undefined): CreditPack {
   return pack ?? CREDIT_PACKS.find((p) => p.id === DEFAULT_CREDIT_PACK_ID)!;
 }
 
-export function getCreditPackByAmountCents(amountCents: number): CreditPack | null {
-  if (!Number.isFinite(amountCents)) return null;
-  return CREDIT_PACKS.find((p) => p.amountCents === amountCents) ?? null;
-}
-
 export function formatDollarsFromCents(amountCents: number): string {
   const safe = Number.isFinite(amountCents) ? amountCents : 0;
   return (Math.max(0, Math.round(safe)) / 100).toFixed(2);

@@ -22,6 +22,8 @@ import { LoadingSpinner, InlineSpinner } from "@/components/ui/LoadingSpinner";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { useFirestorePagination } from "@/hooks/useFirestorePagination";
 import { MAX_HISTORY_LOAD } from "@/constants";
+import { ROUTES } from "@/constants/routes";
+import Link from "next/link";
 import { useHistorySaver } from "@/hooks/useHistorySaver";
 import toast from "react-hot-toast";
 import { readStreamableValue } from "@ai-sdk/rsc";
@@ -86,6 +88,7 @@ export default function History() {
     collectionName: "summaries",
     pageSize: MAX_HISTORY_LOAD,
     transform: transformHistoryDoc,
+    loadErrorMessage: "Could not load history. Please try again.",
   });
 
   const toggleExpand = useCallback((id: string) => {
@@ -160,7 +163,18 @@ export default function History() {
 
               {!loading && filteredSummaries.length === 0 && (
                 <div className="text-center py-12 text-muted-foreground bg-card rounded-2xl border border-border border-dashed">
-                  <p>No history found.</p>
+                  <p>Nothing saved yet.</p>
+                  <p className="mt-2 text-sm">
+                    Start in{" "}
+                    <Link href={ROUTES.chat} className="font-medium text-foreground underline">
+                      Chat
+                    </Link>{" "}
+                    or{" "}
+                    <Link href={ROUTES.tools} className="font-medium text-foreground underline">
+                      Tools
+                    </Link>
+                    . The result will show up here.
+                  </p>
                 </div>
               )}
 

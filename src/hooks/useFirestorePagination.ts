@@ -26,6 +26,8 @@ interface UseFirestorePaginationOptions<T> {
   pageSize?: number;
   /** Transform function to map document data to your type */
   transform: (doc: QueryDocumentSnapshot<DocumentData>) => T;
+  /** Plain sentence shown when the page cannot load */
+  loadErrorMessage?: string;
 }
 
 interface UseFirestorePaginationReturn<T> {
@@ -47,6 +49,7 @@ export function useFirestorePagination<T>({
   orderDirection = "desc",
   pageSize = 20,
   transform,
+  loadErrorMessage,
 }: UseFirestorePaginationOptions<T>): UseFirestorePaginationReturn<T> {
   const [items, setItems] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,7 +107,9 @@ export function useFirestorePagination<T>({
         setHasMore(querySnapshot.size === pageSize);
       } catch (error) {
         console.error(`Error fetching ${collectionName}:`, error);
-        toast.error(`Failed to load ${collectionName}`);
+        toast.error(
+          loadErrorMessage ?? `Could not load ${collectionName}. Please try again.`
+        );
       } finally {
         setLoading(false);
         setLoadingMore(false);
@@ -117,6 +122,7 @@ export function useFirestorePagination<T>({
       orderDirection,
       pageSize,
       transform,
+      loadErrorMessage,
       lastDoc,
     ]
   );

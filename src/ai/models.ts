@@ -7,7 +7,7 @@ export type AiProvider = "openai" | "anthropic" | "xai" | "google";
 export type AiModelKey =
   | "openai:gpt-5.4"
   | "anthropic:claude-sonnet-4-6"
-  | "xai:grok-4"
+  | "xai:grok-4.7"
   | "google:gemini-3.1-pro-preview";
 
 export type AiModelDefinition = {
@@ -37,11 +37,11 @@ export const AI_MODELS: Record<AiModelKey, AiModelDefinition> = {
     label: "Claude Sonnet 4.6",
     family: "Anthropic",
   },
-  "xai:grok-4": {
-    key: "xai:grok-4",
+  "xai:grok-4.7": {
+    key: "xai:grok-4.7",
     provider: "xai",
-    modelId: "grok-4",
-    label: "Grok 4",
+    modelId: "grok-4.7",
+    label: "Grok 4.7",
     family: "xAI",
   },
   "google:gemini-3.1-pro-preview": {
@@ -55,6 +55,7 @@ export const AI_MODELS: Record<AiModelKey, AiModelDefinition> = {
 
 const RETIRED_MODEL_KEYS: Record<string, AiModelKey> = {
   "google:gemini-3-pro-preview": "google:gemini-3.1-pro-preview",
+  "xai:grok-4": "xai:grok-4.7",
 };
 
 export const DEFAULT_TEXT_MODEL_KEY: AiModelKey = "openai:gpt-5.4";
