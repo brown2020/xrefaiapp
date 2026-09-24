@@ -1,55 +1,136 @@
-# Xref.ai
+# Xref.ai (xrefaiapp)
 
-[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss)](https://tailwindcss.com/)
-[![Firebase](https://img.shields.io/badge/Firebase-12-FFCA28?logo=firebase)](https://firebase.google.com/)
+An AI creation workspace for chat, writing tools, website/text summaries, image prompts, image generation, saved history, and credit-based (or bring-your-own-key) usage. Built for creators, marketers, students, and researchers who want a usable first draft quickly and a place to return to saved work.
 
-Xref.ai is an AI creation workspace for writing, chat, summarization, image prompts, image generation, saved history, and flexible credit-based usage. It is built with Next.js 16, React 19, TypeScript, Tailwind CSS 4, Firebase, Stripe Checkout, Fireworks AI, and the Vercel AI SDK.
+**Live demo:** [https://xref.ai](https://xref.ai)
 
-## Documentation Map
+Deeper docs for agents and product direction live in [AGENTS.md](./AGENTS.md) and [spec.md](./spec.md).
 
-- [AGENTS.md](./AGENTS.md): the single complete implementation guide for coding agents. Use it for architecture, invariants, security boundaries, platform constraints, and verification expectations.
-- [spec.md](./spec.md): the current product spec and roadmap. Use it for product behavior, user promises, current capabilities, constraints, and ordered roadmap milestones.
-- [CLAUDE.md](./CLAUDE.md): pointer-only entry point that redirects agents to `AGENTS.md`.
+## Features
 
-## Current Product
+- **Homepage** — starter paths (Creator / Marketer / Student / Researcher) that deep-link into Chat or Tools with prefills
+- **Firebase Auth** — Google popup, email/password, password reset, email-link (`/loginfinish`); cookie `xrefAuthToken` (name overridable); soft route gating via `src/proxy.ts`
+- **Streaming chat** (`/chat`) — Vercel AI SDK transport; recent history as context; credit debit / refund / rate limits / idempotency; saves under `users/{uid}/chats`
+- **Tools** (`/tools`) — Summarize Website (via SSRF-hardened `/api/proxy`), Summarize Text, Freestyle Writing, Simplify Writing, Generate Image (Fireworks SDXL), Designer Prompt builder
+- **History** (`/history`) — search, pagination, expand, copy/download, markdown, text repurpose actions
+- **Account** (`/account`) — credits, ledger, Stripe credit packs, payment history, API-key mode + model selection, account deletion
+- **Payments** — Stripe Checkout (`/api/billing/checkout` + `/confirm`); Expo/WebView IAP confirmation with HMAC + optional Apple receipt verify
+- **Public pages** — `/about`, `/privacy`, `/terms`, `/support`
+- **Models (credits / user keys)** — OpenAI `gpt-5.4`, Anthropic `claude-sonnet-4-6`, xAI `grok-4.7`, Google `gemini-3.1-pro-preview`
 
-Xref.ai currently includes:
+## Tech stack
 
-- Homepage with sign-in CTA, feature overview, responsive hero, and stable mobile typewriter.
-- Firebase authentication with Google, email/password, password reset, and email-link sign-in.
-- AI chat with streaming responses, recent-history context, persistence, rate limiting, credit debits, idempotency, and refund-on-failure behavior.
-- Tools for website summary, text summary with summary controls, freestyle writing with deliverable controls, simplification, image generation, and structured design prompt generation.
-- History with search, pagination, expandable cards, markdown rendering, image copy/download, and text repurposing actions.
-- Account area with credits, credit packs, Stripe checkout, payment history, credits ledger, API key mode, model selection, and account deletion.
-- Public `/about`, `/terms`, `/privacy`, and `/support` pages using a shared public-page layout.
-- Expo / React Native WebView support, including native IAP messaging and native-specific browser feature suppression.
+| Layer | Choice |
+| --- | --- |
+| Framework | Next.js `^16.3.6` (App Router + `src/proxy.ts`) |
+| UI | React `^19.2.5`, Tailwind CSS `^4.3`, Radix dialog, Lucide, Plus Jakarta Sans, react-hot-toast, react-markdown |
+| Language | TypeScript `^6` |
+| Auth / data | Firebase `^12` + Firebase Admin `^13` (Auth, Firestore, Storage) |
+| AI text | Vercel AI SDK (`ai` `^6`, `@ai-sdk/openai|anthropic|google|xai|rsc|react`) |
+| AI images | Fireworks Stable Diffusion XL via server action |
+| Payments | Stripe `^22` Checkout; native IAP helpers for WebView |
+| State | Zustand `^5` |
+| Validation | Zod `^4` |
+| Tests | Playwright `^1.60` |
+| Lint | ESLint `^10` + typescript-eslint |
 
-## Tech Stack
+## Project structure
 
-- Next.js 16 App Router with `src/proxy.ts` for soft protected-route gating.
-- React 19 and TypeScript 6 in strict mode.
-- Tailwind CSS 4 via `@tailwindcss/postcss`.
-- Firebase client SDK and Firebase Admin for Auth, Firestore, and Storage.
-- Zustand for client state.
-- Vercel AI SDK 6 for text/chat generation.
-- Fireworks AI for image generation.
-- Stripe 22 Checkout Sessions for web credit purchases.
-- HMAC-signed native IAP confirmation for the Expo WebView app.
+```
+src/
+  app/                 # Routes + API (chat, billing, auth session, proxy)
+  actions/             # Server actions: AI, credits, history, payments, IAP, auth
+  ai/                  # Model whitelist + getTextModel factory
+  components/          # Chat, tools, history, account, auth, public layout
+  firebase/            # Client + Admin init (emulator-aware)
+  zustand/ hooks/ utils/ constants/ types/ data/
+  proxy.ts             # Soft cookie gate for protected paths
+tests/                 # Playwright specs
+scripts/               # Architecture / workflow proof scripts
+docs/                  # architecture, CI secrets, budget notes
+.env.example
+.github/workflows/ci.yml
+.github/workflows/malware-scan.yml
+```
 
-## Quick Start
+### Notable routes
 
-Install dependencies:
+| Area | Paths |
+| --- | --- |
+| Public | `/`, `/about`, `/login`, `/signup`, `/loginfinish`, `/privacy`, `/terms`, `/support` |
+| App | `/chat`, `/tools`, `/history`, `/account`, `/payment-attempt`, `/payment-success` |
+| API | `/api/chat`, `/api/billing/checkout`, `/api/billing/confirm`, `/api/auth/session`, `/api/proxy` |
+
+## Getting started
+
+### Prerequisites
+
+- Node.js 22+
+- npm
+- Firebase project (Auth, Firestore, Storage)
+- Stripe account (for credit purchases)
+- At least one text-model provider key for credits mode; Fireworks key for image generation
+- Optional: Apple IAP shared secret / verify URL for native purchases
+
+### Clone and install
 
 ```bash
+git clone https://github.com/brown2020/xrefaiapp.git
+cd xrefaiapp
 npm install
 ```
 
-Create `.env.local` with the required Firebase, AI provider, Stripe, and optional native IAP variables.
+### Environment variables
 
-Start the dev server:
+Copy `.env.example` to `.env.local`. **Never commit real keys.**
+
+| Variable | Purpose | Where to get it |
+| --- | --- | --- |
+| `NEXT_PUBLIC_FIREBASE_APIKEY` | Firebase web API key | Firebase Console → Project settings |
+| `NEXT_PUBLIC_FIREBASE_AUTHDOMAIN` | Auth domain | Firebase Console |
+| `NEXT_PUBLIC_FIREBASE_PROJECTID` | Project id | Firebase Console |
+| `NEXT_PUBLIC_FIREBASE_STORAGEBUCKET` | Storage bucket | Firebase Console |
+| `NEXT_PUBLIC_FIREBASE_MESSAGINGSENDERID` | Messaging sender id | Firebase Console |
+| `NEXT_PUBLIC_FIREBASE_APPID` | Web app id | Firebase Console |
+| `NEXT_PUBLIC_FIREBASE_MEASUREMENTID` | Optional Analytics id | Firebase Console |
+| `NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST` | Optional Auth emulator host | Local emulator only |
+| `NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST` | Optional Firestore emulator host | Local emulator only |
+| `FIREBASE_TYPE` | Service account type (`service_account`) | Service account JSON |
+| `FIREBASE_PROJECT_ID` | Admin project id | Service account JSON |
+| `FIREBASE_PRIVATE_KEY_ID` | Admin private key id | Service account JSON |
+| `FIREBASE_PRIVATE_KEY` | Admin private key (PEM; escape newlines) | Service account JSON |
+| `FIREBASE_CLIENT_EMAIL` | Admin client email | Service account JSON |
+| `FIREBASE_CLIENT_ID` | Admin client id | Service account JSON |
+| `FIREBASE_AUTH_URI` | Google OAuth auth URI | Service account JSON |
+| `FIREBASE_TOKEN_URI` | Google token URI | Service account JSON |
+| `FIREBASE_AUTH_PROVIDER_X509_CERT_URL` | Certs URL | Service account JSON |
+| `FIREBASE_CLIENT_CERTS_URL` | Client certs URL | Service account JSON |
+| `FIREBASE_UNIVERSE_DOMAIN` | Usually `googleapis.com` | Service account JSON |
+| `OPENAI_API_KEY` | Credits-mode OpenAI | [OpenAI](https://platform.openai.com/) |
+| `OPENAI_ORG_ID` | Optional OpenAI org | OpenAI dashboard |
+| `ANTHROPIC_API_KEY` | Credits-mode Anthropic | [Anthropic](https://console.anthropic.com/) |
+| `XAI_API_KEY` | Credits-mode xAI / Grok | [xAI](https://console.x.ai/) |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Credits-mode Gemini | [Google AI Studio](https://aistudio.google.com/) |
+| `FIREWORKS_API_KEY` | Image generation (SDXL) | [Fireworks](https://fireworks.ai/) |
+| `NEXT_PUBLIC_COOKIE_NAME` | Auth cookie name (default `xrefAuthToken`) | Your choice |
+| `NEXT_PUBLIC_STRIPE_PRODUCT_NAME` | Product label for Checkout | Stripe / your naming |
+| `STRIPE_SECRET_KEY` | Stripe secret for Checkout + confirm | Stripe Dashboard |
+| `APP_URL` | Canonical app origin for Checkout redirects | e.g. `http://localhost:3000` or production URL |
+| `IAP_WEBVIEW_SECRET` | HMAC secret for Expo WebView IAP messages | Generate a strong secret |
+| `APPLE_IAP_SHARED_SECRET` | Apple verifyReceipt shared secret | App Store Connect |
+| `IAP_RECEIPT_VERIFY_URL` | Optional local/test receipt verify endpoint | Local only / your verifier |
+| `ALLOW_UNVERIFIED_SESSION_COOKIE` | Local/CI stand-in when Admin creds absent | **Never in production** |
+
+See `docs/ci-secrets.md` for which `NEXT_PUBLIC_*` values CI expects as GitHub Actions secrets.
+
+### Firebase setup
+
+1. Enable Google, Email/Password, and Email link providers as needed.
+2. Configure Firestore collections used by profile, credits ledger, chats, history, and payments (see AGENTS.md / spec for shapes).
+3. Allow Storage uploads for generated images under user-scoped paths.
+4. Map a service account into the `FIREBASE_*` Admin variables.
+
+### Run locally
 
 ```bash
 npm run dev
@@ -57,141 +138,40 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-## Commands
+## Scripts
 
-```bash
-npm run dev     # Start the Next.js dev server
-npm run build   # Production build
-npm run start   # Start the production server
-npm run lint    # Run ESLint
-npm run test:browser # Run headless Playwright smoke tests
-npm run typecheck    # Run the TypeScript compiler without emitting
-npm run test         # Run contract tests against an already running server
-npm run doctor       # Run React Doctor
-```
+| Script | Description |
+| --- | --- |
+| `npm run dev` | Next.js development server |
+| `npm run build` | Production build |
+| `npm start` | Serve production build |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm test` | Playwright reliability suite (`tests/code-reliability.spec.ts`) without webServer |
+| `npm run test:browser` | Full Playwright suite |
+| `npm run doctor` | `react-doctor` check |
 
-CI (`.github/workflows/ci.yml`) runs lint, typecheck, and the production build on `dev` and `main`. See [docs/ci-secrets.md](./docs/ci-secrets.md) for the build secrets.
+## Testing and CI
 
-`npm run lint`, `npm run build`, and the Playwright smoke suite are the baseline verification commands. Browser verification is expected for visible UI changes.
+CI (`.github/workflows/ci.yml`) on `dev` / `main` and PRs:
 
-## Environment Variables
+1. `npm ci --ignore-scripts`
+2. `npm run lint`
+3. `npm run typecheck`
+4. `npm run build` with Firebase/Stripe `NEXT_PUBLIC_*` from `${{ secrets.* }}`
 
-### Firebase Client
+A separate `malware-scan.yml` workflow exists for dependency/malware scanning. Playwright specs under `tests/` cover activation paths, auth entry, route protection, writing controls, and code reliability.
 
-```env
-NEXT_PUBLIC_FIREBASE_APIKEY=
-NEXT_PUBLIC_FIREBASE_AUTHDOMAIN=
-NEXT_PUBLIC_FIREBASE_PROJECTID=
-NEXT_PUBLIC_FIREBASE_STORAGEBUCKET=
-NEXT_PUBLIC_FIREBASE_MESSAGINGSENDERID=
-NEXT_PUBLIC_FIREBASE_APPID=
-NEXT_PUBLIC_FIREBASE_MEASUREMENTID=
-```
+## Deployment
 
-### Firebase Admin
+Production site: [xref.ai](https://xref.ai) (typically Vercel). Configure the full server env (Firebase Admin, Stripe, provider keys, IAP secrets) in the host. Keep `ALLOW_UNVERIFIED_SESSION_COOKIE` unset in production.
 
-```env
-FIREBASE_TYPE=
-FIREBASE_PROJECT_ID=
-FIREBASE_PRIVATE_KEY_ID=
-FIREBASE_PRIVATE_KEY=
-FIREBASE_CLIENT_EMAIL=
-FIREBASE_CLIENT_ID=
-FIREBASE_AUTH_URI=
-FIREBASE_TOKEN_URI=
-FIREBASE_AUTH_PROVIDER_X509_CERT_URL=
-FIREBASE_CLIENT_CERTS_URL=
-```
+## Contributing
 
-`.env.example` also contains `FIREBASE_UNIVERSE_DOMAIN`; the active Firebase Admin initialization does not currently read it.
+1. Develop on `dev` and follow invariants in `AGENTS.md`.
+2. Run lint and typecheck before pushing; use Playwright for UI-sensitive flows.
+3. Never commit `.env.local`, service account JSON, or real secrets.
 
-### AI Providers
+## License
 
-```env
-OPENAI_API_KEY=
-ANTHROPIC_API_KEY=
-XAI_API_KEY=
-GOOGLE_GENERATIVE_AI_API_KEY=
-FIREWORKS_API_KEY=
-```
-
-`OPENAI_ORG_ID` is optional.
-
-### Billing and App Runtime
-
-```env
-STRIPE_SECRET_KEY=
-NEXT_PUBLIC_STRIPE_PRODUCT_NAME=
-APP_URL=
-NEXT_PUBLIC_COOKIE_NAME=
-IAP_WEBVIEW_SECRET=
-APPLE_IAP_SHARED_SECRET=
-IAP_RECEIPT_VERIFY_URL=
-ALLOW_UNVERIFIED_SESSION_COOKIE=
-```
-
-`NEXT_PUBLIC_COOKIE_NAME` defaults to `xrefAuthToken`. `IAP_WEBVIEW_SECRET` is required only for the native WebView IAP flow. `APPLE_IAP_SHARED_SECRET` is optional for Apple receipt checks. `IAP_RECEIPT_VERIFY_URL` is an optional local verifier, and Android grants stay closed unless it is set. `ALLOW_UNVERIFIED_SESSION_COOKIE=true` is for local or CI runs without Firebase Admin credentials: sign-in sets an unverified cookie that only opens protected pages, while every API still refuses it. Leave it unset in production, where missing Admin credentials make sign-in return 503. Legacy samples may mention `NEXT_PUBLIC_STRIPE_KEY` and `NEXT_PUBLIC_CREDITS_PER_IMAGE`, but active checkout and credit pricing do not currently read them.
-
-## Routes
-
-Public routes:
-
-- `/`
-- `/about`
-- `/privacy`
-- `/terms`
-- `/support`
-- `/login`
-- `/signup`
-- `/loginfinish`
-
-Protected routes:
-
-- `/chat`
-- `/tools`
-- `/history`
-- `/account`
-- `/payment-attempt`
-- `/payment-success`
-
-API routes:
-
-- `POST /api/chat`
-- `POST /api/billing/checkout`
-- `POST /api/billing/confirm`
-- `GET /api/proxy`
-
-## Project Structure
-
-```text
-src/
-├── actions/        # Server actions for AI, auth, credits, history, payments, profile
-├── ai/             # AI model whitelist and provider factory
-├── app/            # App Router pages and API routes
-├── components/     # React UI and feature surfaces
-├── constants/      # Routes, credit packs, credit costs, shared limits
-├── data/           # Static choice lists for design/image prompts
-├── firebase/       # Firebase client and lazy Admin SDK singletons
-├── hooks/          # Auth, chat, generation, Firestore, scraper, setup hooks
-├── types/          # Domain types and runtime guards
-├── utils/          # Credits, errors, idempotency, rate limit, clipboard, proxy helpers
-├── zustand/        # Client stores
-└── proxy.ts        # Next.js edge proxy for soft protected-route gating
-```
-
-## Core Invariants
-
-- Auth cookie presence gates protected routes, but every mutation verifies the Firebase ID token server-side.
-- Credit debits happen server-side, transactionally, with ledger entries.
-- Chargeable generation is idempotency-protected.
-- Failed or aborted downstream generation attempts refund credits when a debit occurred.
-- Stripe fulfillment validates authenticated user, metadata, payment status, and amount before crediting.
-- Native IAP fulfillment requires an HMAC signature that covers the store receipt, timestamp freshness, a catalog pack id with that pack's exact credit count, a store receipt for that same product and transaction, and global transaction claim guards.
-- `/api/proxy` must remain SSRF-hardened.
-- Expo WebView branches are intentional and should not be removed as dead code.
-
-## More Detail
-
-For implementation details, read [AGENTS.md](./AGENTS.md).
-
-For current product behavior and roadmap priorities, read [spec.md](./spec.md).
+No `LICENSE` file is present in this repository.
