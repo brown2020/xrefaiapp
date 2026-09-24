@@ -64,6 +64,9 @@ npm run build      # Production build and Next.js type checks
 npm run start      # Start production server after build
 npm run lint       # ESLint 10 flat config
 npm run test:browser # Headless Playwright smoke tests
+npm run typecheck # tsc --noEmit
+npm run test # Contract tests in tests/code-reliability.spec.ts; needs a server already on the Playwright base URL
+npm run doctor # React Doctor, latest release
 ```
 
 Canonical validation for documentation-only changes:
@@ -212,8 +215,10 @@ Image clients pass a fresh client idempotency key so retries can be deduplicated
 - Every mutation and money path must verify the Firebase ID token server-side.
 - Server actions use `requireAuthedUid()` from `src/actions/serverAuth.ts`.
 - Billing, chat, and proxy API routes use `requireAuthedUidFromRequest()` so browser cookies and React Native Bearer tokens both work.
-- `POST /api/auth/session` verifies the Firebase ID token and sets `xrefAuthToken` as an HttpOnly cookie. Clients do not write that cookie from JavaScript.
+- `POST /api/auth/session` verifies the Firebase ID token and sets `xrefAuthToken` as an HttpOnly cookie. Clients do not write that cookie from JavaScript. If Firebase Admin credentials cannot load, the route still sets the cookie for a JWT-shaped token and logs `Admin credentials missing`. That cookie only passes the proxy soft gate. `requireAuthedUidFromRequest()` treats the same Admin failure as `AUTH_REQUIRED`, so it never authorizes spend or APIs.
 - `useAuthToken()` posts the ID token to that route before profile sync and refreshes it on interval/focus/visibility. Sign-out calls `DELETE /api/auth/session`.
+- Signed-out visitors see Sign in and Create account in the header and mobile menu. They link to `/?auth=signin` and `/?auth=signup` (`AUTH_ENTRY_ROUTES`), which open the auth modal in that mode on the homepage. Firebase auth failures are shown through `friendlyAuthError()` in `src/components/auth/authMessages.ts`, never as provider text.
+- Links to protected routes that signed-out visitors can see use `ProtectedLink`. It keeps prefetch off until `useAuthStore.sessionReady` is true, which `persistIdTokenCookie()` sets. Without it, Next caches the proxy's redirect home from a signed-out prefetch and replays it on the first click after sign-in.
 - Do not treat proxy access as authorization. A forged or expired cookie must still fail at the server action/API layer.
 
 ### Credits And Payments
@@ -378,7 +383,8 @@ High-risk UX/platform paths:
 
 ## Deployment And Infrastructure Notes
 
-- No `vercel.json`, `firebase.json`, Dockerfile, GitHub Actions workflow, cron config, or queue worker config is present in the repository.
+- No `vercel.json`, `firebase.json`, Dockerfile, cron config, or queue worker config is present in the repository.
+- `.github/workflows/ci.yml` runs on pushes and pull requests to `dev` and `main` on Node 22: `npm ci --ignore-scripts`, `npm run lint`, `npm run typecheck`, and `npm run build`. It does not run Playwright. Build-time client values come from repository secrets listed in `docs/ci-secrets.md`. The Firebase client defers initialization when `NEXT_PUBLIC_FIREBASE_APIKEY` is empty, so the build succeeds without them.
 - Deployment is currently inferred to be a standard Next.js deployment driven by `package.json`, `next.config.mjs`, environment variables, and the hosting platform configuration outside this repo.
 - `public/.well-known/apple-app-site-association` and `public/.well-known/assetlinks.json` support native app/WebView association paths. Do not remove them as unused website assets.
 - `next.config.mjs` allows Firebase/Google Storage image hosts and has `reactStrictMode: false`; re-enabling Strict Mode requires auditing auth/profile effects first.
@@ -485,3 +491,13 @@ Stop and report instead of continuing when:
 - Image generation uses fresh client request IDs like text generation, with a payload-hash fallback on the server action.
 - Payment confirmation is return-page driven; Stripe webhooks or reconciliation are future reliability work.
 - Firebase/GA4 measurement config exists, but there is no product analytics helper yet.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

@@ -13,6 +13,8 @@ interface AuthState {
   authEmailVerified: boolean;
   authReady: boolean;
   authPending: boolean;
+  /** The HttpOnly session cookie was written by `/api/auth/session` in this tab. */
+  sessionReady: boolean;
   isAdmin: boolean;
   isAllowed: boolean;
   isInvited: boolean;
@@ -38,6 +40,7 @@ const defaultAuthState: AuthState = {
   authEmailVerified: false,
   authReady: false,
   authPending: false,
+  sessionReady: false,
   isAdmin: false,
   isAllowed: false,
   isInvited: false,

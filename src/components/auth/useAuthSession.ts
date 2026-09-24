@@ -21,6 +21,11 @@ import { useAuthStore } from "@/zustand/useAuthStore";
 import { auth } from "@/firebase/firebaseClient";
 import toast from "react-hot-toast";
 import { isIOSReactNativeWebView } from "@/utils/platform";
+import {
+  authErrorCode,
+  friendlyAuthError,
+  looksLikeEmail,
+} from "@/components/auth/authMessages";
 
 export type AuthMode = "signin" | "signup";
 export type AuthFeedback = {
@@ -43,7 +48,18 @@ function isFirebaseError(
   );
 }
 
-export function useAuthSession() {
+type AuthSessionOptions = {
+  initialMode?: AuthMode;
+  initialVisible?: boolean;
+  /** Runs whenever the modal closes, including after a successful sign-in. */
+  onHide?: () => void;
+};
+
+export function useAuthSession({
+  initialMode = "signin",
+  initialVisible = false,
+  onHide,
+}: AuthSessionOptions = {}) {
 const router = useRouter();
 const setAuthDetails = useAuthStore((s) => s.setAuthDetails);
 const clearAuthDetails = useAuthStore((s) => s.clearAuthDetails);
@@ -54,9 +70,9 @@ const authPending = useAuthStore((s) => s.authPending);
 const [email, setEmail] = useState("");
 const [password, setPassword] = useState("");
 const [name, setName] = useState("");
-const [isVisible, setIsVisible] = useState(false);
+const [isVisible, setIsVisible] = useState(initialVisible);
 const [isEmailLinkLogin, setIsEmailLinkLogin] = useState(false);
-const [authMode, setAuthMode] = useState<AuthMode>("signin");
+const [authMode, setAuthMode] = useState<AuthMode>(initialMode);
 const [isSubmitting, setIsSubmitting] = useState(false);
 const [authFeedback, setAuthFeedback] = useState<AuthFeedback>(null);
 
@@ -68,6 +84,7 @@ const showModal = () => {
 const hideModal = () => {
   clearAuthFeedback();
   setIsVisible(false);
+  onHide?.();
 };
 
 /**
@@ -225,16 +242,8 @@ const handlePasswordSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 };
 
 const handleAuthError = (error: unknown) => {
-  if (isFirebaseError(error)) {
-    setAuthFeedback({ tone: "error", message: error.message });
-  } else if (error instanceof Error) {
-    setAuthFeedback({ tone: "error", message: error.message });
-  } else {
-    setAuthFeedback({
-      tone: "error",
-      message: "Authentication failed. Please try again.",
-    });
-  }
+  console.warn("Auth request failed:", authErrorCode(error) || "unknown");
+  setAuthFeedback({ tone: "error", message: friendlyAuthError(error) });
 };
 
 const handlePasswordReset = async () => {
@@ -244,6 +253,10 @@ const handlePasswordReset = async () => {
       tone: "error",
       message: "Please enter your email to reset your password.",
     });
+    return;
+  }
+  if (!looksLikeEmail(trimmedEmail)) {
+    setAuthFeedback({ tone: "error", message: "Enter a valid email address." });
     return;
   }
   clearAuthFeedback();
@@ -281,10 +294,13 @@ const handleEmailLinkSubmit = async (
     setAuthDetails({ authPending: true });
     toast.success("Check your email for a sign-in link.");
   } catch (error) {
-    console.error("Error sending sign-in link:", error);
+    const code = authErrorCode(error);
+    console.warn("Sign-in link request failed:", code || "unknown");
     setAuthFeedback({
       tone: "error",
-      message: "Could not send sign-in link. Please try again.",
+      message: code
+        ? friendlyAuthError(error)
+        : "Could not send sign-in link. Please try again.",
     });
   } finally {
     setIsSubmitting(false);

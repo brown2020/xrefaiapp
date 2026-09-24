@@ -10,6 +10,7 @@ import {
   iapConfirmSchema,
 } from "../src/utils/actionContracts";
 import { authCookieOptions } from "../src/utils/authCookie";
+import { hasJwtShape } from "../src/utils/authErrors";
 import { resolveIapCreditGrant } from "../src/utils/iapGrant";
 import { storeReceiptMatches } from "../src/utils/iapReceipt";
 import { canonicalIapPayload } from "../src/utils/iapSignature";
@@ -210,8 +211,8 @@ test.describe("code reliability contracts", () => {
       devDependencies: { "@next/eslint-plugin-next": string; postcss: string };
       overrides: { postcss: string };
     };
-    expect(pkg.dependencies.next).toBe("^16.3.5");
-    expect(pkg.devDependencies["@next/eslint-plugin-next"]).toBe("^16.3.5");
+    expect(pkg.dependencies.next).toBe("^16.3.6");
+    expect(pkg.devDependencies["@next/eslint-plugin-next"]).toBe("^16.3.6");
     expect(pkg.dependencies.sharp).toBe("^0.35.4");
     expect(pkg.devDependencies.postcss).toBe("8.5.28");
     expect(pkg.overrides.postcss).toBe("8.5.28");
@@ -223,7 +224,7 @@ test.describe("code reliability contracts", () => {
     };
     const readme = readFileSync("README.md", "utf8");
     const agents = readFileSync("AGENTS.md", "utf8");
-    for (const script of ["dev", "build", "start", "lint", "test:browser"]) {
+    for (const script of Object.keys(pkg.scripts)) {
       expect(pkg.scripts[script]).toBeTruthy();
       expect(readme).toContain(`npm run ${script}`);
     }
@@ -234,6 +235,8 @@ test.describe("code reliability contracts", () => {
       expect(readFileSync(".env.example", "utf8")).toContain(name);
     }
     expect(agents).toContain("deployment owner owns configuration drift");
+    expect(agents).toContain(".github/workflows/ci.yml");
+    expect(readFileSync("docs/architecture.md", "utf8")).toContain("no Stripe webhook");
   });
 
   test("the cookie action uses one label", () => {
@@ -250,5 +253,21 @@ test.describe("code reliability contracts", () => {
     });
 
     expect(response.status()).toBe(401);
+  });
+
+  test("the session pre-check accepts unsigned emulator tokens and rejects non-JWTs", () => {
+    expect(hasJwtShape("header.payload.")).toBe(true);
+    expect(hasJwtShape("header.payload.signature")).toBe(true);
+    expect(hasJwtShape("not-a-firebase-id-token")).toBe(false);
+    expect(hasJwtShape(".payload.signature")).toBe(false);
+    expect(hasJwtShape("header..signature")).toBe(false);
+  });
+
+  test("a missing Admin config never authorizes an API request", () => {
+    const source = readFileSync("src/utils/requireAuthedRequest.ts", "utf8");
+    expect(source).toContain(
+      "if (isTokenVerificationError(error) || isAdminConfigError(error)) {"
+    );
+    expect(source).toContain('throw new Error("AUTH_REQUIRED", { cause: error });');
   });
 });

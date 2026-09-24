@@ -13,9 +13,15 @@ import {
 } from "lucide-react";
 import { signOut } from "firebase/auth";
 import { clearAuthCookie } from "@/utils/authCookieClient";
-import { NAV_MENU_ITEMS, PROTECTED_ROUTES, ROUTES } from "@/constants/routes";
+import {
+  AUTH_ENTRY_ROUTES,
+  NAV_MENU_ITEMS,
+  PROTECTED_ROUTES,
+  ROUTES,
+} from "@/constants/routes";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui";
 import { CreditsBadge } from "@/components/ui/CreditsBadge";
+import { ProtectedLink } from "@/components/ui/ProtectedLink";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { auth } from "@/firebase/firebaseClient";
 import toast from "react-hot-toast";
@@ -46,7 +52,9 @@ export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const uid = useAuthStore((s) => s.uid);
+  const authReady = useAuthStore((s) => s.authReady);
   const clearAuthDetails = useAuthStore((s) => s.clearAuthDetails);
+  const showAuthLinks = authReady && !uid;
 
   const handleSignOut = async () => {
     try {
@@ -87,7 +95,7 @@ export default function Header() {
             {/* Desktop Menu */}
             <nav className="flex gap-1">
               {menuItems.map((item) => (
-                <Link
+                <ProtectedLink
                   key={item.href}
                   href={item.href}
                   aria-current={pathname === item.href ? "page" : undefined}
@@ -99,10 +107,26 @@ export default function Header() {
                 >
                   <item.icon className="w-4 h-4" />
                   {item.label}
-                </Link>
+                </ProtectedLink>
               ))}
             </nav>
             <CreditsBadge />
+            {showAuthLinks && (
+              <>
+                <Link
+                  href={AUTH_ENTRY_ROUTES.signIn}
+                  className="rounded-lg px-3 py-2 text-sm font-bold text-foreground transition-colors hover:bg-muted focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/30"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href={AUTH_ENTRY_ROUTES.signUp}
+                  className="rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground transition-opacity hover:opacity-90 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/30"
+                >
+                  Create account
+                </Link>
+              </>
+            )}
             {uid && (
               <button
                 onClick={handleSignOut}
@@ -134,7 +158,7 @@ export default function Header() {
                   </div>
                   {menuItems.map((item) => (
                     <SheetClose key={item.href}>
-                      <Link
+                      <ProtectedLink
                         href={item.href}
                         aria-current={pathname === item.href ? "page" : undefined}
                         className={`flex h-12 w-full items-center justify-start gap-2 whitespace-nowrap rounded-lg px-3 font-bold transition-colors ${
@@ -145,9 +169,29 @@ export default function Header() {
                       >
                         <item.icon className="w-4 h-4" />
                         <span>{item.label}</span>
-                      </Link>
+                      </ProtectedLink>
                     </SheetClose>
                   ))}
+                  {showAuthLinks && (
+                    <>
+                      <SheetClose>
+                        <Link
+                          href={AUTH_ENTRY_ROUTES.signIn}
+                          className="flex h-12 w-full items-center justify-start rounded-lg px-3 font-bold text-foreground transition-colors hover:bg-muted"
+                        >
+                          Sign in
+                        </Link>
+                      </SheetClose>
+                      <SheetClose>
+                        <Link
+                          href={AUTH_ENTRY_ROUTES.signUp}
+                          className="flex h-12 w-full items-center justify-start rounded-lg px-3 font-bold text-foreground transition-colors hover:bg-muted"
+                        >
+                          Create account
+                        </Link>
+                      </SheetClose>
+                    </>
+                  )}
                   {uid && (
                     <SheetClose>
                       <button

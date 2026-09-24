@@ -1,13 +1,60 @@
 "use client";
 
+import { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ROUTES } from "@/constants/routes";
 import { ArrowRight } from "lucide-react";
 import { InlineSpinner } from "@/components/ui/LoadingSpinner";
 import { Modal } from "@/components/ui/Modal";
-import { useAuthSession } from "@/components/auth/useAuthSession";
+import { useAuthSession, type AuthMode } from "@/components/auth/useAuthSession";
 import { AuthCredentialsForm } from "@/components/auth/AuthCredentialsForm";
 
+function parseAuthMode(value: string | null | undefined): AuthMode | null {
+  return value === "signin" || value === "signup" ? value : null;
+}
+
+/**
+ * `?auth=signin|signup` opens the modal in that mode. Remounting on the param
+ * applies it; closing drops the param so the same link works again.
+ */
+function AuthFromQuery() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const requestedMode = parseAuthMode(searchParams?.get("auth"));
+
+  return (
+    <AuthWidget
+      key={requestedMode ?? "none"}
+      requestedMode={requestedMode}
+      onHide={
+        requestedMode
+          ? () => router.replace(ROUTES.home, { scroll: false })
+          : undefined
+      }
+    />
+  );
+}
+
 export default function AuthComponent() {
-  const session = useAuthSession();
+  return (
+    <Suspense fallback={<AuthWidget requestedMode={null} />}>
+      <AuthFromQuery />
+    </Suspense>
+  );
+}
+
+function AuthWidget({
+  requestedMode,
+  onHide,
+}: {
+  requestedMode: AuthMode | null;
+  onHide?: () => void;
+}) {
+  const session = useAuthSession({
+    initialMode: requestedMode ?? "signin",
+    initialVisible: requestedMode !== null,
+    onHide,
+  });
   const { uid, authDisplayName, authEmail, authPending, email, isVisible, showModal, hideModal, handleSignOut } =
     session;
 

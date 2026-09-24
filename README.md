@@ -65,7 +65,12 @@ npm run build   # Production build
 npm run start   # Start the production server
 npm run lint    # Run ESLint
 npm run test:browser # Run headless Playwright smoke tests
+npm run typecheck    # Run the TypeScript compiler without emitting
+npm run test         # Run contract tests against an already running server
+npm run doctor       # Run React Doctor
 ```
+
+CI (`.github/workflows/ci.yml`) runs lint, typecheck, and the production build on `dev` and `main`. See [docs/ci-secrets.md](./docs/ci-secrets.md) for the build secrets.
 
 `npm run lint`, `npm run build`, and the Playwright smoke suite are the baseline verification commands. Browser verification is expected for visible UI changes.
 

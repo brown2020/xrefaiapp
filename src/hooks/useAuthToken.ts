@@ -197,6 +197,7 @@ const useAuthToken = (cookieName = getAuthCookieName()) => {
       })();
     } else {
       // Genuine signed-out state (loading === false && user === null).
+      setAuthDetails({ authReady: true });
       resetProfile();
       resetPayments();
       void clearAuthCookie();

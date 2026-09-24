@@ -16,6 +16,7 @@ import toast from "react-hot-toast";
 import Link from "next/link";
 import { ROUTES } from "@/constants/routes";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { friendlyAuthError } from "@/components/auth/authMessages";
 
 export default function LoginFinishPage() {
   const router = useRouter();
@@ -35,7 +36,10 @@ export default function LoginFinishPage() {
   }, []);
 
   const formatAuthError = useCallback((error: unknown) => {
-    if (error instanceof FirebaseError) return error.message;
+    if (error instanceof FirebaseError) {
+      console.warn("Email link sign-in failed:", error.code);
+      return friendlyAuthError(error);
+    }
     if (error instanceof Error) return error.message;
     return "Unknown error signing in";
   }, []);

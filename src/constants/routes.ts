@@ -3,6 +3,11 @@
  * Single source of truth for all application routes
  */
 
+export const AUTH_ENTRY_ROUTES = {
+  signIn: "/?auth=signin",
+  signUp: "/?auth=signup",
+} as const;
+
 export const ROUTES = {
   home: "/",
   chat: "/chat",

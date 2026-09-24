@@ -170,7 +170,7 @@ async function accountId(page) {
 }
 
 async function badgeText(page) {
-  const badge = page.getByLabel(/Credits balance/);
+  const badge = page.getByLabel(/Credits balance: \d/);
   await badge.waitFor({ timeout: 20_000 });
   return (await badge.innerText()).replace(/\s+/g, " ").trim();
 }

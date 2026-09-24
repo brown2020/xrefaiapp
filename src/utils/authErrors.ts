@@ -18,6 +18,17 @@ const TOKEN_ERROR_CODES = new Set<string>([
   "auth/session-cookie-revoked",
 ]);
 
+/**
+ * Cheap pre-check before the Admin SDK: three dot-separated segments with a
+ * header and payload. The signature may be empty because the Firebase Auth
+ * emulator issues unsigned tokens; `verifyIdToken` still rejects them in
+ * production.
+ */
+export function hasJwtShape(token: string): boolean {
+  const parts = token.split(".");
+  return parts.length === 3 && parts[0].length > 0 && parts[1].length > 0;
+}
+
 export function isTokenVerificationError(error: unknown): boolean {
   if (typeof error !== "object" || error === null) return false;
   const code = (error as { code?: unknown }).code;

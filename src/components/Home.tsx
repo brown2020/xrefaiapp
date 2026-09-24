@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import AuthComponent from "@/components/AuthComponent";
+import { ProtectedLink } from "@/components/ui/ProtectedLink";
 import {
   ArrowRight,
   BookOpen,
@@ -258,13 +259,13 @@ export default function Home() {
               their own API keys.
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-              <Link
+              <ProtectedLink
                 href={ROUTES.account}
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-bold text-foreground transition-opacity hover:opacity-90"
               >
                 Buy credits
                 <ArrowRight className="h-4 w-4" />
-              </Link>
+              </ProtectedLink>
               <Link
                 href={ROUTES.terms}
                 className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/20 px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-white/10"
@@ -394,7 +395,7 @@ function StarterIntentCard({ intent }: { intent: StarterIntent }) {
   const Icon = starterAudienceIcons[intent.audience] ?? BookOpen;
 
   return (
-    <Link
+    <ProtectedLink
       href={buildStarterIntentHref(intent)}
       className="group flex h-full flex-col rounded-lg border border-border bg-card p-5 text-left shadow-sm transition-colors hover:border-accent hover:bg-muted/40"
     >
@@ -425,6 +426,6 @@ function StarterIntentCard({ intent }: { intent: StarterIntent }) {
           {intent.estimatedCredits} credits
         </p>
       </div>
-    </Link>
+    </ProtectedLink>
   );
 }

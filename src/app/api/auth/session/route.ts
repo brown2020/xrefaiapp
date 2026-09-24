@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/firebase/firebaseAdmin";
-import { isTokenVerificationError } from "@/utils/authErrors";
+import { hasJwtShape, isTokenVerificationError } from "@/utils/authErrors";
 import { authCookieName, authCookieOptions } from "@/utils/authCookie";
 
 export const runtime = "nodejs";
@@ -18,8 +18,7 @@ export async function POST(req: NextRequest) {
 
   // Reject obviously non-JWT tokens before touching Admin SDK so local/CI
   // builds without service-account credentials still return 401 (not 500).
-  const jwtParts = idToken.split(".");
-  if (jwtParts.length !== 3 || jwtParts.some((part) => part.length === 0)) {
+  if (!hasJwtShape(idToken)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
