@@ -127,9 +127,10 @@ NEXT_PUBLIC_COOKIE_NAME=
 IAP_WEBVIEW_SECRET=
 APPLE_IAP_SHARED_SECRET=
 IAP_RECEIPT_VERIFY_URL=
+ALLOW_UNVERIFIED_SESSION_COOKIE=
 ```
 
-`NEXT_PUBLIC_COOKIE_NAME` defaults to `xrefAuthToken`. `IAP_WEBVIEW_SECRET` is required only for the native WebView IAP flow. `APPLE_IAP_SHARED_SECRET` is optional for Apple receipt checks. `IAP_RECEIPT_VERIFY_URL` is an optional local verifier, and Android grants stay closed unless it is set. Legacy samples may mention `NEXT_PUBLIC_STRIPE_KEY` and `NEXT_PUBLIC_CREDITS_PER_IMAGE`, but active checkout and credit pricing do not currently read them.
+`NEXT_PUBLIC_COOKIE_NAME` defaults to `xrefAuthToken`. `IAP_WEBVIEW_SECRET` is required only for the native WebView IAP flow. `APPLE_IAP_SHARED_SECRET` is optional for Apple receipt checks. `IAP_RECEIPT_VERIFY_URL` is an optional local verifier, and Android grants stay closed unless it is set. `ALLOW_UNVERIFIED_SESSION_COOKIE=true` is for local or CI runs without Firebase Admin credentials: sign-in sets an unverified cookie that only opens protected pages, while every API still refuses it. Leave it unset in production, where missing Admin credentials make sign-in return 503. Legacy samples may mention `NEXT_PUBLIC_STRIPE_KEY` and `NEXT_PUBLIC_CREDITS_PER_IMAGE`, but active checkout and credit pricing do not currently read them.
 
 ## Routes
 
@@ -140,6 +141,8 @@ Public routes:
 - `/privacy`
 - `/terms`
 - `/support`
+- `/login`
+- `/signup`
 - `/loginfinish`
 
 Protected routes:

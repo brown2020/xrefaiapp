@@ -1,19 +1,11 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { LogOut } from "lucide-react";
-import { signOut } from "firebase/auth";
-import { clearAuthCookie } from "@/utils/authCookieClient";
-import {
-  FOOTER_MENU_ITEMS,
-  FOOTER_HIDDEN_ROUTES,
-  ROUTES,
-  isProtectedPath,
-} from "@/constants/routes";
+import { FOOTER_MENU_ITEMS, FOOTER_HIDDEN_ROUTES } from "@/constants/routes";
 import { useAuthStore } from "@/zustand/useAuthStore";
-import { auth } from "@/firebase/firebaseClient";
-import toast from "react-hot-toast";
+import { useSignOut } from "@/hooks/useSignOut";
 
 function FooterLink({ label, href }: { label: string; href: string }) {
   return (
@@ -28,25 +20,12 @@ function FooterLink({ label, href }: { label: string; href: string }) {
 
 export default function Footer() {
   const pathname = usePathname();
-  const router = useRouter();
   const uid = useAuthStore((s) => s.uid);
-  const clearAuthDetails = useAuthStore((s) => s.clearAuthDetails);
+  const signOutAndLeave = useSignOut();
 
   if (FOOTER_HIDDEN_ROUTES.some((path) => pathname?.startsWith(path))) {
     return null;
   }
-
-  const handleSignOut = async () => {
-    try {
-      await clearAuthCookie();
-      await signOut(auth);
-      clearAuthDetails();
-      if (isProtectedPath(pathname)) router.replace(ROUTES.home);
-    } catch (error) {
-      console.error("Error signing out:", error);
-      toast.error("An error occurred while signing out.");
-    }
-  };
 
   return (
     <footer className="border-t border-border bg-card">
@@ -57,7 +36,7 @@ export default function Footer() {
           ))}
           {uid && (
             <button
-              onClick={handleSignOut}
+              onClick={() => void signOutAndLeave()}
               className="flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
             >
               <LogOut size={14} />

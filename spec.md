@@ -76,6 +76,8 @@ Public routes:
 | `/terms` | Terms of Service |
 | `/privacy` | Privacy Policy |
 | `/support` | Support contact and common requests |
+| `/login` | Sign in, forgot password, return to `next` |
+| `/signup` | Create account, return to `next` |
 | `/loginfinish` | Email-link auth completion |
 
 Protected routes:
@@ -114,7 +116,8 @@ API routes:
 - Google sign-in hidden in React Native WebView.
 - ID token written to `xrefAuthToken` cookie before protected navigation.
 - Auth token refresh on interval, focus, and visibility change.
-- Protected routes use `src/proxy.ts` for cookie-presence soft gating.
+- Protected routes use `src/proxy.ts` for cookie-presence soft gating. A signed-out request goes to `/login?next=<path>`, and sign-in returns to that path.
+- Signed-out visitors can open Sign in or Create account from the header and mobile menu. Auth errors are shown as short mapped messages.
 - Server actions and API mutations verify ID tokens server-side.
 
 #### Chat

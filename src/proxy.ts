@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getAuthCookieName } from "@/utils/getAuthCookieName";
-import { PROTECTED_ROUTES } from "@/constants/routes";
+import { PROTECTED_ROUTES, ROUTES } from "@/constants/routes";
 
 /**
  * Next.js 16 Proxy (replaces middleware.ts).
@@ -23,7 +23,8 @@ export function proxy(request: NextRequest) {
     const token = request.cookies.get(cookieName)?.value;
 
     if (!token) {
-      const url = new URL("/", request.url);
+      const url = new URL(ROUTES.login, request.url);
+      url.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
       return NextResponse.redirect(url);
     }
   }

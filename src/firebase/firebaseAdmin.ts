@@ -23,16 +23,30 @@ const adminCredentials = {
   clientCertsUrl: process.env.FIREBASE_CLIENT_CERTS_URL,
 };
 
+function usesEmulator(): boolean {
+  return (
+    Boolean(process.env.FIRESTORE_EMULATOR_HOST) ||
+    Boolean(process.env.FIREBASE_AUTH_EMULATOR_HOST)
+  );
+}
+
+/** True when Admin can verify tokens: an emulator, or the service-account fields the cert needs. */
+export function isAdminConfigured(): boolean {
+  if (usesEmulator()) return true;
+  return Boolean(
+    adminCredentials.projectId?.trim() &&
+      adminCredentials.clientEmail?.trim() &&
+      adminCredentials.privateKey?.trim()
+  );
+}
+
 let initialized = false;
 function ensureInitialized(): void {
   if (initialized || getApps().length > 0) {
     initialized = true;
     return;
   }
-  const emulator =
-    Boolean(process.env.FIRESTORE_EMULATOR_HOST) ||
-    Boolean(process.env.FIREBASE_AUTH_EMULATOR_HOST);
-  if (emulator) {
+  if (usesEmulator()) {
     admin.initializeApp({
       projectId: process.env.FIREBASE_PROJECT_ID || "demo-xref",
     });

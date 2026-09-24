@@ -3,11 +3,6 @@
  * Single source of truth for all application routes
  */
 
-export const AUTH_ENTRY_ROUTES = {
-  signIn: "/?auth=signin",
-  signUp: "/?auth=signup",
-} as const;
-
 export const ROUTES = {
   home: "/",
   chat: "/chat",
@@ -18,6 +13,8 @@ export const ROUTES = {
   terms: "/terms",
   privacy: "/privacy",
   support: "/support",
+  login: "/login",
+  signup: "/signup",
   loginFinish: "/loginfinish",
   paymentAttempt: "/payment-attempt",
   paymentSuccess: "/payment-success",
@@ -52,8 +49,13 @@ export const PUBLIC_ROUTES = [
   ROUTES.terms,
   ROUTES.privacy,
   ROUTES.support,
+  ROUTES.login,
+  ROUTES.signup,
   ROUTES.loginFinish,
 ] as const;
+
+/** Where signed-in users land when a sign-in page has no `next`. */
+export const DEFAULT_SIGNED_IN_ROUTE = ROUTES.tools;
 
 /**
  * Routes where the footer should be hidden

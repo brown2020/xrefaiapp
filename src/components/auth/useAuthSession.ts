@@ -1,14 +1,11 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
-import { useRouter } from "next/navigation";
-import { ROUTES, isProtectedPath } from "@/constants/routes";
 import {
   GoogleAuthProvider,
   getIdToken,
   sendSignInLinkToEmail,
   signInWithPopup,
-  signOut,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
@@ -16,12 +13,14 @@ import {
   updateProfile as updateFirebaseProfile,
   type User,
 } from "firebase/auth";
-import { persistIdTokenCookie, clearAuthCookie } from "@/utils/authCookieClient";
+import { persistIdTokenCookie } from "@/utils/authCookieClient";
+import { signOutUser, useSignOut } from "@/hooks/useSignOut";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { auth } from "@/firebase/firebaseClient";
 import toast from "react-hot-toast";
 import { isIOSReactNativeWebView } from "@/utils/platform";
 import {
+  SESSION_START_ERROR,
   authErrorCode,
   friendlyAuthError,
   looksLikeEmail,
@@ -50,19 +49,16 @@ function isFirebaseError(
 
 type AuthSessionOptions = {
   initialMode?: AuthMode;
-  initialVisible?: boolean;
-  /** Runs whenever the modal closes, including after a successful sign-in. */
-  onHide?: () => void;
+  /** Runs after sign-in succeeds and the session cookie is written. */
+  onSignedIn?: () => void;
 };
 
 export function useAuthSession({
   initialMode = "signin",
-  initialVisible = false,
-  onHide,
+  onSignedIn,
 }: AuthSessionOptions = {}) {
-const router = useRouter();
+const signOutAndLeave = useSignOut();
 const setAuthDetails = useAuthStore((s) => s.setAuthDetails);
-const clearAuthDetails = useAuthStore((s) => s.clearAuthDetails);
 const uid = useAuthStore((s) => s.uid);
 const authEmail = useAuthStore((s) => s.authEmail);
 const authDisplayName = useAuthStore((s) => s.authDisplayName);
@@ -70,7 +66,7 @@ const authPending = useAuthStore((s) => s.authPending);
 const [email, setEmail] = useState("");
 const [password, setPassword] = useState("");
 const [name, setName] = useState("");
-const [isVisible, setIsVisible] = useState(initialVisible);
+const [isVisible, setIsVisible] = useState(false);
 const [isEmailLinkLogin, setIsEmailLinkLogin] = useState(false);
 const [authMode, setAuthMode] = useState<AuthMode>(initialMode);
 const [isSubmitting, setIsSubmitting] = useState(false);
@@ -84,7 +80,6 @@ const showModal = () => {
 const hideModal = () => {
   clearAuthFeedback();
   setIsVisible(false);
-  onHide?.();
 };
 
 /**
@@ -93,16 +88,18 @@ const hideModal = () => {
  * effect races with the user clicking a protected link and the proxy
  * redirects to home because the cookie isn't there yet.
  */
-const persistAuthCookie = async (user: User): Promise<void> => {
+const persistAuthCookie = async (user: User): Promise<boolean> => {
   try {
     const idToken = await getIdToken(user, /* forceRefresh */ true);
-    const wrote = await persistIdTokenCookie(idToken);
-    if (!wrote) {
-      throw new Error("Failed to persist auth cookie after sign-in.");
-    }
+    if (await persistIdTokenCookie(idToken)) return true;
+    console.warn("Session cookie was not set after sign-in");
   } catch (err) {
     console.error("Failed to persist auth cookie after sign-in:", err);
   }
+  // Stay signed out so the form, not the signed-in panel, shows this message.
+  await signOutUser().catch(() => undefined);
+  setAuthFeedback({ tone: "error", message: SESSION_START_ERROR });
+  return false;
 };
 
 const showGoogleSignIn = useSyncExternalStore(
@@ -116,10 +113,9 @@ const signInWithGoogle = async () => {
   try {
     const provider = new GoogleAuthProvider();
     const credential = await signInWithPopup(auth, provider);
-    if (credential.user) {
-      await persistAuthCookie(credential.user);
-    }
+    if (credential.user && !(await persistAuthCookie(credential.user))) return;
     hideModal();
+    onSignedIn?.();
   } catch (error) {
     if (isFirebaseError(error)) {
       if (error.code === "auth/account-exists-with-different-credential") {
@@ -147,17 +143,8 @@ const signInWithGoogle = async () => {
 };
 
 const handleSignOut = async () => {
-  try {
-    await clearAuthCookie();
-    await signOut(auth);
-    clearAuthDetails();
-    if (isProtectedPath(window.location.pathname)) router.replace(ROUTES.home);
-  } catch (error) {
-    console.error("Error signing out:", error);
-    toast.error("An error occurred while signing out.");
-  } finally {
-    hideModal();
-  }
+  await signOutAndLeave();
+  hideModal();
 };
 
 const persistSignupHints = (nextEmail: string, nextName: string) => {
@@ -193,9 +180,10 @@ const handlePasswordSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         });
         persistSignupHints(trimmedEmail, trimmedName);
       }
-      await persistAuthCookie(credential.user);
+      if (!(await persistAuthCookie(credential.user))) return;
     }
     hideModal();
+    onSignedIn?.();
   } catch (error: unknown) {
     const firebaseCode = isFirebaseError(error) ? error.code : "";
 

@@ -1,21 +1,7 @@
 import { NextRequest } from "next/server";
-import { adminAuth } from "@/firebase/firebaseAdmin";
+import { adminAuth, isAdminConfigured } from "@/firebase/firebaseAdmin";
 import { getAuthCookieName } from "@/utils/getAuthCookieName";
 import { isTokenVerificationError } from "@/utils/authErrors";
-
-function isAdminConfigError(error: unknown): boolean {
-  const code =
-    typeof error === "object" && error && "code" in error
-      ? String((error as { code?: unknown }).code || "")
-      : "";
-  const message = error instanceof Error ? error.message : String(error);
-  return (
-    code === "app/invalid-credential" ||
-    /project_id|service account|Unable to detect a Project Id|Could not load the default credentials/i.test(
-      message,
-    )
-  );
-}
 
 /**
  * Extracts and verifies the Firebase ID token from a NextRequest.
@@ -36,14 +22,14 @@ export async function requireAuthedUidFromRequest(
 
   const idToken = bearerToken || cookieToken;
   if (!idToken) throw new Error("AUTH_REQUIRED");
+  // Without Admin nothing can be verified, so a cookie alone never authorizes.
+  if (!isAdminConfigured()) throw new Error("AUTH_REQUIRED");
 
   let decoded;
   try {
     decoded = await adminAuth.verifyIdToken(idToken);
   } catch (error) {
-    if (isTokenVerificationError(error) || isAdminConfigError(error)) {
-      // Token invalid OR Admin SDK not configured (local/CI without secrets):
-      // deny the mutation. Soft-gate cookies alone must not authorize spend/API.
+    if (isTokenVerificationError(error)) {
       throw new Error("AUTH_REQUIRED", { cause: error });
     }
     // Transient infra/network failures: don't mask as a 401.

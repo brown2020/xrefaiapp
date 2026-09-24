@@ -140,6 +140,7 @@ Root config files include `package.json`, `package-lock.json`, `next.config.mjs`
 
 - Public homepage with hero, starter paths, feature sections, auth CTA, and responsive typewriter sizing.
 - Public `/about`, `/terms`, `/privacy`, and `/support` pages using shared public-page layout components.
+- Dedicated `/login` and `/signup` pages. Protected routes redirect signed-out requests to `/login?next=<path>`, and a successful sign-in returns there.
 - Firebase auth with Google sign-in, email/password, password reset, and email-link sign-in.
 - Protected Chat, Tools, History, Account, payment attempt, and payment success routes.
 - Streaming AI chat through `/api/chat`.
@@ -215,9 +216,12 @@ Image clients pass a fresh client idempotency key so retries can be deduplicated
 - Every mutation and money path must verify the Firebase ID token server-side.
 - Server actions use `requireAuthedUid()` from `src/actions/serverAuth.ts`.
 - Billing, chat, and proxy API routes use `requireAuthedUidFromRequest()` so browser cookies and React Native Bearer tokens both work.
-- `POST /api/auth/session` verifies the Firebase ID token and sets `xrefAuthToken` as an HttpOnly cookie. Clients do not write that cookie from JavaScript. If Firebase Admin credentials cannot load, the route still sets the cookie for a JWT-shaped token and logs `Admin credentials missing`. That cookie only passes the proxy soft gate. `requireAuthedUidFromRequest()` treats the same Admin failure as `AUTH_REQUIRED`, so it never authorizes spend or APIs.
+- `POST /api/auth/session` verifies the Firebase ID token and sets `xrefAuthToken` as an HttpOnly cookie. Clients do not write that cookie from JavaScript.
+- `isAdminConfigured()` in `src/firebase/firebaseAdmin.ts` is true for the emulators or when `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY` are set. Without it, the session route returns 503 and logs `Auth session unavailable`, and both `requireAuthedUid()` and `requireAuthedUidFromRequest()` throw `AUTH_REQUIRED` before touching the SDK. For local or CI runs without Admin, `ALLOW_UNVERIFIED_SESSION_COOKIE=true` makes the session route set the soft-gate cookie unverified. That cookie still never authorizes spend or APIs. Never set it in production.
+- The auth form shows an error and stays signed out when the session cookie cannot be written, instead of closing as though sign-in worked.
+- Sign-out goes through `signOutUser()` / `useSignOut()` in `src/hooks/useSignOut.ts`. Do not call `signOut(auth)` elsewhere.
 - `useAuthToken()` posts the ID token to that route before profile sync and refreshes it on interval/focus/visibility. Sign-out calls `DELETE /api/auth/session`.
-- Signed-out visitors see Sign in and Create account in the header and mobile menu. They link to `/?auth=signin` and `/?auth=signup` (`AUTH_ENTRY_ROUTES`), which open the auth modal in that mode on the homepage. Firebase auth failures are shown through `friendlyAuthError()` in `src/components/auth/authMessages.ts`, never as provider text.
+- Signed-out visitors see Sign in and Create account in the header and mobile menu, linking to `/login` and `/signup`. The homepage keeps its sign-in modal. `next` is passed through `sanitizeInternalRedirectPath()` and defaults to `DEFAULT_SIGNED_IN_ROUTE` (`/tools`). Firebase auth failures are shown through `friendlyAuthError()` in `src/components/auth/authMessages.ts`, never as provider text.
 - Links to protected routes that signed-out visitors can see use `ProtectedLink`. It keeps prefetch off until `useAuthStore.sessionReady` is true, which `persistIdTokenCookie()` sets. Without it, Next caches the proxy's redirect home from a signed-out prefetch and replays it on the first click after sign-in.
 - Do not treat proxy access as authorization. A forged or expired cookie must still fail at the server action/API layer.
 
@@ -439,6 +443,7 @@ Billing/runtime:
 - `APP_URL`
 - `NEXT_PUBLIC_COOKIE_NAME`
 - `IAP_WEBVIEW_SECRET`
+- `ALLOW_UNVERIFIED_SESSION_COOKIE` optional, local/CI only
 
 `APPLE_IAP_SHARED_SECRET` is optional and is sent to Apple's verifyReceipt endpoint when `IAP_RECEIPT_VERIFY_URL` is unset. `IAP_RECEIPT_VERIFY_URL` is an optional local receipt verifier. Android grants stay closed unless that verifier is set.
 

@@ -20,6 +20,9 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
 
 export const GENERIC_AUTH_ERROR = "Something went wrong. Please try again.";
 
+export const SESSION_START_ERROR =
+  "You signed in, but we couldn't start your session. Please try again in a moment.";
+
 export function looksLikeEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }

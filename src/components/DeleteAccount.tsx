@@ -1,12 +1,9 @@
 "use client";
 
-import { useAuthStore } from "@/zustand/useAuthStore";
 import { useState, useCallback } from "react";
 import DeleteConfirmModal from "./DeleteConfirmModal";
 import useProfileStore from "@/zustand/useProfileStore";
-import { signOut } from "firebase/auth";
-import { clearAuthCookie } from "@/utils/authCookieClient";
-import { auth } from "@/firebase/firebaseClient";
+import { signOutUser } from "@/hooks/useSignOut";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { ROUTES } from "@/constants/routes";
@@ -15,7 +12,6 @@ export default function DeleteAccount() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [loadingDelete, setLoadingDelete] = useState(false);
   const deleteAccount = useProfileStore((state) => state.deleteAccount);
-  const clearAuthDetails = useAuthStore((s) => s.clearAuthDetails);
   const router = useRouter();
 
   const handleDeleteClick = () => {
@@ -27,9 +23,7 @@ export default function DeleteAccount() {
     setShowDeleteModal(false);
     try {
       await deleteAccount();
-      await clearAuthCookie();
-      await signOut(auth);
-      clearAuthDetails();
+      await signOutUser();
       toast.success("Account deleted successfully.");
       router.replace(ROUTES.home);
     } catch (error) {
@@ -38,7 +32,7 @@ export default function DeleteAccount() {
     } finally {
       setLoadingDelete(false);
     }
-  }, [deleteAccount, clearAuthDetails, router]);
+  }, [deleteAccount, router]);
 
   return (
     <div className="flex flex-col container mt-4 mx-auto gap-4">

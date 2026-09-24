@@ -2,6 +2,7 @@
 
 import { AlertCircle } from "lucide-react";
 import Image, { StaticImageData } from "next/image";
+import { InlineSpinner } from "@/components/ui/LoadingSpinner";
 import type { AuthFeedback } from "@/components/auth/useAuthSession";
 
 export function AuthFeedbackMessage({
@@ -31,6 +32,42 @@ export function AuthFeedbackMessage({
         aria-hidden="true"
       />
       <span>{feedback.message}</span>
+    </div>
+  );
+}
+
+export function AuthPendingPanel({
+  email,
+  onStartOver,
+}: {
+  email: string;
+  onStartOver: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="pr-10">
+        <h2 className="text-2xl font-bold">Check your email</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          The sign-in link is waiting in your inbox.
+        </p>
+      </div>
+      <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm">
+        <div>{`Check your email at ${email} for a message from Xref.ai`}</div>
+        <div>
+          {`If you don't see the message, check your spam folder. Mark it "not spam" or move it to your inbox.`}
+        </div>
+        <div>
+          Click the sign-in link in the message to complete the sign-in
+          process.
+        </div>
+        <div className="flex items-center gap-2">
+          <span>Waiting for you to click the sign-in link.</span>
+          <InlineSpinner size="sm" />
+        </div>
+      </div>
+      <button type="button" onClick={onStartOver} className="btn-danger mt-0">
+        Start Over
+      </button>
     </div>
   );
 }

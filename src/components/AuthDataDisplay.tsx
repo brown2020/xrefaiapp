@@ -1,13 +1,10 @@
 "use client";
 
 import { useAuthStore } from "@/zustand/useAuthStore";
-import { signOut } from "firebase/auth";
-import { clearAuthCookie } from "@/utils/authCookieClient";
-import { auth, storage } from "@/firebase/firebaseClient";
+import { storage } from "@/firebase/firebaseClient";
+import { useSignOut } from "@/hooks/useSignOut";
 import useProfileStore from "@/zustand/useProfileStore";
-import { useRouter } from "next/navigation";
 import { ChangeEvent, useEffect, useState } from "react";
-import { ROUTES, isProtectedPath } from "@/constants/routes";
 import { resizeImage } from "@/utils/resizeImage";
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
 import Image from "next/image";
@@ -18,8 +15,7 @@ import toast from "react-hot-toast";
 export default function AuthDataDisplay() {
   const uid = useAuthStore((s) => s.uid);
   const authEmail = useAuthStore((s) => s.authEmail);
-  const clearAuthDetails = useAuthStore((s) => s.clearAuthDetails);
-  const router = useRouter();
+  const signOutAndLeave = useSignOut();
   const profile = useProfileStore((s) => s.profile);
   const updateProfile = useProfileStore((s) => s.updateProfile);
   const [firstName, setFirstName] = useState(profile.firstName ?? "");
@@ -84,17 +80,7 @@ export default function AuthDataDisplay() {
     }
   };
 
-  const logoutUser = async () => {
-    try {
-      await clearAuthCookie();
-      await signOut(auth);
-      clearAuthDetails();
-      if (isProtectedPath(window.location.pathname)) router.replace(ROUTES.home);
-    } catch (error) {
-      console.error("Error signing out:", error);
-      toast.error("An error occurred while signing out.");
-    }
-  };
+  const logoutUser = () => void signOutAndLeave();
 
   return (
     <div className="bg-[#ffffff] border border-[#81878D] rounded-2xl mb-4">

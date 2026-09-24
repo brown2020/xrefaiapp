@@ -229,7 +229,11 @@ test.describe("code reliability contracts", () => {
       expect(readme).toContain(`npm run ${script}`);
     }
     expect(readme).toContain("npm install");
-    for (const name of ["APPLE_IAP_SHARED_SECRET", "IAP_RECEIPT_VERIFY_URL"]) {
+    for (const name of [
+      "APPLE_IAP_SHARED_SECRET",
+      "IAP_RECEIPT_VERIFY_URL",
+      "ALLOW_UNVERIFIED_SESSION_COOKIE",
+    ]) {
       expect(agents).toContain(name);
       expect(readme).toContain(name);
       expect(readFileSync(".env.example", "utf8")).toContain(name);
@@ -263,11 +267,15 @@ test.describe("code reliability contracts", () => {
     expect(hasJwtShape("header..signature")).toBe(false);
   });
 
-  test("a missing Admin config never authorizes an API request", () => {
-    const source = readFileSync("src/utils/requireAuthedRequest.ts", "utf8");
-    expect(source).toContain(
-      "if (isTokenVerificationError(error) || isAdminConfigError(error)) {"
-    );
-    expect(source).toContain('throw new Error("AUTH_REQUIRED", { cause: error });');
+  test("a missing Admin config never authorizes a request or sets an unverified cookie by default", () => {
+    for (const file of ["src/utils/requireAuthedRequest.ts", "src/actions/serverAuth.ts"]) {
+      expect(readFileSync(file, "utf8")).toContain(
+        'if (!isAdminConfigured()) throw new Error("AUTH_REQUIRED");'
+      );
+    }
+    const session = readFileSync("src/app/api/auth/session/route.ts", "utf8");
+    expect(session).toContain('process.env.ALLOW_UNVERIFIED_SESSION_COOKIE === "true"');
+    expect(session).toContain("status: 503");
+    expect(session).not.toMatch(/project_id\|service account/);
   });
 });

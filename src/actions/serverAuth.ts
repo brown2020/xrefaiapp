@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { adminAuth } from "@/firebase/firebaseAdmin";
+import { adminAuth, isAdminConfigured } from "@/firebase/firebaseAdmin";
 import { getAuthCookieName } from "@/utils/getAuthCookieName";
 import { isTokenVerificationError } from "@/utils/authErrors";
 
@@ -17,6 +17,8 @@ export async function requireAuthedUid(): Promise<string> {
   const cookieName = getAuthCookieName();
   const token = (await cookies()).get(cookieName)?.value;
   if (!token) throw new Error("AUTH_REQUIRED");
+  // Without Admin nothing can be verified, so a cookie alone never authorizes.
+  if (!isAdminConfigured()) throw new Error("AUTH_REQUIRED");
 
   let decoded;
   try {

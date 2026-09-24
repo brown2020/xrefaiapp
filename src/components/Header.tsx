@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   Menu,
@@ -11,20 +11,12 @@ import {
   User,
   LogOut,
 } from "lucide-react";
-import { signOut } from "firebase/auth";
-import { clearAuthCookie } from "@/utils/authCookieClient";
-import {
-  AUTH_ENTRY_ROUTES,
-  NAV_MENU_ITEMS,
-  PROTECTED_ROUTES,
-  ROUTES,
-} from "@/constants/routes";
+import { NAV_MENU_ITEMS, ROUTES } from "@/constants/routes";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui";
 import { CreditsBadge } from "@/components/ui/CreditsBadge";
 import { ProtectedLink } from "@/components/ui/ProtectedLink";
 import { useAuthStore } from "@/zustand/useAuthStore";
-import { auth } from "@/firebase/firebaseClient";
-import toast from "react-hot-toast";
+import { useSignOut } from "@/hooks/useSignOut";
 
 type MenuItem = {
   label: string;
@@ -50,28 +42,11 @@ const menuItems: MenuItem[] = NAV_MENU_ITEMS.map((item) => ({
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
-  const router = useRouter();
   const uid = useAuthStore((s) => s.uid);
   const authReady = useAuthStore((s) => s.authReady);
-  const clearAuthDetails = useAuthStore((s) => s.clearAuthDetails);
+  const signOutAndLeave = useSignOut();
   const showAuthLinks = authReady && !uid;
-
-  const handleSignOut = async () => {
-    try {
-      await clearAuthCookie();
-      await signOut(auth);
-      clearAuthDetails();
-      // If we're on a protected route, navigate home so the user doesn't
-      // sit on a page they no longer have access to.
-      const isOnProtected = PROTECTED_ROUTES.some(
-        (route) => pathname === route || pathname?.startsWith(`${route}/`)
-      );
-      if (isOnProtected) router.push(ROUTES.home);
-    } catch (error) {
-      console.error("Error signing out:", error);
-      toast.error("An error occurred while signing out.");
-    }
-  };
+  const handleSignOut = () => void signOutAndLeave();
 
   return (
     <div className="sticky top-0 z-20 border-b border-border bg-card/90 backdrop-blur-md">
@@ -114,13 +89,13 @@ export default function Header() {
             {showAuthLinks && (
               <>
                 <Link
-                  href={AUTH_ENTRY_ROUTES.signIn}
+                  href={ROUTES.login}
                   className="rounded-lg px-3 py-2 text-sm font-bold text-foreground transition-colors hover:bg-muted focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/30"
                 >
                   Sign in
                 </Link>
                 <Link
-                  href={AUTH_ENTRY_ROUTES.signUp}
+                  href={ROUTES.signup}
                   className="rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground transition-opacity hover:opacity-90 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/30"
                 >
                   Create account
@@ -176,7 +151,7 @@ export default function Header() {
                     <>
                       <SheetClose>
                         <Link
-                          href={AUTH_ENTRY_ROUTES.signIn}
+                          href={ROUTES.login}
                           className="flex h-12 w-full items-center justify-start rounded-lg px-3 font-bold text-foreground transition-colors hover:bg-muted"
                         >
                           Sign in
@@ -184,7 +159,7 @@ export default function Header() {
                       </SheetClose>
                       <SheetClose>
                         <Link
-                          href={AUTH_ENTRY_ROUTES.signUp}
+                          href={ROUTES.signup}
                           className="flex h-12 w-full items-center justify-start rounded-lg px-3 font-bold text-foreground transition-colors hover:bg-muted"
                         >
                           Create account

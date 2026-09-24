@@ -10,7 +10,14 @@ import googleLogo from "@/app/assets/google.svg";
 
 type Session = ReturnType<typeof useAuthSession>;
 
-export function AuthCredentialsForm({ session }: { session: Session }) {
+export function AuthCredentialsForm({
+  session,
+  titleAs: Title = "h2",
+}: {
+  session: Session;
+  /** Use "h1" when the form is the main content of a page. */
+  titleAs?: "h1" | "h2";
+}) {
   const {
     email,
     setEmail,
@@ -41,7 +48,7 @@ export function AuthCredentialsForm({ session }: { session: Session }) {
       className="flex flex-col gap-4"
     >
       <div className="pr-10">
-        <h2 className="text-2xl font-bold">{modalTitle}</h2>
+        <Title className="text-2xl font-bold">{modalTitle}</Title>
         <p className="mt-1 text-sm text-muted-foreground">{modalSubtitle}</p>
       </div>
 

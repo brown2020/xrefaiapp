@@ -18,6 +18,8 @@ const publicRoutes = [
   "/privacy",
   "/terms",
   "/support",
+  "/login",
+  "/signup",
   "/loginfinish",
 ] as const;
 
@@ -37,8 +39,10 @@ test.describe("proxy route protection", () => {
     test(`redirects unauthenticated requests from ${route}`, async ({ page }) => {
       await page.goto(route);
 
-      expect(new URL(page.url()).pathname).toBe("/");
-      await expect(page.getByRole("heading", { name: "Create amazing" })).toBeVisible();
+      const url = new URL(page.url());
+      expect(url.pathname).toBe("/login");
+      expect(url.searchParams.get("next")).toBe(route);
+      await expect(page.getByRole("heading", { level: 1, name: "Welcome back" })).toBeVisible();
     });
   }
 
@@ -50,6 +54,14 @@ test.describe("proxy route protection", () => {
       expect(new URL(page.url()).pathname).toBe(route);
     });
   }
+
+  test("keeps the query string in the return path", async ({ page }) => {
+    await page.goto("/chat?intent=student-study-guide");
+
+    const url = new URL(page.url());
+    expect(url.pathname).toBe("/login");
+    expect(url.searchParams.get("next")).toBe("/chat?intent=student-study-guide");
+  });
 
   test("allows soft-authenticated navigation to protected app pages", async ({
     page,
