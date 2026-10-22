@@ -34,6 +34,8 @@ function formatDate(ts: Timestamp | null): string {
   return formatDateTime(ts.toMillis());
 }
 
+const creditsFormatter = new Intl.NumberFormat();
+
 export default function CreditsLedger() {
   const uid = useAuthStore((s) => s.uid);
   const [entries, setEntries] = useState<CreditsLedgerEntry[]>([]);
@@ -96,30 +98,28 @@ export default function CreditsLedger() {
   if (!uid) return null;
 
   return (
-    <div className="mt-6">
-      <div className="text-2xl font-bold mb-3">
-        <span className="bg-linear-to-r from-[#9C26D7] to-[#1EB1DB] bg-clip-text text-transparent">
-          Credits Ledger
-        </span>
-      </div>
+    <section aria-labelledby="ledger-heading">
+      <h2 id="ledger-heading" className="mb-3 text-lg font-bold text-foreground">
+        Credits ledger
+      </h2>
 
       <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-10">
-            <LoadingSpinner size="lg" text="Loading credits ledger..." />
+            <LoadingSpinner size="lg" text="Loading credits ledger…" />
           </div>
         ) : errorMessage ? (
-          <div className="p-4 bg-red-50 border-t border-red-100 text-red-700">
-            Error: {errorMessage}
+          <div className="p-4 bg-destructive/5 text-destructive">
+            Could not load the ledger: {errorMessage}
           </div>
         ) : entries.length === 0 ? (
-          <div className="p-6 text-sm text-gray-500">
+          <div className="p-6 text-sm text-muted-foreground">
             No credit activity yet.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead className="bg-gray-50 text-gray-600">
+              <thead className="bg-muted text-muted-foreground">
                 <tr>
                   <th className="text-left font-semibold px-4 py-3">When</th>
                   <th className="text-left font-semibold px-4 py-3">Type</th>
@@ -131,12 +131,12 @@ export default function CreditsLedger() {
                   <th className="text-right font-semibold px-4 py-3">Balance</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-border">
                 {entries.map((e) => {
                   const isDebit = e.type === "debit";
                   return (
-                    <tr key={e.id} className="hover:bg-gray-50/60">
-                      <td className="px-4 py-3 whitespace-nowrap text-gray-700">
+                    <tr key={e.id} className="hover:bg-muted/50">
+                      <td className="px-4 py-3 whitespace-nowrap text-foreground">
                         {formatDate(e.createdAt)}
                       </td>
                       <td className="px-4 py-3">
@@ -151,20 +151,20 @@ export default function CreditsLedger() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right font-semibold tabular-nums">
-                        {isDebit ? "-" : "+"}
-                        {Math.abs(e.amount)}
+                        {isDebit ? "−" : "+"}
+                        {creditsFormatter.format(Math.abs(e.amount))}
                       </td>
-                      <td className="px-4 py-3 text-gray-700">{e.reason}</td>
-                      <td className="px-4 py-3 text-gray-600">{e.tool ?? "—"}</td>
-                      <td className="px-4 py-3 text-gray-600">
+                      <td className="px-4 py-3 text-foreground">{e.reason}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{e.tool ?? "—"}</td>
+                      <td className="px-4 py-3 text-muted-foreground">
                         {e.modelKey ?? "—"}
                       </td>
-                      <td className="px-4 py-3 text-gray-600">
+                      <td className="px-4 py-3 text-muted-foreground">
                         {e.refId ? `${e.refId.slice(0, 14)}…` : "—"}
                       </td>
-                      <td className="px-4 py-3 text-right text-gray-700 tabular-nums">
+                      <td className="px-4 py-3 text-right text-foreground tabular-nums">
                         {typeof e.balanceAfter === "number"
-                          ? Math.round(e.balanceAfter)
+                          ? creditsFormatter.format(Math.round(e.balanceAfter))
                           : "—"}
                       </td>
                     </tr>
@@ -175,6 +175,6 @@ export default function CreditsLedger() {
           </div>
         )}
       </div>
-    </div>
+    </section>
   );
 }

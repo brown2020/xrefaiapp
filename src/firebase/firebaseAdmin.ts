@@ -1,5 +1,7 @@
-import admin from "firebase-admin";
-import { getApps } from "firebase-admin/app";
+import { cert, getApps, initializeApp, type ServiceAccount } from "firebase-admin/app";
+import { getAuth, type Auth } from "firebase-admin/auth";
+import { getFirestore, type Firestore } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 
 /**
  * Firebase Admin SDK singleton.
@@ -47,45 +49,45 @@ function ensureInitialized(): void {
     return;
   }
   if (usesEmulator()) {
-    admin.initializeApp({
+    initializeApp({
       projectId: process.env.FIREBASE_PROJECT_ID || "demo-xref",
     });
   } else {
-    admin.initializeApp({
-      credential: admin.credential.cert(adminCredentials as admin.ServiceAccount),
+    initializeApp({
+      credential: cert(adminCredentials as ServiceAccount),
       storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGEBUCKET,
     });
   }
   initialized = true;
 }
 
-export const adminDb: admin.firestore.Firestore = new Proxy(
-  {} as admin.firestore.Firestore,
+export const adminDb: Firestore = new Proxy(
+  {} as Firestore,
   {
     get(_, prop) {
       ensureInitialized();
-      const db = admin.firestore();
+      const db = getFirestore();
       const value = (db as unknown as Record<string | symbol, unknown>)[prop];
       return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(db) : value;
     },
   }
 );
 
-export const adminAuth: admin.auth.Auth = new Proxy({} as admin.auth.Auth, {
+export const adminAuth: Auth = new Proxy({} as Auth, {
   get(_, prop) {
     ensureInitialized();
-    const auth = admin.auth();
+    const auth = getAuth();
     const value = (auth as unknown as Record<string | symbol, unknown>)[prop];
     return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(auth) : value;
   },
 });
 
 export const adminBucket = new Proxy(
-  {} as ReturnType<ReturnType<typeof admin.storage>["bucket"]>,
+  {} as ReturnType<ReturnType<typeof getStorage>["bucket"]>,
   {
     get(_, prop) {
       ensureInitialized();
-      const bucket = admin.storage().bucket();
+      const bucket = getStorage().bucket();
       const value = (bucket as unknown as Record<string | symbol, unknown>)[prop];
       return typeof value === "function"
         ? (value as (...args: unknown[]) => unknown).bind(bucket)
@@ -93,5 +95,3 @@ export const adminBucket = new Proxy(
     },
   }
 );
-
-export { admin };

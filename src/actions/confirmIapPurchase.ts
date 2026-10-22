@@ -1,7 +1,8 @@
 "use server";
 
 import crypto from "crypto";
-import { admin, adminDb } from "@/firebase/firebaseAdmin";
+import { FieldValue } from "firebase-admin/firestore";
+import { adminDb } from "@/firebase/firebaseAdmin";
 import { requireAuthedUid } from "@/actions/serverAuth";
 import { coerceCredits } from "@/utils/credits";
 import { resolveIapCreditGrant } from "@/utils/iapGrant";
@@ -113,7 +114,7 @@ export async function confirmIapPurchase(
   );
 
   return await adminDb.runTransaction(
-    async (tx: FirebaseFirestore.Transaction) => {
+    async (tx) => {
       const globalClaimSnap = await tx.get(globalClaimRef);
       if (globalClaimSnap.exists) {
         const claimedByUid = String(globalClaimSnap.data()?.uid || "");
@@ -166,7 +167,7 @@ export async function confirmIapPurchase(
           platform: input.platform,
           productId: grant.packId,
           transactionId,
-          claimedAt: admin.firestore.FieldValue.serverTimestamp(),
+          claimedAt: FieldValue.serverTimestamp(),
         },
         { merge: true }
       );
@@ -176,7 +177,7 @@ export async function confirmIapPurchase(
         {
           id: `iap_${input.transactionId}`,
           amount: Math.max(0, Math.floor(Number(input.amount) || 0)),
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          createdAt: FieldValue.serverTimestamp(),
           status: "succeeded",
           mode: "iap",
           platform: String(input.platform || "ios"),
@@ -199,7 +200,7 @@ export async function confirmIapPurchase(
           modelKey: null,
           refId: transactionId,
           balanceAfter: nextCredits,
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          createdAt: FieldValue.serverTimestamp(),
         },
         { merge: true }
       );

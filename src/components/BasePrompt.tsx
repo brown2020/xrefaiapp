@@ -233,8 +233,7 @@ export default function BasePrompt({
 
         {showWordCount && (
           <label htmlFor="words-field" className={labelClassName}>
-            Approximate number of words (Between {MIN_WORD_COUNT} and{" "}
-            {MAX_WORD_COUNT})
+            Approximate length in words ({MIN_WORD_COUNT}–{MAX_WORD_COUNT})
             <input
               className={inputClassName}
               value={words}
@@ -242,7 +241,7 @@ export default function BasePrompt({
               id="words-field"
               min={MIN_WORD_COUNT}
               max={MAX_WORD_COUNT}
-              placeholder="Enter number of words."
+              placeholder="200"
               onChange={(e) =>
                 setWords(e.target.value || String(DEFAULT_WORD_COUNT))
               }

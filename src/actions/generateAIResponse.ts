@@ -199,19 +199,15 @@ async function generateAIResponse(rawInput: MessageInput) {
   try {
     const result = streamText({
       model,
-      system: input.systemPrompt,
+      instructions: input.systemPrompt,
       messages,
       abortSignal: abortController.signal,
-      onFinish: ({ text }) => {
+      onEnd: ({ text }) => {
         // A filtered or empty completion delivers nothing, so it is not charged.
         void (text.trim() ? settleSuccess() : settleFailure());
       },
-      onError: (event) => {
-        const streamError =
-          typeof event === "object" && event !== null && "error" in event
-            ? (event as { error?: unknown }).error
-            : event;
-        console.error("Generation stream error:", streamError);
+      onError: ({ error }) => {
+        console.error("Generation stream error:", error);
         void settleFailure();
       },
       onAbort: () => {

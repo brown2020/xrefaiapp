@@ -1,6 +1,7 @@
 "use server";
 
-import { adminDb, admin } from "@/firebase/firebaseAdmin";
+import { Timestamp } from "firebase-admin/firestore";
+import { adminDb } from "@/firebase/firebaseAdmin";
 import { requireAuthedUid } from "@/actions/serverAuth";
 
 export interface ServerPayment {
@@ -22,14 +23,14 @@ export async function fetchPaymentsServer(): Promise<ServerPayment[]> {
     .orderBy("createdAt", "desc")
     .get();
 
-  return snap.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+  return snap.docs.map((doc) => {
     const data = doc.data();
     const ts = data.createdAt;
     return {
       docId: doc.id,
       id: data.id ?? doc.id,
       amount: data.amount ?? 0,
-      createdAt: ts instanceof admin.firestore.Timestamp
+      createdAt: ts instanceof Timestamp
         ? ts.toDate().toISOString()
         : null,
       status: data.status ?? "",

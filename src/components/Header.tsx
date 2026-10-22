@@ -104,11 +104,11 @@ export default function Header() {
             {uid && (
               <button
                 onClick={handleSignOut}
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 aria-label="Sign out"
               >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden lg:inline">Sign Out</span>
+                <LogOut className="w-4 h-4" aria-hidden />
+                <span className="hidden lg:inline">Sign out</span>
               </button>
             )}
           </div>
@@ -128,7 +128,7 @@ export default function Header() {
               <SheetContent title="Menu">
                 <nav className="flex flex-col">
                   <div className="px-3 pb-3">
-                    <CreditsBadge />
+                    <CreditsBadge showLabel />
                   </div>
                   {menuItems.map((item) => (
                     <SheetClose key={item.href}>
@@ -141,7 +141,7 @@ export default function Header() {
                             : "text-muted-foreground hover:bg-muted hover:text-foreground"
                         }`}
                       >
-                        <item.icon className="w-4 h-4" />
+                        <item.icon className="w-4 h-4" aria-hidden />
                         <span>{item.label}</span>
                       </ProtectedLink>
                     </SheetClose>
@@ -166,14 +166,15 @@ export default function Header() {
                       </SheetClose>
                     </>
                   )}
+                  {uid && <hr className="my-2 border-border" />}
                   {uid && (
                     <SheetClose>
                       <button
                         onClick={handleSignOut}
-                        className="flex h-12 w-full items-center justify-start gap-2 whitespace-nowrap rounded-lg px-3 font-bold text-red-600 transition-colors hover:bg-red-50"
+                        className="flex h-12 w-full items-center justify-start gap-2 whitespace-nowrap rounded-lg px-3 font-bold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                       >
-                        <LogOut className="w-4 h-4" />
-                        <span>Sign Out</span>
+                        <LogOut className="w-4 h-4" aria-hidden />
+                        <span>Sign out</span>
                       </button>
                     </SheetClose>
                   )}

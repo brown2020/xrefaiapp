@@ -8,12 +8,13 @@ import CreditsLedger from "./CreditsLedger";
 
 export default function Profile() {
   return (
-    <div className="flex flex-col gap-4">
-      <div className="container mx-auto px-4 py-4">
-        <div className="text-4xl font-bold mt-3 text-center mb-3">
-          <span className="bg-linear-to-r from-[#9C26D7] to-[#1EB1DB] bg-clip-text text-transparent">
-            User Profile
-          </span>
+    <div className="bg-muted/30">
+      <div className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-8">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Account</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Profile, credits, API keys, and billing history
+          </p>
         </div>
         <AuthDataDisplay />
         <ProfileComponent />

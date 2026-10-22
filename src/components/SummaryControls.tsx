@@ -9,7 +9,7 @@ import {
   type SummaryFormat,
   type SummarySettings,
 } from "@/constants/summaryControls";
-import { inputClassName, labelClassName } from "@/components/ui/FormInput";
+import { inputClassName, labelClassName, selectClassName } from "@/components/ui/FormInput";
 import type { Dispatch, SetStateAction } from "react";
 
 interface SummaryControlsProps {
@@ -39,7 +39,7 @@ export default function SummaryControls({
           Summary format
           <select
             id="summary-format-field"
-            className={`${inputClassName} appearance-none`}
+            className={selectClassName}
             value={value.format}
             onChange={(event) =>
               update("format", event.target.value as SummaryFormat)
@@ -57,7 +57,7 @@ export default function SummaryControls({
           Audience
           <select
             id="summary-audience-field"
-            className={`${inputClassName} appearance-none`}
+            className={selectClassName}
             value={value.audience}
             onChange={(event) =>
               update("audience", event.target.value as SummaryAudience)
@@ -75,7 +75,7 @@ export default function SummaryControls({
           Emphasis
           <select
             id="summary-emphasis-field"
-            className={`${inputClassName} appearance-none`}
+            className={selectClassName}
             value={value.emphasis}
             onChange={(event) =>
               update("emphasis", event.target.value as SummaryEmphasis)
@@ -96,7 +96,7 @@ export default function SummaryControls({
           id="summary-focus-field"
           className={inputClassName}
           value={value.focus}
-          placeholder="Optional angle, question, or detail to prioritize."
+          placeholder="An angle, question, or detail to prioritize…"
           onChange={(event) => update("focus", event.target.value)}
         />
       </label>

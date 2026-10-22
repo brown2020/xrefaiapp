@@ -40,7 +40,7 @@ export default function RootLayout({
     <html lang="en" className={`min-h-dvh ${plusJakartaSans.variable}`}>
       <body className="min-h-dvh bg-background text-foreground">
         <ClientProvider>
-          <div className="flex min-h-dvh flex-col">
+          <div className="app-shell flex min-h-dvh flex-col">
             <Header />
             <main className="flex-1">{children}</main>
             <Footer />

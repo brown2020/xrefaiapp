@@ -2,7 +2,7 @@ import { AI_MODELS, resolveAiModelKey } from "@/ai/models";
 import { openai, createOpenAI } from "@ai-sdk/openai";
 import { anthropic, createAnthropic } from "@ai-sdk/anthropic";
 import { xai, createXai } from "@ai-sdk/xai";
-import { google, createGoogleGenerativeAI } from "@ai-sdk/google";
+import { google, createGoogle } from "@ai-sdk/google";
 
 export type TextModelConfig = {
   modelKey?: unknown;
@@ -72,7 +72,7 @@ export function getTextModel(config: TextModelConfig) {
     if (!apiKey) {
       throw new Error("Missing Google API key (profile.google_api_key).");
     }
-    return createGoogleGenerativeAI({ apiKey })(def.modelId);
+    return createGoogle({ apiKey })(def.modelId);
   }
 
   return google(def.modelId);

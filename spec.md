@@ -191,7 +191,7 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
 
 #### API-Key Mode
 
-- Users can store Fireworks, OpenAI, Anthropic, xAI, Google, and Stability key fields.
+- Users can store Fireworks, OpenAI, Anthropic, xAI, and Google key fields.
 - Current text model whitelist:
   - `openai:gpt-5.4`
   - `anthropic:claude-sonnet-4-6`
@@ -200,7 +200,6 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
 - Credits mode uses server provider keys.
 - API-key mode uses profile provider keys.
 - Current UI requires a Fireworks key plus the selected text provider key before enabling API-key mode.
-- Stability key is stored but not used by the active image generation path.
 
 #### Expo WebView Support
 

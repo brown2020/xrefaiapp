@@ -88,7 +88,7 @@ export default function PaymentSuccessPage() {
         <div className="p-6 border-b border-border">
           {loading ? (
             <div className="py-8">
-              <LoadingSpinner size="lg" text="Validating your payment..." />
+              <LoadingSpinner size="lg" text="Confirming your payment…" />
             </div>
           ) : !isOk ? (
             <div className="flex items-start gap-3">

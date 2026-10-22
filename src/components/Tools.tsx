@@ -58,7 +58,7 @@ const DesignerPrompt = dynamic<ToolInitialProps>(
 function ToolLoadingState() {
   return (
     <div className="flex items-center justify-center py-12">
-      <LoadingSpinner size="md" text="Loading tool..." />
+      <LoadingSpinner size="md" text="Loading tool…" />
     </div>
   );
 }
@@ -127,12 +127,14 @@ export default function Tools({
             </p>
           </div>
 
-          <div className="flex gap-2 overflow-x-auto p-3 md:flex-1 md:flex-col md:overflow-y-auto md:space-y-2 md:gap-0">
+          <div className="grid grid-cols-2 gap-2 p-3 md:flex md:flex-1 md:flex-col md:overflow-y-auto md:space-y-2 md:gap-0">
             {toolList.map((tool) => (
               <button
                 key={tool.title}
+                type="button"
+                aria-pressed={tool.title === selectedTool}
                 onClick={() => setSelectedTool(tool.title)}
-                className={`min-w-[11rem] md:min-w-0 md:w-full px-4 py-3 flex items-center gap-3 rounded-xl text-sm font-medium transition-colors duration-200 ${
+                className={`min-w-0 md:w-full px-3 md:px-4 py-3 flex items-center gap-2 md:gap-3 rounded-xl text-left text-sm font-medium leading-tight transition-colors duration-200 ${
                   tool.title === selectedTool
                     ? "bg-primary text-primary-foreground shadow-md"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -147,7 +149,7 @@ export default function Tools({
                 >
                   {tool.icon}
                 </span>
-                <span className="truncate">{tool.title}</span>
+                <span className="md:truncate">{tool.title}</span>
               </button>
             ))}
           </div>

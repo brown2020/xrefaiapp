@@ -1,4 +1,5 @@
-import Select, { StylesConfig } from 'react-select';
+import { useId } from "react";
+import Select, { StylesConfig } from "react-select";
 
 interface Option {
   value: string;
@@ -14,45 +15,63 @@ interface StyledSelectProps {
 }
 
 const selectStyles: StylesConfig<Option, false> = {
-  control: (baseStyles) => ({
+  control: (baseStyles, state) => ({
     ...baseStyles,
-    color: '#0B3C68',
-    borderColor: '#ECECEC',
-    backgroundColor: '#F5F5F5',
-  }),
-  menu: (baseStyles) => ({
-    ...baseStyles,
-    color: '#fff',
-    backgroundColor: '#131C3C',
+    minHeight: "2.75rem",
+    borderRadius: "0.5rem",
+    backgroundColor: "var(--card)",
+    borderColor: state.isFocused ? "var(--ring)" : "var(--border)",
+    boxShadow: state.isFocused ? "0 0 0 2px color-mix(in srgb, var(--ring) 25%, transparent)" : "none",
+    ":hover": { borderColor: state.isFocused ? "var(--ring)" : "var(--muted-foreground)" },
   }),
   placeholder: (baseStyles) => ({
     ...baseStyles,
-    color: '#BBBEC9',
+    color: "var(--muted-foreground)",
   }),
   singleValue: (baseStyles) => ({
     ...baseStyles,
-    color: '#0B3C68',
-    backgroundColor: '#F5F5F5',
+    color: "var(--foreground)",
+  }),
+  menu: (baseStyles) => ({
+    ...baseStyles,
+    zIndex: 20,
+    borderRadius: "0.5rem",
+    border: "1px solid var(--border)",
+    boxShadow: "0 10px 25px -5px rgb(0 0 0 / 0.1)",
+    backgroundColor: "var(--card)",
   }),
   option: (baseStyles, state) => ({
     ...baseStyles,
-    color: state.isFocused ? '#fff' : '#0B3C68',
-    backgroundColor: state.isFocused ? '#192449' : '#F6F7F9',
-    ':hover': {
-      backgroundColor: '#263566'
-    }
+    color: state.isSelected ? "var(--primary-foreground)" : "var(--foreground)",
+    backgroundColor: state.isSelected
+      ? "var(--primary)"
+      : state.isFocused
+        ? "var(--muted)"
+        : "transparent",
+    ":active": { backgroundColor: "var(--muted)" },
   }),
 };
 
-export function StyledSelect({ label, name, options, onChange, placeholder }: StyledSelectProps) {
+export function StyledSelect({
+  label,
+  name,
+  options,
+  onChange,
+  placeholder = "Any",
+}: StyledSelectProps) {
+  const inputId = useId();
   return (
     <div className="w-full sm:w-1/2">
-      <div className="text-[#041D34] font-semibold">{label}</div>
+      <label htmlFor={inputId} className="text-foreground font-semibold">
+        {label}
+      </label>
       <Select<Option>
+        inputId={inputId}
+        instanceId={name}
         styles={selectStyles}
-        className="mt-1 shadow-none"
-        isClearable={true}
-        isSearchable={true}
+        className="mt-1"
+        isClearable
+        isSearchable
         name={name}
         onChange={onChange}
         options={options}

@@ -1,6 +1,7 @@
 "use server";
 
-import { adminDb, admin } from "@/firebase/firebaseAdmin";
+import { FieldValue } from "firebase-admin/firestore";
+import { adminDb } from "@/firebase/firebaseAdmin";
 import { requireAuthedUid } from "@/actions/serverAuth";
 
 type SyncableAuthFields = Partial<
@@ -39,7 +40,7 @@ export async function syncAuthProfileServer(
 
   const userRef = adminDb.doc(`users/${uid}`);
   await userRef.set(
-    { ...sanitized, lastSignIn: admin.firestore.FieldValue.serverTimestamp() },
+    { ...sanitized, lastSignIn: FieldValue.serverTimestamp() },
     { merge: true }
   );
 }

@@ -1,4 +1,5 @@
-import { admin, adminDb } from "@/firebase/firebaseAdmin";
+import { FieldValue, type Transaction } from "firebase-admin/firestore";
+import { adminDb } from "@/firebase/firebaseAdmin";
 import { calculateNewBalance, coerceCredits } from "@/utils/credits";
 
 type CreditsLedgerType = "debit" | "credit";
@@ -15,7 +16,7 @@ export interface CreditsLedgerMeta {
 }
 
 function writeLedgerEntry(
-  tx: FirebaseFirestore.Transaction,
+  tx: Transaction,
   uid: string,
   entry: {
     type: CreditsLedgerType;
@@ -45,7 +46,7 @@ function writeLedgerEntry(
         typeof entry.balanceAfter === "number"
           ? Math.max(0, Math.floor(entry.balanceAfter))
           : null,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     },
     { merge: true }
   );
@@ -61,7 +62,7 @@ export async function debitCreditsOrThrow(
   const normalizedAmount = Math.ceil(amount);
   const profileRef = adminDb.doc(`users/${uid}/profile/userData`);
 
-  return await adminDb.runTransaction(async (tx: FirebaseFirestore.Transaction) => {
+  return await adminDb.runTransaction(async (tx) => {
     const snap = await tx.get(profileRef);
     const current = coerceCredits(snap.exists ? snap.data()?.credits : 0, 0);
     const next = calculateNewBalance(current, -normalizedAmount);
@@ -97,7 +98,7 @@ export async function creditCredits(
     ? adminDb.doc(`users/${uid}/creditsLedger/${deterministicId}`)
     : null;
 
-  return await adminDb.runTransaction(async (tx: FirebaseFirestore.Transaction) => {
+  return await adminDb.runTransaction(async (tx) => {
     // Idempotency: a credit pinned to a deterministic ledger id (e.g. a refund)
     // must only ever apply once. If the ledger doc already exists, treat the
     // credit as already applied and return the current balance unchanged.

@@ -31,8 +31,8 @@ export default function AuthComponent() {
           aria-expanded={isVisible}
           className="bg-[#047857] hover:bg-[#065f46] hover:opacity-100 btn-blue mt-0 w-auto flex items-center gap-2"
         >
-          Sign In to Enable Your Account
-          <ArrowRight size={16} />
+          Sign in to get started
+          <ArrowRight size={16} aria-hidden />
         </button>
       )}
 
@@ -55,7 +55,7 @@ export default function AuthComponent() {
                 </div>
               </div>
               <button type="button" onClick={handleSignOut} className="btn-danger mt-0">
-                Sign Out
+                Sign out
               </button>
             </div>
           ) : authPending ? (

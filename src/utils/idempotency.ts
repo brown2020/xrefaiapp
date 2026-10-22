@@ -1,4 +1,5 @@
-import { adminDb, admin } from "@/firebase/firebaseAdmin";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { adminDb } from "@/firebase/firebaseAdmin";
 import crypto from "crypto";
 
 /**
@@ -67,25 +68,25 @@ export async function checkAndSetIdempotency(
 ): Promise<IdempotencyResult> {
   const idempotencyRef = adminDb.doc(`users/${uid}/idempotency/${idempotencyKey}`);
 
-  return await adminDb.runTransaction(async (tx: FirebaseFirestore.Transaction) => {
+  return await adminDb.runTransaction(async (tx) => {
     const snap = await tx.get(idempotencyRef);
 
     if (snap.exists) {
       const data = snap.data() as
         | {
-            processedAt?: FirebaseFirestore.Timestamp | Date | null;
-            expiresAt?: FirebaseFirestore.Timestamp | Date | null;
+            processedAt?: Timestamp | Date | null;
+            expiresAt?: Timestamp | Date | null;
             status?: "processing" | "completed";
           }
         | undefined;
       const processedAt =
-        data?.processedAt instanceof admin.firestore.Timestamp
+        data?.processedAt instanceof Timestamp
           ? data.processedAt.toDate()
           : data?.processedAt instanceof Date
             ? data.processedAt
             : undefined;
       const expiresAt =
-        data?.expiresAt instanceof admin.firestore.Timestamp
+        data?.expiresAt instanceof Timestamp
           ? data.expiresAt.toDate()
           : data?.expiresAt instanceof Date
             ? data.expiresAt
@@ -95,7 +96,7 @@ export async function checkAndSetIdempotency(
       if (expiresAt && expiresAt.getTime() < Date.now()) {
         const now = new Date();
         tx.set(idempotencyRef, {
-          processedAt: admin.firestore.FieldValue.serverTimestamp(),
+          processedAt: FieldValue.serverTimestamp(),
           expiresAt: new Date(now.getTime() + ttlMs),
           status: "processing",
         });
@@ -112,7 +113,7 @@ export async function checkAndSetIdempotency(
 
     const now = new Date();
     tx.set(idempotencyRef, {
-      processedAt: admin.firestore.FieldValue.serverTimestamp(),
+      processedAt: FieldValue.serverTimestamp(),
       expiresAt: new Date(now.getTime() + ttlMs),
       status: "processing",
     });
@@ -134,7 +135,7 @@ export async function markIdempotencyComplete(
   await idempotencyRef.set(
     {
       status: "completed",
-      completedAt: admin.firestore.FieldValue.serverTimestamp(),
+      completedAt: FieldValue.serverTimestamp(),
     },
     { merge: true }
   );
@@ -174,7 +175,7 @@ export async function cleanupExpiredIdempotencyRecords(
   if (snapshot.empty) return 0;
 
   const batch = adminDb.batch();
-  snapshot.docs.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+  snapshot.docs.forEach((doc) => {
     batch.delete(doc.ref);
   });
   await batch.commit();

@@ -14,7 +14,7 @@ import { DEFAULT_CREDIT_PACK_ID } from "@/constants/creditPacks";
  * - Subscribes only to `uid` and `profile.credits`
  * - Re-renders only when the credit number changes
  */
-export function CreditsBadge() {
+export function CreditsBadge({ showLabel = false }: { showLabel?: boolean }) {
   const uid = useAuthStore((s) => s.uid);
   const credits = useProfileStore((s) => s.profile.credits);
   const profileLoaded = useProfileStore((s) => s.profileLoaded);
@@ -52,7 +52,9 @@ export function CreditsBadge() {
       >
         <Coins className="h-4 w-4 text-muted-foreground" aria-hidden />
         <span className="tabular-nums">{profileLoaded ? creditsLabel : "…"}</span>{" "}
-        <span className="text-muted-foreground font-medium hidden md:inline">
+        <span
+          className={`text-muted-foreground font-medium ${showLabel ? "" : "hidden md:inline"}`}
+        >
           credits
         </span>
       </Link>

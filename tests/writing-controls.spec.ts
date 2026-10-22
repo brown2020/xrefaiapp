@@ -38,7 +38,7 @@ test.describe("Freestyle Writing controls", () => {
     await expect(page.getByLabel("Tone")).toHaveValue("clear");
     await expect(page.getByLabel("Audience")).toHaveValue("general");
     await expect(page.getByLabel("Draft length")).toHaveValue("standard");
-    await expect(page.getByLabel(/Approximate number of words/)).toHaveValue(
+    await expect(page.getByLabel(/Approximate length in words/)).toHaveValue(
       "220"
     );
 
@@ -50,7 +50,7 @@ test.describe("Freestyle Writing controls", () => {
     await expect(page.getByLabel("Deliverable")).toHaveValue("blog-outline");
     await expect(page.getByLabel("Tone")).toHaveValue("expert");
     await expect(page.getByLabel("Audience")).toHaveValue("executives");
-    await expect(page.getByLabel(/Approximate number of words/)).toHaveValue(
+    await expect(page.getByLabel(/Approximate length in words/)).toHaveValue(
       "360"
     );
   });

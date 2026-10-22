@@ -20,7 +20,6 @@ export interface ProfileType {
   anthropic_api_key: string;
   xai_api_key: string;
   google_api_key: string;
-  stability_api_key: string;
   selectedAvatar: string;
   selectedTalkingPhoto: string;
   useCredits: boolean;
@@ -42,7 +41,6 @@ const defaultProfile: ProfileType = {
   anthropic_api_key: "",
   xai_api_key: "",
   google_api_key: "",
-  stability_api_key: "",
   selectedAvatar: "",
   selectedTalkingPhoto: "",
   useCredits: true,

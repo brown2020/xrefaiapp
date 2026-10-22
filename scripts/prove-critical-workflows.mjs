@@ -117,7 +117,10 @@ service cloud.firestore {
         firestore: { rules: "firestore.rules" },
         emulators: {
           auth: { host: "127.0.0.1", port: authPort },
-          firestore: { host: "127.0.0.1", port: firestorePort },
+          firestore: { host: "127.0.0.1", port: firestorePort, websocketPort: 9168 },
+          // Fixed side ports so another project's running emulators cannot collide with these.
+          hub: { host: "127.0.0.1", port: 4468 },
+          logging: { host: "127.0.0.1", port: 4568 },
           ui: { enabled: false },
         },
       },

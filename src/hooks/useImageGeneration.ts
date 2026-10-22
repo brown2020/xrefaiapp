@@ -44,7 +44,7 @@ export function useImageGeneration(uid: string | null) {
     }
 
     startGeneration();
-    const toastId = toast.loading("Working on the design...");
+    const toastId = toast.loading("Generating your image…");
     const generatedPrompt = getImagePrompt(promptData, topic);
 
     let result: { imageUrl?: string; error?: string };
@@ -57,7 +57,7 @@ export function useImageGeneration(uid: string | null) {
     } catch (error) {
       console.error("Error generating image:", error);
       toast.dismiss(toastId);
-      toast.error("Issue with design...");
+      toast.error("Could not generate the image. Try again in a moment.");
       completeWithError("Error generating image");
       return;
     }
@@ -84,7 +84,7 @@ export function useImageGeneration(uid: string | null) {
       } catch (error) {
         console.error("Error while finalizing image generation:", error);
         toast.dismiss(toastId);
-        toast.error("Error generating design...");
+        toast.error("The image was generated but could not be finalized. Check History, then try again.");
         completeWithError("Error saving image to history");
       }
       return;
@@ -115,7 +115,7 @@ export function useImageGeneration(uid: string | null) {
       return;
     }
     completeWithError(IMAGE_ERROR_MESSAGE);
-    toast.error("Issue with design...");
+    toast.error("Could not generate the image. Try again in a moment.");
   };
 
   return {

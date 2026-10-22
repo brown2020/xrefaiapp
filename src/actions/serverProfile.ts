@@ -1,6 +1,7 @@
 "use server";
 
-import { adminDb, admin } from "@/firebase/firebaseAdmin";
+import { FieldValue } from "firebase-admin/firestore";
+import { adminAuth, adminDb } from "@/firebase/firebaseAdmin";
 import { requireAuthedUid } from "@/actions/serverAuth";
 import { coerceCredits } from "@/utils/credits";
 import { creditsForNewProfile } from "@/utils/starterGrant";
@@ -20,7 +21,6 @@ export interface ServerProfileData {
   anthropic_api_key: string;
   xai_api_key: string;
   google_api_key: string;
-  stability_api_key: string;
   selectedAvatar: string;
   selectedTalkingPhoto: string;
   useCredits: boolean;
@@ -42,7 +42,6 @@ const PROFILE_DEFAULTS: ServerProfileData = {
   anthropic_api_key: "",
   xai_api_key: "",
   google_api_key: "",
-  stability_api_key: "",
   selectedAvatar: "",
   selectedTalkingPhoto: "",
   useCredits: true,
@@ -73,7 +72,7 @@ export async function fetchProfileServer(authOverrides?: {
     if (!existingClaim.exists) {
       await claimRef.set({
         starterGrantClaimed: true,
-        claimedAt: admin.firestore.FieldValue.serverTimestamp(),
+        claimedAt: FieldValue.serverTimestamp(),
       });
     }
     return {
@@ -92,7 +91,7 @@ export async function fetchProfileServer(authOverrides?: {
     };
   }
 
-  const created = await adminDb.runTransaction(async (tx: FirebaseFirestore.Transaction) => {
+  const created = await adminDb.runTransaction(async (tx) => {
     const [profileSnap, claimSnap] = await Promise.all([
       tx.get(profileRef),
       tx.get(claimRef),
@@ -101,7 +100,7 @@ export async function fetchProfileServer(authOverrides?: {
       if (!claimSnap.exists) {
         tx.set(claimRef, {
           starterGrantClaimed: true,
-          claimedAt: admin.firestore.FieldValue.serverTimestamp(),
+          claimedAt: FieldValue.serverTimestamp(),
         });
       }
       return profileSnap.data() as Partial<ServerProfileData>;
@@ -121,7 +120,7 @@ export async function fetchProfileServer(authOverrides?: {
     if (!claimSnap.exists) {
       tx.set(claimRef, {
         starterGrantClaimed: true,
-        claimedAt: admin.firestore.FieldValue.serverTimestamp(),
+        claimedAt: FieldValue.serverTimestamp(),
       });
     }
     return newProfile;
@@ -158,6 +157,6 @@ export async function updateProfileServer(
 export async function deleteAccountServer(): Promise<void> {
   const uid = await requireAuthedUid();
   const profileRef = adminDb.doc(`users/${uid}/profile/userData`);
-  await admin.auth().deleteUser(uid);
+  await adminAuth.deleteUser(uid);
   await profileRef.delete();
 }

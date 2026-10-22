@@ -47,7 +47,7 @@ export default function ChatInput({
         <div className="relative flex items-end gap-2 bg-muted border border-border rounded-2xl shadow-sm focus-within:ring-2 focus-within:ring-ring/20 focus-within:border-ring transition-colors overflow-hidden">
           <TextareaAutosize
             className="w-full py-3.5 pl-4 pr-12 bg-transparent text-foreground placeholder:text-muted-foreground resize-none focus:outline-hidden text-base leading-relaxed max-h-[200px]"
-            placeholder="Ask me anything..."
+            placeholder="Ask me anything…"
             minRows={1}
             maxRows={8}
             value={value}

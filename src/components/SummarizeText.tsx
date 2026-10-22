@@ -45,7 +45,7 @@ export default function SummarizeText({
               className={`${inputClassName} resize-none`}
               id="text-field"
               minRows={4}
-              placeholder="Paste the text you want to summarize here."
+              placeholder="Paste the text you want to summarize…"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               required

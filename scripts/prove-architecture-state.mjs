@@ -69,7 +69,15 @@ function writeEmulatorConfig() {
       {
         emulators: {
           auth: { host: "127.0.0.1", port: authPort },
-          firestore: { host: "127.0.0.1", port: firestorePort, rules: "firestore.rules" },
+          firestore: {
+            host: "127.0.0.1",
+            port: firestorePort,
+            websocketPort: 9167,
+            rules: "firestore.rules",
+          },
+          // Fixed side ports so another project's running emulators cannot collide with these.
+          hub: { host: "127.0.0.1", port: 4467 },
+          logging: { host: "127.0.0.1", port: 4567 },
           ui: { enabled: false },
         },
       },
@@ -98,7 +106,7 @@ function shutdown() {
   }
 }
 
-async function waitFor(url, attempts = 80) {
+async function waitFor(url, attempts = 240) {
   for (let i = 0; i < attempts; i += 1) {
     try {
       const response = await fetch(url);
@@ -180,7 +188,7 @@ function clientProjectId() {
 
 async function signUp(page, email) {
   await page.goto(base);
-  await page.getByRole("button", { name: "Sign In to Enable Your Account" }).click();
+  await page.getByRole("button", { name: "Sign in to get started" }).click();
   await page.getByRole("button", { name: "Create account" }).click();
   await page.locator("#auth-name").fill("Ada Lovelace");
   await page.locator("#auth-email").fill(email);
@@ -290,7 +298,7 @@ async function main() {
   }
 
   await page.goto(`${base}/chat`);
-  await page.getByPlaceholder("Ask me anything...").fill("Say hello from the architecture proof");
+  await page.getByPlaceholder("Ask me anything…").fill("Say hello from the architecture proof");
   await page.getByRole("button", { name: "Send message" }).click();
   const badge975 = page.getByLabel(/Credits balance: 975/);
   try {
@@ -308,7 +316,7 @@ async function main() {
   }
 
   await page.getByRole("button", { name: "Sign out" }).click();
-  await page.getByRole("button", { name: "Sign In to Enable Your Account" }).waitFor();
+  await page.getByRole("button", { name: "Sign in to get started" }).waitFor();
   const switched = await signUp(page, emailB);
   const uidB = await accountId(page);
   const ledgerB = await waitForLedger(uidB, 1000);

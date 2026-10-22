@@ -4,7 +4,7 @@ import { useState } from "react";
 import BasePrompt from "./BasePrompt";
 import TextareaAutosize from "react-textarea-autosize";
 import { GRADE_LEVELS } from "@/constants";
-import { inputClassName, labelClassName } from "@/components/ui/FormInput";
+import { inputClassName, labelClassName, selectClassName } from "@/components/ui/FormInput";
 import type { ToolInitialProps } from "@/types/ToolInitialProps";
 
 export default function SimplifyPrompt({
@@ -34,7 +34,7 @@ export default function SimplifyPrompt({
               className={`${inputClassName} resize-none`}
               id="text-field"
               minRows={4}
-              placeholder="Paste the text you want to simplify here."
+              placeholder="Paste the text you want to simplify…"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               required
@@ -44,7 +44,7 @@ export default function SimplifyPrompt({
           <label htmlFor="grade-field" className={labelClassName}>
             Target Grade Level
             <select
-              className={`${inputClassName} appearance-none`}
+              className={selectClassName}
               id="grade-field"
               value={gradeLevel}
               onChange={(e) => setGradeLevel(e.target.value)}

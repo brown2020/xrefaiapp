@@ -255,10 +255,13 @@ export default function Chat({ initialPrompt, starterIntentId }: ChatProps) {
   );
 
   return (
-    <div className="flex flex-col h-full relative bg-muted/30 w-full">
+    <div
+      data-fill-viewport
+      className="flex flex-col flex-1 min-h-0 relative bg-muted/30 w-full"
+    >
       {loading ? (
         <div className="flex flex-1 items-center justify-center h-full">
-          <LoadingSpinner size="lg" text="Loading your conversation..." />
+          <LoadingSpinner size="lg" text="Loading your conversation…" />
         </div>
       ) : (
         <>
@@ -355,14 +358,14 @@ function ChatTranscript({
             className="text-xs font-medium text-foreground bg-card border border-border hover:bg-muted px-4 py-2 rounded-full transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50 cursor-pointer"
           >
             {loadingMore && <InlineSpinner size="sm" />}
-            {loadingMore ? "Loading older messages..." : "Load older messages"}
+            {loadingMore ? "Loading older messages…" : "Load older messages"}
           </button>
         </div>
       )}
 
       <div className="flex flex-col space-y-2">
         {!isLoading && reversedCount === 0 && (
-          <div className="py-10">
+          <div className="py-4 sm:py-10">
             <div className="max-w-2xl mx-auto bg-card text-card-foreground border border-border rounded-2xl shadow-sm p-6">
               {starterIntent ? (
                 <div className="mb-5 rounded-lg border border-accent/40 bg-accent/10 p-4">
@@ -405,19 +408,23 @@ function ChatTranscript({
                     prompt: intent.prompt ?? "",
                   })),
                   {
-                    label: "Example",
+                    label: "Creator",
                     prompt: "Give me 10 blog post ideas about sustainable travel.",
                   },
                   {
-                    label: "Example",
+                    label: "Professional",
                     prompt: "Turn these notes into a professional email: ",
                   },
-                ].map((example) => (
+                  {
+                    label: "Writer",
+                    prompt: "Help me write a blog post outline about: ",
+                  },
+                ].slice(0, 4).map((example) => (
                   <button
                     key={example.prompt}
                     type="button"
                     onClick={() => onUsePrompt(example.prompt)}
-                    className="text-left p-3 rounded-xl bg-muted border border-border hover:opacity-90 transition-opacity"
+                    className="text-left p-3 rounded-xl bg-muted/60 border border-border hover:border-ring/40 hover:bg-muted transition-colors"
                   >
                     <div className="text-xs font-medium text-muted-foreground">
                       {example.label}
@@ -429,23 +436,15 @@ function ChatTranscript({
                 ))}
               </div>
 
-              <div className="mt-6 flex flex-col sm:flex-row gap-3 sm:justify-end">
+              <p className="mt-5 text-sm text-muted-foreground">
+                Need a structured result instead?{" "}
                 <Link
                   href={ROUTES.tools}
-                  className="inline-flex items-center justify-center px-5 py-2.5 bg-card text-foreground rounded-xl border border-border hover:opacity-90 transition-opacity"
+                  className="font-medium text-foreground underline underline-offset-2"
                 >
                   Explore tools
                 </Link>
-                <button
-                  type="button"
-                  onClick={() =>
-                    onUsePrompt("Help me write a blog post outline about:")
-                  }
-                  className="inline-flex items-center justify-center px-5 py-2.5 bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition-opacity"
-                >
-                  Get started
-                </button>
-              </div>
+              </p>
             </div>
           </div>
         )}

@@ -19,22 +19,20 @@ export default function PaymentsPage() {
   }, [uid, fetchPayments]);
 
   return (
-    <div className="flex flex-col container mt-4 mx-auto gap-4">
-      <div className="text-3xl font-bold text-center">
-        <span className="bg-linear-to-r from-[#9C26D7] to-[#1EB1DB] bg-clip-text text-transparent">
-          Payment History
-        </span>
-      </div>
+    <section aria-labelledby="payments-heading" className="flex flex-col gap-3">
+      <h2 id="payments-heading" className="text-lg font-bold text-foreground">
+        Payments
+      </h2>
 
       {paymentsLoading && (
         <div className="flex justify-center py-8">
-          <LoadingSpinner size="lg" text="Loading payments..." />
+          <LoadingSpinner size="lg" text="Loading payments…" />
         </div>
       )}
 
       {paymentsError && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-          Error: {paymentsError}
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-destructive">
+          Could not load payments: {paymentsError}
         </div>
       )}
 
@@ -49,14 +47,14 @@ export default function PaymentsPage() {
           )}
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
 function EmptyPaymentsState() {
   return (
-    <div className="text-center py-12 text-muted-foreground bg-white rounded-2xl border border-gray-100 border-dashed">
-      <CreditCard size={48} className="mx-auto mb-4 opacity-50" />
+    <div className="text-center py-10 text-muted-foreground bg-card rounded-2xl border border-border border-dashed">
+      <CreditCard size={36} aria-hidden className="mx-auto mb-3 opacity-60" />
       <p>No payments found.</p>
       <p className="text-sm mt-1">Your payment history will appear here.</p>
     </div>

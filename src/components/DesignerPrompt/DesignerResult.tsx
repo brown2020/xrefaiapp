@@ -19,7 +19,7 @@ export function DesignerResult({
     return (
       <div className="flex justify-center items-center py-8 gap-3">
         <InlineSpinner size="md" />
-        <span className="text-[#041D34]">Generating your design...</span>
+        <span className="text-[#041D34]">Generating your design…</span>
       </div>
     );
   }

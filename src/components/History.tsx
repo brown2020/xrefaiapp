@@ -40,6 +40,7 @@ import {
   isInsufficientCreditsError,
 } from "@/utils/errors";
 import { createClientIdempotencyKey } from "@/utils/clientIdempotencyKey";
+import { useIsOverflowing } from "@/hooks/useIsOverflowing";
 import { formatDateTime } from "@/utils/formatDateTime";
 
 function readHistorySettings(value: unknown): Record<string, string> | undefined {
@@ -176,7 +177,10 @@ export default function History() {
   }
 
   return (
-    <div className="flex flex-col h-full relative bg-muted/30 w-full">
+    <div
+      data-fill-viewport
+      className="flex flex-col flex-1 min-h-0 relative bg-muted/30 w-full"
+    >
       <div className="flex-1 min-h-0 overflow-y-auto scroll-smooth px-4 pb-8 pt-4">
         <div className="max-w-4xl mx-auto h-full">
           {/* Header */}
@@ -206,7 +210,7 @@ export default function History() {
 
           {loading ? (
             <div className="flex flex-col items-center justify-center h-64">
-              <LoadingSpinner size="lg" text="Loading history..." />
+              <LoadingSpinner size="lg" text="Loading history…" />
             </div>
           ) : (
             <div className="flex flex-col space-y-6">
@@ -271,7 +275,7 @@ export default function History() {
                   >
                     {loadingMore && <InlineSpinner size="sm" />}
                     {loadingMore
-                      ? "Loading older history..."
+                      ? "Loading older history…"
                       : "Load older history"}
                   </button>
                 </div>
@@ -311,21 +315,28 @@ function SearchInput({
   onChange: (value: string) => void;
 }) {
   return (
-    <div className="relative group w-full md:w-auto md:min-w-[300px]">
-      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <Search className="h-4 w-4 text-muted-foreground group-focus-within:text-ring transition-colors" />
-      </div>
+    <div className="group w-full md:w-auto md:min-w-[300px]">
       <label htmlFor="history-search" className="mb-1 block text-sm font-medium text-foreground">
         Search history
       </label>
-      <input
-        id="history-search"
-        className="block w-full pl-9 pr-3 py-2.5 border border-border rounded-xl leading-5 bg-card text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring/20 focus:border-ring text-sm transition-colors shadow-sm hover:shadow-md"
-        type="text"
-        placeholder="Search..."
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
+      <div className="relative">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <Search
+            aria-hidden
+            className="h-4 w-4 text-muted-foreground group-focus-within:text-ring transition-colors"
+          />
+        </div>
+        <input
+          id="history-search"
+          name="history-search"
+          autoComplete="off"
+          className="block w-full pl-9 pr-3 py-2.5 border border-border rounded-xl leading-5 bg-card text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring/20 focus:border-ring text-sm transition-colors shadow-sm hover:shadow-md"
+          type="search"
+          placeholder="Search prompts and results…"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      </div>
     </div>
   );
 }
@@ -490,7 +501,7 @@ function HistoryCard({
       {/* Header */}
       <div className="bg-muted/50 border-b border-border px-5 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-          <Calendar size={14} />
+          <Calendar size={14} aria-hidden />
           {summary.timestamp?.seconds
             ? formatDateTime(summary.timestamp.seconds * 1000)
             : "Pending…"}
@@ -505,7 +516,7 @@ function HistoryCard({
             type="button"
             onClick={onDelete}
             aria-label="Delete history item"
-            className="text-muted-foreground hover:text-red-600 p-1.5 rounded-md hover:bg-muted transition-colors cursor-pointer"
+            className="text-muted-foreground hover:text-destructive p-1.5 rounded-md hover:bg-muted transition-colors cursor-pointer"
           >
             <Trash2 size={18} aria-hidden />
           </button>
@@ -515,7 +526,11 @@ function HistoryCard({
             aria-label={isExpanded ? "Collapse history item" : "Expand history item"}
             className="text-muted-foreground hover:text-foreground p-1.5 rounded-md hover:bg-muted transition-colors cursor-pointer"
           >
-            {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            {isExpanded ? (
+              <ChevronUp size={18} aria-hidden />
+            ) : (
+              <ChevronDown size={18} aria-hidden />
+            )}
           </button>
         </div>
       </div>
@@ -523,21 +538,8 @@ function HistoryCard({
       <div className="p-5 space-y-6">
         {/* User Prompt */}
         <div className="flex w-full justify-end">
-          <div className="flex max-w-[90%] md:max-w-[80%] gap-3 items-start flex-row-reverse">
-            <div className="flex flex-col items-end w-full">
-              <div
-                className={`px-5 py-3.5 bg-[#2563EB] text-white rounded-2xl rounded-tr-sm shadow-sm text-left transition-[max-height] duration-300 w-full ${
-                  isExpanded ? "" : "max-h-32 overflow-y-hidden relative"
-                }`}
-              >
-                <p className="text-sm md:text-base whitespace-pre-wrap leading-relaxed break-all">
-                  {summary.prompt}
-                </p>
-                {!isExpanded && (
-                  <div className="absolute bottom-0 left-0 w-full h-12 bg-linear-to-t from-[#2563EB] to-transparent pointer-events-none rounded-b-2xl" />
-                )}
-              </div>
-            </div>
+          <div className="flex max-w-[90%] md:max-w-[80%] min-w-0">
+            <PromptBubble prompt={summary.prompt} isExpanded={isExpanded} />
           </div>
         </div>
 
@@ -584,7 +586,7 @@ function HistoryCard({
           onClick={onToggleExpand}
           className="w-full py-3 text-xs font-medium text-muted-foreground hover:text-ring hover:bg-muted transition-colors border-t border-border flex items-center justify-center gap-1"
         >
-          Show full conversation <ChevronDown size={14} />
+          Show full item <ChevronDown size={14} aria-hidden />
         </button>
       )}
     </div>
@@ -659,8 +661,8 @@ function HistoryRepurpose({
 
 function BotResponseHeader() {
   return (
-    <div className="flex items-center gap-2 mb-3 border-b border-gray-50 pb-2">
-      <span className="font-semibold text-sm text-gray-900">XREF.AI</span>
+    <div className="flex items-center gap-2 mb-3 border-b border-border pb-2">
+      <span className="font-semibold text-sm text-foreground">XREF.AI</span>
       <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-linear-to-r from-[#9C26D7] to-[#1EB1DB] text-white">
         Bot
       </span>
@@ -671,7 +673,7 @@ function BotResponseHeader() {
 function ImageResponse({ imageUrl }: { imageUrl: string }) {
   return (
     <div className="space-y-4">
-      <div className="relative rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+      <div className="relative rounded-xl overflow-hidden bg-muted border border-border">
         <Image
           src={imageUrl}
           alt="Generated Image"
@@ -684,17 +686,42 @@ function ImageResponse({ imageUrl }: { imageUrl: string }) {
       <div className="flex gap-2 flex-wrap">
         <button
           onClick={() => copyImageToClipboard(imageUrl)}
-          className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
+          className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted px-3 py-2 rounded-lg border border-border hover:bg-muted/70 transition-colors"
         >
-          <Copy size={14} /> Copy URL
+          <Copy size={14} aria-hidden /> Copy URL
         </button>
         <button
           onClick={() => downloadImage(imageUrl)}
-          className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
+          className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted px-3 py-2 rounded-lg border border-border hover:bg-muted/70 transition-colors"
         >
-          <Download size={14} /> Download
+          <Download size={14} aria-hidden /> Download
         </button>
       </div>
+    </div>
+  );
+}
+
+function PromptBubble({
+  prompt,
+  isExpanded,
+}: {
+  prompt: string;
+  isExpanded: boolean;
+}) {
+  const [ref, isOverflowing] = useIsOverflowing<HTMLDivElement>(!isExpanded);
+  return (
+    <div
+      ref={ref}
+      className={`px-5 py-3.5 bg-[#2563EB] text-white rounded-2xl rounded-tr-sm shadow-sm text-left min-w-0 ${
+        isExpanded ? "" : "max-h-32 overflow-y-hidden relative"
+      }`}
+    >
+      <p className="text-sm md:text-base whitespace-pre-wrap leading-relaxed wrap-break-word">
+        {prompt}
+      </p>
+      {!isExpanded && isOverflowing && (
+        <div className="absolute bottom-0 left-0 w-full h-12 bg-linear-to-t from-[#2563EB] to-transparent pointer-events-none rounded-b-2xl" />
+      )}
     </div>
   );
 }
@@ -706,15 +733,17 @@ function TextResponse({
   content: string;
   isExpanded: boolean;
 }) {
+  const [ref, isOverflowing] = useIsOverflowing<HTMLDivElement>(!isExpanded);
   return (
     <div
-      className={`prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:p-0 transition-[max-height] duration-300 wrap-break-word ${
+      ref={ref}
+      className={`prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:p-0 wrap-break-word ${
         isExpanded ? "" : "max-h-60 overflow-y-hidden relative"
       }`}
     >
       <MarkdownRenderer content={content} />
-      {!isExpanded && (
-        <div className="absolute bottom-0 left-0 w-full h-20 bg-linear-to-t from-white to-transparent pointer-events-none" />
+      {!isExpanded && isOverflowing && (
+        <div className="absolute bottom-0 left-0 w-full h-20 bg-linear-to-t from-card to-transparent pointer-events-none" />
       )}
     </div>
   );

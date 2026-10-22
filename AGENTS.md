@@ -103,14 +103,14 @@ npm run test:browser
 ## Current Tech Stack
 
 - Framework: Next.js 16 App Router. `src/proxy.ts` replaces legacy middleware.
-- Runtime: React 19, TypeScript 6 strict mode, Node route handlers where declared.
-- Styling: Tailwind CSS 4 through `@tailwindcss/postcss`, plus shared utilities in `src/app/globals.css`.
+- Runtime: React 19, TypeScript 6 strict mode, Node route handlers where declared. TypeScript 7 type-checks this project, but typescript-eslint 8 needs the TypeScript 6 compiler API, so stay on 6 until typescript-eslint supports 7.
+- Styling: Tailwind CSS 4 through `@tailwindcss/postcss`, `@tailwindcss/typography` for rendered markdown (`prose`), plus shared utilities in `src/app/globals.css`. Shared input, select, card, and button class names live in `src/components/ui/FormInput.tsx`.
 - UI libraries: `lucide-react`, Radix Dialog, `react-markdown` with `remark-gfm`, `react-hot-toast`, `react-select`, `react-textarea-autosize`.
 - State: Zustand 5, with `useShallow` for multi-field selectors.
-- Auth/data/storage: Firebase client SDK 12 and Firebase Admin 13 for Auth, Firestore, and Storage.
-- AI text: Vercel AI SDK 6 with OpenAI, Anthropic, xAI, and Google providers.
+- Auth/data/storage: Firebase client SDK 13 and Firebase Admin 14 for Auth, Firestore, and Storage. Admin uses the modular entry points (`firebase-admin/app`, `/auth`, `/firestore`, `/storage`); the namespaced `admin.firestore()` API no longer exists.
+- AI text: Vercel AI SDK 7 with OpenAI, Anthropic, xAI, and Google providers. Use `instructions` and `onEnd` (not `system` and `onFinish`) on `streamText`.
 - AI images: Fireworks AI `stable-diffusion-xl-1024-v1-0`.
-- Payments: Stripe 22 Checkout Sessions on web plus signed React Native WebView IAP confirmation.
+- Payments: Stripe 23 Checkout Sessions on web plus signed React Native WebView IAP confirmation.
 - Tests: Playwright specs under `tests/` cover activation starter paths, auth entry, proxy route protection, API auth rejection, redirect normalization, writing-control surfaces, and source/contract checks in `code-reliability.spec.ts`. No unit test runner is currently configured.
 
 ## Repository Structure
@@ -393,7 +393,7 @@ High-risk UX/platform paths:
 ## Deployment And Infrastructure Notes
 
 - No `vercel.json`, `firebase.json`, Dockerfile, cron config, or queue worker config is present in the repository.
-- `.github/workflows/ci.yml` runs on pushes and pull requests to `dev` and `main` on Node 22: `npm ci --ignore-scripts`, `npm run lint`, `npm run typecheck`, and `npm run build`, then installs Chromium and runs `npm run test:browser` headlessly. Build-time client values come from repository secrets listed in `docs/ci-secrets.md`. The Firebase client defers initialization when `NEXT_PUBLIC_FIREBASE_APIKEY` is empty, so the build succeeds without them.
+- `.github/workflows/ci.yml` runs on pushes and pull requests to `dev` and `main` on Node 24 (AI SDK 7 and Firebase Admin 14 need Node 22 or later): `npm ci --ignore-scripts`, `npm run lint`, `npm run typecheck`, and `npm run build`, then installs Chromium and runs `npm run test:browser` headlessly. Build-time client values come from repository secrets listed in `docs/ci-secrets.md`. The Firebase client defers initialization when `NEXT_PUBLIC_FIREBASE_APIKEY` is empty, so the build succeeds without them.
 - Deployment is currently inferred to be a standard Next.js deployment driven by `package.json`, `next.config.mjs`, environment variables, and the hosting platform configuration outside this repo.
 - `public/.well-known/apple-app-site-association` and `public/.well-known/assetlinks.json` support native app/WebView association paths. Do not remove them as unused website assets.
 - `next.config.mjs` allows Firebase/Google Storage image hosts and has `reactStrictMode: false`; re-enabling Strict Mode requires auditing auth/profile effects first.

@@ -67,7 +67,7 @@ export default function ImagePrompt({ initialInput }: ToolInitialProps) {
     }
 
     startGeneration();
-    const toastId = toast.loading("Working on the design...");
+    const toastId = toast.loading("Generating your image…");
 
     let result: { imageUrl?: string; error?: string };
     try {
@@ -79,7 +79,7 @@ export default function ImagePrompt({ initialInput }: ToolInitialProps) {
     } catch (error) {
       console.error("Error generating image:", error);
       toast.dismiss(toastId);
-      toast.error("Issue with design...");
+      toast.error("Could not generate the image. Try again in a moment.");
       completeWithError("Error generating image");
       return;
     }
@@ -107,7 +107,7 @@ export default function ImagePrompt({ initialInput }: ToolInitialProps) {
       } catch (error) {
         console.error("Error while finalizing image generation:", error);
         toast.dismiss(toastId);
-        toast.error("Error generating design...");
+        toast.error("The image was generated but could not be finalized. Check History, then try again.");
         completeWithError("Error saving to history");
       }
       return;
@@ -138,7 +138,7 @@ export default function ImagePrompt({ initialInput }: ToolInitialProps) {
       return;
     }
     completeWithError(IMAGE_ERROR_MESSAGE);
-    toast.error("Issue with design...");
+    toast.error("Could not generate the image. Try again in a moment.");
   };
 
   return (
@@ -146,13 +146,13 @@ export default function ImagePrompt({ initialInput }: ToolInitialProps) {
       <form onSubmit={handleSubmit}>
         <div className="mb-4">
           <StyledSelect
-            label="Artist Inspiration (Optional)"
+            label="Artist inspiration (optional)"
             name="painters"
             options={painters}
             onChange={(v) => {
               selectedPainterRef.current = v ? v.value : "";
             }}
-            placeholder="Select an artist style..."
+            placeholder="Any artist style"
           />
         </div>
 
@@ -162,7 +162,7 @@ export default function ImagePrompt({ initialInput }: ToolInitialProps) {
             className={inputClassName}
             id="topic-field"
             rows={4}
-            placeholder="Enter a freestyle prompt with any information or ideas you want to visualize"
+            placeholder="A cozy reading nook at dusk, warm light, watercolor…"
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
           />

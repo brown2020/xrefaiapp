@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 import { AI_MODELS, resolveAiModelKey } from "../src/ai/models";
 import { CREDITS_COSTS, getTextGenerationCreditsCost } from "../src/constants/credits";
@@ -24,6 +25,15 @@ import { safeProxyHeaders } from "../src/utils/proxyResponse";
 import { creditsForNewProfile } from "../src/utils/starterGrant";
 
 test.describe("code reliability contracts", () => {
+  test("markdown output gets typography styles", () => {
+    const css = readFileSync("src/app/globals.css", "utf8");
+    const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+
+    expect(css).toContain('@plugin "@tailwindcss/typography";');
+    expect(pkg.devDependencies["@tailwindcss/typography"]).toBeTruthy();
+    expect(readFileSync("src/components/History.tsx", "utf8")).toContain("prose");
+  });
+
   test("proxy responses stay non-executable text", () => {
     const headers = safeProxyHeaders();
     const route = readFileSync("src/app/api/proxy/route.ts", "utf8");
@@ -210,8 +220,9 @@ test.describe("code reliability contracts", () => {
     const pkg = JSON.parse(readFileSync("package.json", "utf8")) as {
       dependencies: { next: string; sharp: string };
       devDependencies: { "@next/eslint-plugin-next": string; postcss: string };
-      overrides: { postcss: string; "@grpc/grpc-js": string };
+      overrides: { postcss: string; "@grpc/grpc-js": string; "postcss-selector-parser": string };
     };
+    expect(pkg.overrides["postcss-selector-parser"]).toBe("^7.1.6");
     expect(pkg.dependencies.next).toBe("^16.4.2");
     expect(pkg.devDependencies["@next/eslint-plugin-next"]).toBe("^16.4.2");
     expect(pkg.dependencies.sharp).toBe("^0.35.5");
@@ -283,10 +294,10 @@ test.describe("code reliability contracts", () => {
 
   test("an empty or filtered completion is refunded and the client keeps the prompt", () => {
     expect(readFileSync("src/app/api/chat/route.ts", "utf8")).toMatch(
-      /if \(text\.trim\(\)\) \{\s*await settleSuccess\(\);\s*\} else \{\s*await settleFailure\(\);/
+      /onEnd: async \(\{ text \}\) => \{[^}]*if \(text\.trim\(\)\) \{\s*await settleSuccess\(\);\s*\} else \{\s*await settleFailure\(\);/
     );
-    expect(readFileSync("src/actions/generateAIResponse.ts", "utf8")).toContain(
-      "void (text.trim() ? settleSuccess() : settleFailure());"
+    expect(readFileSync("src/actions/generateAIResponse.ts", "utf8")).toMatch(
+      /onEnd: \(\{ text \}\) => \{[^}]*void \(text\.trim\(\) \? settleSuccess\(\) : settleFailure\(\)\);/
     );
     const chat = readFileSync("src/components/Chat.tsx", "utf8");
     expect(chat).toContain("setInput((current) => current || draft);");
@@ -296,6 +307,23 @@ test.describe("code reliability contracts", () => {
       "src/components/History.tsx",
     ]) {
       expect(readFileSync(file, "utf8")).toContain("throw new EmptyCompletionError()");
+    }
+  });
+
+  test("server code uses the modular Firebase Admin entry points", () => {
+    for (const file of readdirSync("src", { recursive: true, encoding: "utf8" })) {
+      if (!/\.tsx?$/.test(file)) continue;
+      const source = readFileSync(join("src", file), "utf8");
+      expect(source, file).not.toMatch(/from "firebase-admin";|FirebaseFirestore\.|admin\.firestore/);
+    }
+  });
+
+  test("client bundles exclude the Node crypto polyfill", () => {
+    const chunks = readdirSync(".next/static/chunks").filter((f) => f.endsWith(".js"));
+    expect(chunks.length).toBeGreaterThan(0);
+    for (const chunk of chunks) {
+      const source = readFileSync(join(".next/static/chunks", chunk), "utf8");
+      expect(source, chunk).not.toContain('case"RSA PRIVATE KEY"');
     }
   });
 

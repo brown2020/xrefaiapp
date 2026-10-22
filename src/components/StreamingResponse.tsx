@@ -12,7 +12,7 @@ export default function StreamingResponse({ content }: StreamingResponseProps) {
       header={
         <span className="flex items-center gap-1 text-xs text-muted-foreground ml-2">
           <InlineSpinner size="sm" />
-          Generating...
+          Generating…
         </span>
       }
     >

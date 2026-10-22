@@ -9,7 +9,14 @@ import { resizeImage } from "@/utils/resizeImage";
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
 import Image from "next/image";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { inputClassName, labelClassName } from "@/components/ui/FormInput";
+import {
+  cardClassName,
+  inputClassName,
+  labelClassName,
+  primaryButtonClassName,
+  secondaryButtonClassName,
+} from "@/components/ui/FormInput";
+import { Camera } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function AuthDataDisplay() {
@@ -44,7 +51,7 @@ export default function AuthDataDisplay() {
       const updatedUrl = await getDownloadURL(snapshot.ref);
 
       // Persist immediately so the upload isn't orphaned if the user closes
-      // the tab before clicking "Save Profile Changes".
+      // the tab before clicking "Save profile".
       await updateProfile({ photoUrl: updatedUrl });
       toast.success("Photo updated");
     } catch (error: unknown) {
@@ -83,111 +90,108 @@ export default function AuthDataDisplay() {
   const logoutUser = () => void signOutAndLeave();
 
   return (
-    <div className="bg-[#ffffff] border border-[#81878D] rounded-2xl mb-4">
-      <div className="flex flex-col p-5 space-y-3">
-        <div className="flex flex-col space-y-1">
-          <div className="text-base text-[#041D34] font-semibold">
-            Login email
-          </div>
-          <div className="text-[#0B3C68] border-b pb-3 border-[#B8D2FA] text-word break-all">
-            {authEmail}
-          </div>
-        </div>
-        <div className="flex flex-col space-y-1">
-          <div className="text-base text-[#041D34] font-semibold">User ID</div>
-          <div className="text-[#0B3C68] border-b pb-3 border-[#B8D2FA] text-word break-all">
-            {uid}
-          </div>
-        </div>
-        <div className="flex flex-col space-y-1">
-          <div className="text-base text-[#041D34] mb-1 font-semibold">
-            Profile
-          </div>
-          <div>
-            <div className="flex flex-col md:flex-row md:items-start md:space-x-4">
-              <div className="shrink-0 mb-4 md:mb-0">
-                <div className="relative w-44 max-w-full aspect-square">
-                  {profile.photoUrl ? (
-                    <Image
-                      width={512}
-                      height={512}
-                      src={profile.photoUrl}
-                      alt="User profile"
-                      className="object-cover rounded-md"
-                      priority
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center bg-gray-300 rounded-md">
-                      <span>Click to upload</span>
-                    </div>
-                  )}
-                  {uploading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gray-700/50 rounded-md">
-                      <LoadingSpinner size="md" />
-                    </div>
-                  )}
-
-                  <label className="absolute z-10 top-0 left-0 h-full w-full opacity-0 bg-black hover:opacity-50 cursor-pointer">
-                    <span className="sr-only">Upload profile photo</span>
-                    <input
-                      className="opacity-0 h-full w-full cursor-pointer"
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoChange}
-                      disabled={uploading}
-                    />
-                  </label>
-                </div>
-              </div>
-              <div className="min-w-0 grow space-y-3">
-                <div>
-                  <label htmlFor="first-name" className={labelClassName}>
-                    First Name
-                  </label>
-                  <input
-                    type="text"
-                    id="first-name"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    className={inputClassName}
-                    placeholder="Enter your First Name"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="last-name" className={labelClassName}>
-                    Last Name
-                  </label>
-                  <input
-                    type="text"
-                    id="last-name"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    className={inputClassName}
-                    placeholder="Enter your Last Name"
-                  />
-                </div>
-                <div className="w-full sm:flex sm:flex-row flex flex-col gap-2 items-center justify-end mt-5!">
-                  <button
-                    type="button"
-                    disabled={!hasChanges || saving}
-                    onClick={handleSubmit}
-                    className="w-full max-w-56 text-white px-3 py-2 custom-write bottom bg-[#192449] opacity-100! hover:bg-[#83A873] rounded-3xl! font-bold transition-transform duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {saving ? "Saving..." : "Save Profile Changes"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={logoutUser}
-                    className="w-full max-w-56 text-white px-3 py-2 custom-write bottom bg-[#192449] opacity-100! hover:bg-[#83A873] rounded-3xl! font-bold transition-transform duration-300 ease-in-out"
-                  >
-                    Logout
-                  </button>
-                </div>
-              </div>
+    <section aria-labelledby="profile-heading" className={cardClassName}>
+      <h2 id="profile-heading" className="text-lg font-bold text-foreground">
+        Profile
+      </h2>
+      <div className="mt-4 flex flex-col gap-5 md:flex-row md:items-start">
+        <div className="relative w-36 max-w-full aspect-square shrink-0 overflow-hidden rounded-xl border border-border bg-muted">
+          {profile.photoUrl ? (
+            <Image
+              width={512}
+              height={512}
+              src={profile.photoUrl}
+              alt="Your profile photo"
+              className="h-full w-full object-cover"
+              priority
+            />
+          ) : (
+            <div className="flex h-full flex-col items-center justify-center gap-1 text-sm text-muted-foreground">
+              <Camera size={22} aria-hidden />
+              <span>Add photo</span>
             </div>
+          )}
+          {uploading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+              <LoadingSpinner size="md" />
+            </div>
+          )}
+          <label className="absolute inset-0 z-10 cursor-pointer bg-black opacity-0 transition-opacity hover:opacity-30 focus-within:opacity-30 focus-within:outline-2 focus-within:outline-ring">
+            <span className="sr-only">Upload profile photo</span>
+            <input
+              className="h-full w-full cursor-pointer opacity-0"
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoChange}
+              disabled={uploading}
+            />
+          </label>
+        </div>
+
+        <div className="min-w-0 grow space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="first-name" className={labelClassName}>
+                First name
+              </label>
+              <input
+                type="text"
+                id="first-name"
+                name="given-name"
+                autoComplete="given-name"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className={inputClassName}
+              />
+            </div>
+            <div>
+              <label htmlFor="last-name" className={labelClassName}>
+                Last name
+              </label>
+              <input
+                type="text"
+                id="last-name"
+                name="family-name"
+                autoComplete="family-name"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className={inputClassName}
+              />
+            </div>
+          </div>
+
+          <dl className="grid gap-3 text-sm sm:grid-cols-2">
+            <div className="min-w-0">
+              <dt className="font-semibold text-foreground">Sign-in email</dt>
+              <dd className="mt-0.5 break-all text-muted-foreground">{authEmail}</dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="font-semibold text-foreground">User ID</dt>
+              <dd className="mt-0.5 break-all font-mono text-xs leading-5 text-muted-foreground">
+                {uid}
+              </dd>
+            </div>
+          </dl>
+
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={logoutUser}
+              className={secondaryButtonClassName}
+            >
+              Sign out
+            </button>
+            <button
+              type="button"
+              disabled={!hasChanges || saving}
+              onClick={handleSubmit}
+              className={primaryButtonClassName}
+            >
+              {saving ? "Saving…" : "Save profile"}
+            </button>
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

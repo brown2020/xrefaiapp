@@ -1,6 +1,7 @@
 "use server";
 
-import { adminDb, admin } from "@/firebase/firebaseAdmin";
+import { FieldValue } from "firebase-admin/firestore";
+import { adminDb } from "@/firebase/firebaseAdmin";
 import { requireAuthedUid } from "@/actions/serverAuth";
 
 export interface SaveHistoryInput {
@@ -74,7 +75,7 @@ export async function saveHistoryServer(
       : null,
     settings: sanitizeSettings(entry.settings),
     xrefs: safeXrefs,
-    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    timestamp: FieldValue.serverTimestamp(),
   });
 
   return docRef.id;
@@ -118,7 +119,7 @@ export async function saveChatServer(
   await docRef.set({
     prompt: clampString(prompt, MAX_PROMPT_LEN),
     response: clampString(response, MAX_RESPONSE_LEN),
-    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    timestamp: FieldValue.serverTimestamp(),
   });
 
   return docRef.id;

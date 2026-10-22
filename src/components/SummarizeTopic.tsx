@@ -200,7 +200,11 @@ export default function SummarizeTopic({
             type="text"
             id="site1-field"
             maxLength={120}
-            placeholder="Website URL to use as a reference."
+            inputMode="url"
+            autoCapitalize="none"
+            autoComplete="url"
+            spellCheck={false}
+            placeholder="https://example.com/article"
             value={siteUrl}
             onChange={(e) => setSiteUrl(e.target.value)}
             required
@@ -208,27 +212,26 @@ export default function SummarizeTopic({
         </label>
 
         <label htmlFor="topic-field" className={labelClassName}>
-          Focus (Optional)
+          Focus (optional)
           <input
             className={inputClassName}
             type="text"
             id="topic-field"
             maxLength={80}
-            placeholder="Enter a specific focus or aspect to summarize (optional)."
+            placeholder="Key takeaways, pricing, risks…"
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
           />
         </label>
 
         <label htmlFor="words-field" className={labelClassName}>
-          Approximate number of words (Between {MIN_WORD_COUNT} and{" "}
-          {MAX_WORD_COUNT})
+          Approximate length in words ({MIN_WORD_COUNT}–{MAX_WORD_COUNT})
           <input
             className={inputClassName}
             value={words}
             type="number"
             id="words-field"
-            placeholder="Enter number of words."
+            placeholder="200"
             min={MIN_WORD_COUNT}
             max={MAX_WORD_COUNT}
             onChange={(e) => setWords(e.target.value || "30")}

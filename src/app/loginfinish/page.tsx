@@ -139,7 +139,7 @@ export default function LoginFinishPage() {
           <div className="py-6">
             <LoadingSpinner
               size="lg"
-              text={stage === "checking" ? "Checking link..." : "Signing you in..."}
+              text={stage === "checking" ? "Checking link…" : "Signing you in…"}
             />
           </div>
         ) : null}

@@ -12,7 +12,6 @@ type ProfileUpdateFields = {
   anthropic_api_key?: string;
   xai_api_key?: string;
   google_api_key?: string;
-  stability_api_key?: string;
   selectedAvatar?: string;
   selectedTalkingPhoto?: string;
   useCredits?: boolean;
@@ -31,7 +30,6 @@ const CLIENT_WRITABLE_FIELDS = {
   anthropic_api_key: "string",
   xai_api_key: "string",
   google_api_key: "string",
-  stability_api_key: "string",
   selectedAvatar: "string",
   selectedTalkingPhoto: "string",
   useCredits: "boolean",

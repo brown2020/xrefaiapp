@@ -53,13 +53,13 @@ export function DesignerForm({
     <form onSubmit={handleSubmit}>
       <div className="flex flex-col gap-4 sm:flex sm:flex-row">
         <StyledSelect
-          label="Design Category"
+          label="Design category"
           name="items"
           options={items}
           onChange={handleSelectChange("items")}
         />
         <StyledSelect
-          label="Artist Inspiration"
+          label="Artist inspiration"
           name="painters"
           options={painters}
           onChange={handleSelectChange("painters")}
@@ -68,7 +68,7 @@ export function DesignerForm({
 
       <div className="flex flex-col gap-4 sm:flex sm:flex-row mt-4">
         <StyledSelect
-          label="Ice Cream Flavors"
+          label="Ice cream flavors"
           name="iceCreams"
           options={iceCreams}
           onChange={handleSelectChange("iceCreams")}
@@ -106,7 +106,7 @@ export function DesignerForm({
           onChange={(e) => setTopic(e.target.value)}
           className={inputClassName}
           rows={4}
-          placeholder="Describe your design idea..."
+          placeholder="A poster for a summer pop-up, with citrus colors and bold type…"
           required
         />
       </div>

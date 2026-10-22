@@ -71,7 +71,7 @@ test("student chat starter opens with a guided prompt", async ({
 
   await expect(page.getByText("Student starter")).toBeVisible();
   await expect(page.getByText("Expected input")).toBeVisible();
-  await expect(page.getByPlaceholder("Ask me anything...")).toHaveValue(
+  await expect(page.getByPlaceholder("Ask me anything…")).toHaveValue(
     /Create a study guide for photosynthesis/
   );
 });

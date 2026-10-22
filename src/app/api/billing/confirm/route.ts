@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import Stripe from "stripe";
-import { adminDb, admin } from "@/firebase/firebaseAdmin";
+import { FieldValue } from "firebase-admin/firestore";
+import { adminDb } from "@/firebase/firebaseAdmin";
 import { CREDIT_PACKS } from "@/constants/creditPacks";
 import { coerceCredits } from "@/utils/credits";
 import { requireAuthedUidFromRequest } from "@/utils/requireAuthedRequest";
@@ -22,7 +23,7 @@ async function tryAcquirePaymentLock(uid: string, sessionId: string): Promise<bo
   const now = Date.now();
 
   try {
-    await adminDb.runTransaction(async (tx: FirebaseFirestore.Transaction) => {
+    await adminDb.runTransaction(async (tx) => {
       const lockSnap = await tx.get(lockRef);
 
       if (lockSnap.exists) {
@@ -36,7 +37,7 @@ async function tryAcquirePaymentLock(uid: string, sessionId: string): Promise<bo
 
       tx.set(lockRef, {
         acquiredAt: now,
-        acquiredAtServer: admin.firestore.FieldValue.serverTimestamp(),
+        acquiredAtServer: FieldValue.serverTimestamp(),
         uid,
         sessionId,
       });
@@ -140,7 +141,7 @@ export async function POST(req: NextRequest) {
     const ledgerRef = adminDb.doc(`users/${uid}/creditsLedger/stripe_checkout_${sessionId}`);
 
     const res = await adminDb.runTransaction(
-      async (tx: FirebaseFirestore.Transaction) => {
+      async (tx) => {
         const existingPaymentSnap = await tx.get(paymentRef);
         if (existingPaymentSnap.exists) {
           const existing = existingPaymentSnap.data() as
@@ -169,7 +170,7 @@ export async function POST(req: NextRequest) {
           {
             id: `checkout_${sessionId}`,
             amount: amountTotal,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdAt: FieldValue.serverTimestamp(),
             status: checkoutSession.payment_status,
             mode: "stripe_checkout",
             platform: "web",
@@ -200,7 +201,7 @@ export async function POST(req: NextRequest) {
             modelKey: null,
             refId: checkoutSession.id,
             balanceAfter: nextCredits,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdAt: FieldValue.serverTimestamp(),
           },
           { merge: true }
         );

@@ -1,4 +1,5 @@
-import { adminDb, admin } from "@/firebase/firebaseAdmin";
+import { FieldValue } from "firebase-admin/firestore";
+import { adminDb } from "@/firebase/firebaseAdmin";
 
 /**
  * Rate limit configuration for different endpoints
@@ -62,7 +63,7 @@ export async function checkRateLimit(
 
   try {
     return await adminDb.runTransaction(
-      async (tx: FirebaseFirestore.Transaction): Promise<RateLimitResult> => {
+      async (tx): Promise<RateLimitResult> => {
         const snap = await tx.get(rateLimitRef);
         const data = snap.exists ? (snap.data() as RateLimitDoc) : null;
 
@@ -95,7 +96,7 @@ export async function checkRateLimit(
         tx.set(rateLimitRef, {
           windowStart,
           count: nextCount,
-          lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+          lastUpdated: FieldValue.serverTimestamp(),
         });
 
         return {
@@ -177,7 +178,7 @@ export async function cleanupRateLimitData(uid: string): Promise<void> {
   const batch = adminDb.batch();
   let hasUpdates = false;
 
-  snapshot.docs.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+  snapshot.docs.forEach((doc) => {
     const data = doc.data() as RateLimitDoc | undefined;
     const windowStart = Number(data?.windowStart ?? 0);
     if (!Number.isFinite(windowStart) || windowStart < cutoff) {

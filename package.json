@@ -2,6 +2,9 @@
   "name": "xrefai",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -15,17 +18,17 @@
     "prove:state": "node scripts/prove-architecture-state.mjs"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.71",
-    "@ai-sdk/google": "^3.0.64",
-    "@ai-sdk/openai": "^3.0.53",
-    "@ai-sdk/react": "^3.0.170",
-    "@ai-sdk/rsc": "^2.0.168",
-    "@ai-sdk/xai": "^3.0.83",
+    "@ai-sdk/anthropic": "^4.0.85",
+    "@ai-sdk/google": "^4.0.102",
+    "@ai-sdk/openai": "^4.0.99",
+    "@ai-sdk/react": "^4.0.152",
+    "@ai-sdk/rsc": "^3.0.148",
+    "@ai-sdk/xai": "^5.0.27",
     "@radix-ui/react-dialog": "^1.1.15",
-    "ai": "^6.0.168",
-    "firebase": "^12.13.0",
-    "firebase-admin": "^13.10.0",
-    "lucide-react": "^1.8.0",
+    "ai": "^7.0.148",
+    "firebase": "^13.1.0",
+    "firebase-admin": "^14.5.0",
+    "lucide-react": "^1.61.0",
     "next": "^16.4.2",
     "react": "^19.3.1",
     "react-cookie-consent": "^10.0.1",
@@ -38,16 +41,17 @@
     "react-textarea-autosize": "^8.5.9",
     "remark-gfm": "^4.0.1",
     "sharp": "^0.35.5",
-    "stripe": "^22.0.2",
+    "stripe": "^23.0.0",
     "zod": "^4.3.6",
-    "zustand": "^5.0.12"
+    "zustand": "^5.0.16"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@next/eslint-plugin-next": "^16.4.2",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4.3.0",
-    "@types/node": "^25.6.0",
+    "@tailwindcss/typography": "^0.5.20",
+    "@types/node": "^26.6.5",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@types/react-scroll-to-bottom": "^4.2.5",
@@ -63,6 +67,7 @@
     "@tootallnate/once": ">=3.0.1",
     "fast-xml-parser": ">=5.7.0",
     "postcss": "8.5.31",
-    "@grpc/grpc-js": "^1.14.6"
+    "@grpc/grpc-js": "^1.14.6",
+    "postcss-selector-parser": "^7.1.6"
   }
 }

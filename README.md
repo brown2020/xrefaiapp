@@ -24,11 +24,11 @@ Deeper docs for agents and product direction live in [AGENTS.md](./AGENTS.md) an
 | --- | --- |
 | Framework | Next.js `^16.4.2` (App Router + `src/proxy.ts`) |
 | UI | React `^19.3.1`, Tailwind CSS `^4.3`, Radix dialog, Lucide, Plus Jakarta Sans, react-hot-toast, react-markdown |
-| Language | TypeScript `^6` |
-| Auth / data | Firebase `^12` + Firebase Admin `^13` (Auth, Firestore, Storage) |
-| AI text | Vercel AI SDK (`ai` `^6`, `@ai-sdk/openai|anthropic|google|xai|rsc|react`) |
+| Language | TypeScript `^6` (held until typescript-eslint supports TypeScript 7) |
+| Auth / data | Firebase `^13` + Firebase Admin `^14` (Auth, Firestore, Storage) |
+| AI text | Vercel AI SDK (`ai` `^7`, `@ai-sdk/openai|anthropic|google|xai|rsc|react`) |
 | AI images | Fireworks Stable Diffusion XL via server action |
-| Payments | Stripe `^22` Checkout; native IAP helpers for WebView |
+| Payments | Stripe `^23` Checkout; native IAP helpers for WebView |
 | State | Zustand `^5` |
 | Validation | Zod `^4` |
 | Tests | Playwright `^1.60` |

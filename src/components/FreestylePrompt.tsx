@@ -37,7 +37,7 @@ export default function FreestylePrompt({
       historySettings={(wordCount) =>
         getWritingHistorySettings(settings, wordCount)
       }
-      buttonText="Let's Write!"
+      buttonText="Write draft"
       loadingText="Writing"
       initialInput={initialInput}
       initialWordCount={initialWordCount}
@@ -50,7 +50,7 @@ export default function FreestylePrompt({
               className={`${inputClassName} resize-none`}
               id="topic-field"
               minRows={4}
-              placeholder="Enter your freestyle prompt."
+              placeholder="Describe a product launch for busy parents…"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
             />

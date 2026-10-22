@@ -35,20 +35,31 @@ export default function DeleteAccount() {
   }, [deleteAccount, router]);
 
   return (
-    <div className="flex flex-col container mt-4 mx-auto gap-4">
-      <div className="w-full flex justify-end">
-        <button
-          onClick={handleDeleteClick}
-          className="font-bold bg-[#c42b2e] hover:bg-[#9f1f22] rounded-3xl text-white w-full max-w-56 block px-3 py-2"
-        >
-          {loadingDelete ? "Deleting..." : "Delete Account"}
-        </button>
-        <DeleteConfirmModal
-          showDeleteModal={showDeleteModal}
-          onHideModal={() => setShowDeleteModal(false)}
-          onDeleteConfirm={onDeleteConfirm}
-        />
+    <section
+      aria-labelledby="delete-account-heading"
+      className="flex flex-col gap-3 rounded-2xl border border-destructive/30 bg-card p-5 sm:flex-row sm:items-center sm:justify-between"
+    >
+      <div>
+        <h2 id="delete-account-heading" className="text-lg font-bold text-foreground">
+          Delete account
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Permanently removes your sign-in and profile. This cannot be undone.
+        </p>
       </div>
-    </div>
+      <button
+        type="button"
+        onClick={handleDeleteClick}
+        disabled={loadingDelete}
+        className="inline-flex shrink-0 items-center justify-center rounded-lg bg-destructive px-4 py-2.5 text-sm font-semibold text-destructive-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+      >
+        {loadingDelete ? "Deleting…" : "Delete account"}
+      </button>
+      <DeleteConfirmModal
+        showDeleteModal={showDeleteModal}
+        onHideModal={() => setShowDeleteModal(false)}
+        onDeleteConfirm={onDeleteConfirm}
+      />
+    </section>
   );
 }

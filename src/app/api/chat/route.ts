@@ -1,5 +1,10 @@
 import { randomUUID } from "crypto";
-import { ModelMessage, streamText } from "ai";
+import {
+  createUIMessageStreamResponse,
+  ModelMessage,
+  streamText,
+  toUIMessageStream,
+} from "ai";
 import { NextRequest } from "next/server";
 import { getTextModel } from "@/ai/getTextModel";
 import { requireAuthedUidFromRequest } from "@/utils/requireAuthedRequest";
@@ -177,10 +182,10 @@ export async function POST(req: NextRequest) {
     try {
       const result = streamText({
         model,
-        system: SYSTEM_PROMPT,
+        instructions: SYSTEM_PROMPT,
         messages: buildMessages(bounded.history, bounded.userText),
         abortSignal: abortController.signal,
-        onFinish: async ({ text }) => {
+        onEnd: async ({ text }) => {
           successfullyStreamed = true;
           // A filtered or empty completion delivers nothing, so it is not charged.
           if (text.trim()) {
@@ -189,12 +194,8 @@ export async function POST(req: NextRequest) {
             await settleFailure();
           }
         },
-        onError: async (event) => {
-          const streamError =
-            typeof event === "object" && event !== null && "error" in event
-              ? (event as { error?: unknown }).error
-              : event;
-          console.error("Chat stream error:", streamError);
+        onError: async ({ error }) => {
+          console.error("Chat stream error:", error);
           await settleFailure();
         },
         onAbort: async () => {
@@ -206,7 +207,9 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      return result.toUIMessageStreamResponse();
+      return createUIMessageStreamResponse({
+        stream: toUIMessageStream({ stream: result.stream }),
+      });
     } catch (error) {
       await settleFailure();
       throw error;

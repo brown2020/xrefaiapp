@@ -12,7 +12,7 @@ import {
   type WritingSettings,
   type WritingTone,
 } from "@/constants/writingControls";
-import { inputClassName, labelClassName } from "@/components/ui/FormInput";
+import { inputClassName, labelClassName, selectClassName } from "@/components/ui/FormInput";
 import type { Dispatch, SetStateAction } from "react";
 
 interface WritingControlsProps {
@@ -49,7 +49,7 @@ export default function WritingControls({
           Deliverable
           <select
             id="deliverable-field"
-            className={`${inputClassName} appearance-none`}
+            className={selectClassName}
             value={value.deliverable}
             onChange={(event) =>
               update("deliverable", event.target.value as WritingDeliverable)
@@ -67,7 +67,7 @@ export default function WritingControls({
           Tone
           <select
             id="tone-field"
-            className={`${inputClassName} appearance-none`}
+            className={selectClassName}
             value={value.tone}
             onChange={(event) =>
               update("tone", event.target.value as WritingTone)
@@ -85,7 +85,7 @@ export default function WritingControls({
           Audience
           <select
             id="audience-field"
-            className={`${inputClassName} appearance-none`}
+            className={selectClassName}
             value={value.audience}
             onChange={(event) =>
               update("audience", event.target.value as WritingAudience)
@@ -103,7 +103,7 @@ export default function WritingControls({
           Draft length
           <select
             id="length-preset-field"
-            className={`${inputClassName} appearance-none`}
+            className={selectClassName}
             value={value.length}
             onChange={(event) =>
               updateLength(event.target.value as WritingLengthPreset)
@@ -124,7 +124,7 @@ export default function WritingControls({
           id="call-to-action-field"
           className={inputClassName}
           value={value.callToAction}
-          placeholder="Optional next step for the reader."
+          placeholder="Book a demo, reply to this email…"
           onChange={(event) => update("callToAction", event.target.value)}
         />
       </label>

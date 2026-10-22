@@ -7,7 +7,7 @@ export default function PaymentSuccess() {
     <Suspense
       fallback={
         <div className="flex items-center justify-center min-h-screen w-full bg-muted/30">
-          <LoadingSpinner size="lg" text="Loading..." />
+          <LoadingSpinner size="lg" text="Loading…" />
         </div>
       }
     >

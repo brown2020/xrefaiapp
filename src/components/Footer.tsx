@@ -37,10 +37,10 @@ export default function Footer() {
           {uid && (
             <button
               onClick={() => void signOutAndLeave()}
-              className="flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
+              className="flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               <LogOut size={14} />
-              <span>Sign Out</span>
+              <span>Sign out</span>
             </button>
           )}
         </nav>
