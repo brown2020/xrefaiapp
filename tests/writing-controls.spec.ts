@@ -3,9 +3,17 @@ import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 const AUTH_COOKIE_NAME = "xrefAuthToken";
 const SOFT_AUTH_COOKIE_VALUE = "playwright-soft-auth";
 
-/** Retries until the choice survives hydration of the server-rendered select. */
+/**
+ * Waits for React to hydrate the server-rendered select (hydration resets a
+ * value chosen before it), then retries until the choice sticks.
+ */
 async function choose(page: Page, label: string, value: string) {
   const select = page.getByLabel(label);
+  await expect
+    .poll(() =>
+      select.evaluate((el) => Object.keys(el).some((key) => key.startsWith("__reactFiber")))
+    )
+    .toBe(true);
   await expect(async () => {
     await select.selectOption(value);
     await expect(select).toHaveValue(value, { timeout: 500 });

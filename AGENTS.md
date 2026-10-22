@@ -211,7 +211,8 @@ Freestyle Writing adds client-side controls for deliverable, tone, audience, len
 - calls OpenAI `IMAGE_MODEL_ID` with server `OPENAI_API_KEY` in credits mode or the profile OpenAI key in API-key mode (`IMAGE_MISSING_OPENAI_KEY` when absent);
 - debits `CREDITS_COSTS.imageGeneration` in credits mode;
 - rate-limits authenticated image requests under endpoint `image`;
-- uploads the generated PNG to Firebase Storage under `generated/{uid}/` and returns a signed URL;
+- requests a medium-quality 1024x1024 JPEG with no retries and aborts after `IMAGE_PROVIDER_TIMEOUT_MS` (100s), which must stay below the `/tools` route's `maxDuration` (120s): Vercel kills a timed-out function without running the refund;
+- uploads the generated JPEG to Firebase Storage under `generated/{uid}/` and returns a signed URL;
 - logs provider failures server-side and returns `IMAGE_CONTENT_REJECTED` or `IMAGE_GENERATION_FAILED` (`src/utils/imageErrors.ts`) so the UI only blames the prompt for real content-policy refusals;
 - saves image outputs as history entries with `words: "image"`.
 

@@ -148,7 +148,7 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
 #### Image Generation
 
 - Uses OpenAI `gpt-image-2` through the AI SDK (Fireworks shut down image generation in August 2026).
-- Generates 1024x1024 PNGs.
+- Generates medium-quality 1024x1024 JPEGs; the request aborts after 100 seconds and refunds credits.
 - Content-policy refusals and provider outages show different messages; provider failures are logged server-side.
 - Uploads successful images to Firebase Storage and returns signed URLs.
 - Image generation costs `CREDITS_COSTS.imageGeneration` credits in credits mode.

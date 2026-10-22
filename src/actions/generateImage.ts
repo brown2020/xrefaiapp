@@ -126,6 +126,9 @@ export async function generateImage(
   }
 }
 
+/** Must end before the /tools route's `maxDuration` (120s) so the refund path still runs. */
+const IMAGE_PROVIDER_TIMEOUT_MS = 100_000;
+
 const IMAGE_EXTENSIONS: Record<string, string> = {
   "image/png": "png",
   "image/jpeg": "jpg",
@@ -141,7 +144,9 @@ async function renderAndStoreImage(
     model,
     prompt,
     size: "1024x1024",
-    maxRetries: 1,
+    maxRetries: 0,
+    abortSignal: AbortSignal.timeout(IMAGE_PROVIDER_TIMEOUT_MS),
+    providerOptions: { openai: { quality: "medium", outputFormat: "jpeg" } },
   });
 
   const extension = IMAGE_EXTENSIONS[image.mediaType] ?? "png";

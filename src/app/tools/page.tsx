@@ -6,6 +6,9 @@ import {
   type PageSearchParams,
 } from "@/utils/queryParams";
 
+/** Image generation runs as a server action on this route and can take over a minute. */
+export const maxDuration = 120;
+
 export default async function ToolsPage({
   searchParams,
 }: {

@@ -163,6 +163,21 @@ test.describe("code reliability contracts", () => {
     expect(imageFailureMessage(IMAGE_MISSING_OPENAI_KEY)).toMatch(/OpenAI API key/);
   });
 
+  test("image provider timeout ends before the route is killed so refunds run", () => {
+    // Vercel stops a function at maxDuration without running catch blocks,
+    // which would keep the 300-credit image debit.
+    const route = readFileSync("src/app/tools/page.tsx", "utf8");
+    const action = readFileSync("src/actions/generateImage.ts", "utf8");
+    const maxDurationSeconds = Number(route.match(/export const maxDuration = (\d+);/)?.[1]);
+    const timeoutMs = Number(
+      action.match(/IMAGE_PROVIDER_TIMEOUT_MS = ([\d_]+);/)?.[1].replaceAll("_", "")
+    );
+    expect(maxDurationSeconds).toBeGreaterThan(0);
+    expect(timeoutMs).toBeGreaterThan(30_000);
+    expect(timeoutMs).toBeLessThanOrEqual(maxDurationSeconds * 1000 - 15_000);
+    expect(action).toContain("AbortSignal.timeout(IMAGE_PROVIDER_TIMEOUT_MS)");
+  });
+
   test("AI consent gate leaves policies, help, and account deletion reachable", () => {
     for (const path of ["/privacy", "/terms", "/support", "/account"]) {
       expect(isAiConsentExemptPath(path)).toBe(true);
