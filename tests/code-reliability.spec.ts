@@ -216,6 +216,15 @@ test.describe("code reliability contracts", () => {
     expect(history).not.toContain("No history found.");
   });
 
+  test("keyboard focus stays visible on shared buttons", () => {
+    const css = readFileSync("src/app/globals.css", "utf8");
+    expect(css).toMatch(/:focus-visible\s*\{\s*outline: 2px solid var\(--ring\)/);
+    for (const block of css.match(/@utility btn-[\w-]+ \{[^}]*\}/g) ?? []) {
+      expect(block).not.toMatch(/outline-(hidden|none)/);
+    }
+    expect(css).toContain("transition-duration: 0.01ms !important");
+  });
+
   test("advisory floors stay on the patched next, postcss, sharp, and grpc lines", () => {
     const pkg = JSON.parse(readFileSync("package.json", "utf8")) as {
       dependencies: { next: string; sharp: string };

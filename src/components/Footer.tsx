@@ -36,6 +36,7 @@ export default function Footer() {
           ))}
           {uid && (
             <button
+              type="button"
               onClick={() => void signOutAndLeave()}
               className="flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >

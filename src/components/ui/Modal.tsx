@@ -70,7 +70,7 @@ export function Modal({
       aria-labelledby={title ? "modal-title" : undefined}
     >
       <div
-        className={`relative bg-card text-card-foreground border border-border p-6 rounded-lg shadow-lg w-full ${maxWidthClasses[maxWidth]} max-h-[calc(100dvh-2rem)] overflow-y-auto mx-auto`}
+        className={`relative bg-card text-card-foreground border border-border p-6 rounded-lg shadow-lg w-full ${maxWidthClasses[maxWidth]} max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain mx-auto`}
       >
         {showCloseButton && (
           <button

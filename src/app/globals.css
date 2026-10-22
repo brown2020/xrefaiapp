@@ -52,6 +52,11 @@
   ::file-selector-button {
     border-color: var(--color-gray-200, currentColor);
   }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
 }
 
 .select-chevron {
@@ -166,31 +171,31 @@ body:has(.cookie-banner) [data-fill-viewport] {
 }
 
 @utility btn-primary {
-  @apply cursor-pointer flex w-full outline-hidden text-center justify-center items-center gap-2 mt-2 px-6 py-2 bg-primary text-primary-foreground font-semibold hover:opacity-90 rounded-full disabled:bg-muted disabled:text-muted-foreground disabled:hover:opacity-100 disabled:cursor-not-allowed;
+  @apply cursor-pointer flex w-full text-center justify-center items-center gap-2 mt-2 px-6 py-2 bg-primary text-primary-foreground font-semibold hover:opacity-90 rounded-full disabled:bg-muted disabled:text-muted-foreground disabled:hover:opacity-100 disabled:cursor-not-allowed;
 }
 
 @utility btn-blue {
-  @apply cursor-pointer flex w-full outline-hidden text-center justify-center items-center gap-2 mt-2 px-6 py-2 bg-primary text-primary-foreground font-semibold hover:opacity-90 rounded-full disabled:bg-muted disabled:text-muted-foreground disabled:hover:opacity-100 disabled:cursor-not-allowed;
+  @apply cursor-pointer flex w-full text-center justify-center items-center gap-2 mt-2 px-6 py-2 bg-primary text-primary-foreground font-semibold hover:opacity-90 rounded-full disabled:bg-muted disabled:text-muted-foreground disabled:hover:opacity-100 disabled:cursor-not-allowed;
 }
 
 @utility btn-danger {
-  @apply cursor-pointer flex w-full outline-hidden text-center justify-center items-center gap-2 mt-2 px-6 py-2 bg-destructive text-destructive-foreground font-semibold hover:opacity-90 rounded-full disabled:bg-muted disabled:text-muted-foreground disabled:hover:opacity-100 disabled:cursor-not-allowed;
+  @apply cursor-pointer flex w-full text-center justify-center items-center gap-2 mt-2 px-6 py-2 bg-destructive text-destructive-foreground font-semibold hover:opacity-90 rounded-full disabled:bg-muted disabled:text-muted-foreground disabled:hover:opacity-100 disabled:cursor-not-allowed;
 }
 
 @utility btn-white {
-  @apply cursor-pointer flex outline-hidden text-center justify-center items-center gap-2 mt-2 px-6 py-2 bg-card text-foreground font-semibold hover:opacity-90 rounded-full border border-border disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply cursor-pointer flex text-center justify-center items-center gap-2 mt-2 px-6 py-2 bg-card text-foreground font-semibold hover:opacity-90 rounded-full border border-border disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
 @utility btn-muted {
-  @apply cursor-pointer flex w-full outline-hidden text-center justify-center items-center gap-2 mt-2 px-6 py-2 bg-muted text-foreground font-semibold hover:opacity-90 rounded-full border border-border disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply cursor-pointer flex w-full text-center justify-center items-center gap-2 mt-2 px-6 py-2 bg-muted text-foreground font-semibold hover:opacity-90 rounded-full border border-border disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
 @utility btn-primary2 {
-  @apply cursor-pointer flex outline-hidden items-center gap-2 mt-2 px-6 py-2 bg-muted text-foreground font-semibold hover:opacity-90 rounded-full border border-border disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply cursor-pointer flex items-center gap-2 mt-2 px-6 py-2 bg-muted text-foreground font-semibold hover:opacity-90 rounded-full border border-border disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
 @utility btn-secondary {
-  @apply cursor-pointer flex outline-hidden items-center gap-2 mt-2 px-6 py-2 bg-card text-muted-foreground font-semibold hover:text-foreground hover:bg-muted ml-auto rounded-full border border-border;
+  @apply cursor-pointer flex items-center gap-2 mt-2 px-6 py-2 bg-card text-muted-foreground font-semibold hover:text-foreground hover:bg-muted ml-auto rounded-full border border-border;
 }
 
 @utility input-primary {
@@ -316,49 +321,6 @@ body:has(.cookie-banner) [data-fill-viewport] {
   left: 0;
   width: 100%;
   height: 100%;
-}
-
-/* navbar menu */
-/* Navbar hover effects with AI glow and color change */
-.navbar-link {
-  position: relative;
-  transition: all 0.4s ease-in-out;
-}
-
-.navbar-link::before {
-  content: "";
-  position: absolute;
-  width: 0;
-  height: 3px;
-  bottom: -4px;
-  left: 0;
-  background: var(--accent);
-  transition: all 0.4s ease-in-out;
-}
-
-.navbar-link:hover .nav-icon {
-  color: var(--accent);
-  text-shadow: none;
-  transition: all 0.4s ease-in-out;
-}
-
-.navbar-link:hover::before {
-  width: 100%;
-}
-
-.navbar-link:hover {
-  color: var(--accent);
-}
-
-/* Active state styles */
-.navbar-link.active {
-  color: var(--accent);
-  /* Text color when active */
-}
-
-.navbar-link.active::before {
-  width: 100%;
-  /* Full width of the bottom border when active */
 }
 
 .chnage_title span {
@@ -639,6 +601,8 @@ body:has(.cookie-banner) [data-fill-viewport] {
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
     scroll-behavior: auto !important;
   }
 }

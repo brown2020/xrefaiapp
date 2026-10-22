@@ -27,7 +27,7 @@ export default function GenerationNextActions({
 
   const excerpt =
     trimmed.length > MAX_PREFILL_CHARS
-      ? `${trimmed.slice(0, MAX_PREFILL_CHARS)}...`
+      ? `${trimmed.slice(0, MAX_PREFILL_CHARS)}…`
       : trimmed;
 
   const continuePrompt = [

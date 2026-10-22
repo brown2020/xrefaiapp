@@ -42,7 +42,7 @@ export default function ChatInput({
   };
 
   return (
-    <div className="w-full bg-background/80 backdrop-blur-lg border-t border-border p-4 md:p-6 pb-8 md:pb-8">
+    <div className="w-full bg-background/80 backdrop-blur-lg border-t border-border p-4 md:p-6 pb-[max(2rem,env(safe-area-inset-bottom))]">
       <div className="max-w-4xl mx-auto relative">
         <div className="relative flex items-end gap-2 bg-muted border border-border rounded-2xl shadow-sm focus-within:ring-2 focus-within:ring-ring/20 focus-within:border-ring transition-colors overflow-hidden">
           <TextareaAutosize

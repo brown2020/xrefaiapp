@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import AuthComponent from "@/components/AuthComponent";
@@ -304,6 +304,18 @@ export default function Home() {
   );
 }
 
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+
+function subscribeReducedMotion(onChange: () => void) {
+  const query = window.matchMedia(REDUCED_MOTION_QUERY);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+function getReducedMotion() {
+  return window.matchMedia(REDUCED_MOTION_QUERY).matches;
+}
+
 function HeroTypewriter({ words }: { words: readonly string[] }) {
   const visibleWords = useMemo(
     () => words.filter((word) => word.trim().length > 0),
@@ -313,11 +325,19 @@ function HeroTypewriter({ words }: { words: readonly string[] }) {
   const [characterCount, setCharacterCount] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const prefersReducedMotion = useSyncExternalStore(
+    subscribeReducedMotion,
+    getReducedMotion,
+    () => false
+  );
+
   const currentWord = visibleWords[wordIndex % visibleWords.length] ?? "";
-  const visibleText = currentWord.slice(0, characterCount);
+  const visibleText = prefersReducedMotion
+    ? currentWord
+    : currentWord.slice(0, characterCount);
 
   useEffect(() => {
-    if (!currentWord) {
+    if (!currentWord || prefersReducedMotion) {
       return undefined;
     }
 
@@ -352,7 +372,13 @@ function HeroTypewriter({ words }: { words: readonly string[] }) {
     }, delay);
 
     return () => window.clearTimeout(timer);
-  }, [characterCount, currentWord, isDeleting, visibleWords.length]);
+  }, [
+    characterCount,
+    currentWord,
+    isDeleting,
+    prefersReducedMotion,
+    visibleWords.length,
+  ]);
 
   return (
     <span className="home-typewriter">

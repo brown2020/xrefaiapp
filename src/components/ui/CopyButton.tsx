@@ -36,6 +36,7 @@ export function CopyButton({
 
   return (
     <button
+      type="button"
       onClick={handleCopy}
       className={`flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted px-2 py-1 rounded-md border border-border transition-colors cursor-pointer ${className}`}
     >

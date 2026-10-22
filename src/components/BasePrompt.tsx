@@ -164,7 +164,7 @@ export default function BasePrompt({
 
       if (uid) {
         const topicDisplay =
-          inputValue.length > 50 ? inputValue.substring(0, 50) + "..." : inputValue;
+          inputValue.length > 50 ? inputValue.substring(0, 50) + "…" : inputValue;
         try {
           await saveHistory({
             prompt: newPrompt,

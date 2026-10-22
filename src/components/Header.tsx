@@ -103,6 +103,7 @@ export default function Header() {
             )}
             {uid && (
               <button
+                type="button"
                 onClick={handleSignOut}
                 className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 aria-label="Sign out"
@@ -170,6 +171,7 @@ export default function Header() {
                   {uid && (
                     <SheetClose>
                       <button
+                        type="button"
                         onClick={handleSignOut}
                         className="flex h-12 w-full items-center justify-start gap-2 whitespace-nowrap rounded-lg px-3 font-bold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                       >

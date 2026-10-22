@@ -92,6 +92,7 @@ function ActionButton({ onClick, icon, label }: ActionButtonProps) {
       className="p-2 w-9 h-9 border border-[#A3AEC0] rounded-[10px] text-center flex justify-center items-center cursor-pointer hover:bg-[#0A0F20] hover:text-white transition-colors"
       onClick={onClick}
       title={label}
+      aria-label={label}
     >
       {icon}
     </button>

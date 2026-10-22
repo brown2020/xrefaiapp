@@ -269,6 +269,7 @@ export default function History() {
               {hasMore && (
                 <div className="flex justify-center pt-4 pb-8">
                   <button
+                    type="button"
                     onClick={loadMore}
                     disabled={loadingMore}
                     className="text-sm font-medium text-foreground bg-card border border-border hover:bg-muted px-6 py-3 rounded-full transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50 cursor-pointer hover:shadow-md"
@@ -583,6 +584,7 @@ function HistoryCard({
 
       {!isExpanded && (
         <button
+          type="button"
           onClick={onToggleExpand}
           className="w-full py-3 text-xs font-medium text-muted-foreground hover:text-ring hover:bg-muted transition-colors border-t border-border flex items-center justify-center gap-1"
         >
@@ -685,12 +687,14 @@ function ImageResponse({ imageUrl }: { imageUrl: string }) {
       </div>
       <div className="flex gap-2 flex-wrap">
         <button
+          type="button"
           onClick={() => copyImageToClipboard(imageUrl)}
           className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted px-3 py-2 rounded-lg border border-border hover:bg-muted/70 transition-colors"
         >
           <Copy size={14} aria-hidden /> Copy URL
         </button>
         <button
+          type="button"
           onClick={() => downloadImage(imageUrl)}
           className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted px-3 py-2 rounded-lg border border-border hover:bg-muted/70 transition-colors"
         >

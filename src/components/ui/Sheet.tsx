@@ -51,7 +51,7 @@ export function SheetContent({
       <Dialog.Overlay className="fixed inset-0 z-20000 bg-black/60 data-[state=open]:animate-in data-[state=closed]:animate-out" />
       <Dialog.Content
         className={cn(
-          "fixed top-0 z-20000 h-dvh w-[280px] max-w-[85vw] bg-card text-card-foreground border-border shadow-xl outline-none",
+          "fixed top-0 z-20000 h-dvh w-[280px] max-w-[85vw] bg-card text-card-foreground border-border shadow-xl outline-none overflow-y-auto overscroll-contain",
           borderSide,
           "transition-transform duration-200 ease-out",
           sideClasses,
