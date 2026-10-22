@@ -1,6 +1,6 @@
 import { getAuthCookieName } from "@/utils/getAuthCookieName";
 
-export const AUTH_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
+const AUTH_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 
 export function authCookieOptions(secure: boolean) {
   return {

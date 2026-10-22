@@ -1,9 +1,9 @@
-const stableDateTime = new Intl.DateTimeFormat("en-US", {
+const localDateTime = new Intl.DateTimeFormat(undefined, {
   dateStyle: "medium",
   timeStyle: "short",
-  timeZone: "UTC",
 });
 
-export function formatStableDateTime(epochMs: number): string {
-  return stableDateTime.format(epochMs);
+/** Formats in the viewer's time zone. Call only from client-rendered data. */
+export function formatDateTime(epochMs: number): string {
+  return localDateTime.format(epochMs);
 }

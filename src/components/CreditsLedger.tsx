@@ -13,6 +13,7 @@ import { db } from "@/firebase/firebaseClient";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { coerceCredits } from "@/utils/credits";
+import { formatDateTime } from "@/utils/formatDateTime";
 
 type CreditsLedgerEntryType = "debit" | "credit";
 
@@ -30,10 +31,7 @@ type CreditsLedgerEntry = {
 
 function formatDate(ts: Timestamp | null): string {
   if (!ts) return "Pending…";
-  return ts.toDate().toLocaleString(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  return formatDateTime(ts.toMillis());
 }
 
 export default function CreditsLedger() {

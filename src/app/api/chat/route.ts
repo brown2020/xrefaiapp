@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { ModelMessage, streamText } from "ai";
 import { NextRequest } from "next/server";
 import { getTextModel } from "@/ai/getTextModel";
@@ -26,7 +27,7 @@ function buildMessages(
   history: ChatHistoryItem[] | undefined,
   userText: string
 ): ModelMessage[] {
-  const messages: ModelMessage[] = [{ role: "system", content: SYSTEM_PROMPT }];
+  const messages: ModelMessage[] = [];
 
   if (Array.isArray(history)) {
     for (const item of history) {
@@ -95,6 +96,9 @@ export async function POST(req: NextRequest) {
       ? generateClientIdempotencyKey(uid, body.idempotencyKey)
       : generateIdempotencyKey(uid, { userText: bounded.userText, modelKey: body.modelKey });
 
+    // One refund id per debit: a retry with the same key after a refund is a
+    // new charge and must be refundable again.
+    const refundId = `refund_chat_${idempotencyKey}_${randomUUID()}`;
     let requestSettled = false;
     let creditsCharged = false;
     let successfullyStreamed = false;
@@ -112,7 +116,7 @@ export async function POST(req: NextRequest) {
             tool: "chat",
             modelKey: body.modelKey,
             refId: idempotencyKey,
-            deterministicId: `refund_chat_${idempotencyKey}`,
+            deterministicId: refundId,
           });
         }
       } catch (refundError) {
@@ -173,11 +177,17 @@ export async function POST(req: NextRequest) {
     try {
       const result = streamText({
         model,
+        system: SYSTEM_PROMPT,
         messages: buildMessages(bounded.history, bounded.userText),
         abortSignal: abortController.signal,
-        onFinish: async () => {
+        onFinish: async ({ text }) => {
           successfullyStreamed = true;
-          await settleSuccess();
+          // A filtered or empty completion delivers nothing, so it is not charged.
+          if (text.trim()) {
+            await settleSuccess();
+          } else {
+            await settleFailure();
+          }
         },
         onError: async (event) => {
           const streamError =

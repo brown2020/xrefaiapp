@@ -9,6 +9,7 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { writeResponsesStream } from "./openai-fixture.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const projectId = "demo-xref";
@@ -58,25 +59,7 @@ function startOpenAi() {
       const body = Buffer.concat(chunks).toString("utf8");
       fs.appendFileSync("/tmp/app-eval-xrefai/openai-bodies.log", `${body.slice(0, 400)}\n---\n`);
       const slow = body.includes("WAIT_STREAM");
-      const write = () => {
-        if (!res.headersSent) {
-          res.writeHead(200, { "content-type": "text/event-stream" });
-        }
-        res.write(
-          `data: ${JSON.stringify({
-            type: "response.output_text.delta",
-            item_id: "item_1",
-            delta: "Local fixture reply.",
-          })}\n\n`
-        );
-        res.write(
-          `data: ${JSON.stringify({
-            type: "response.completed",
-            response: { usage: { input_tokens: 1, output_tokens: 4 } },
-          })}\n\n`
-        );
-        res.end();
-      };
+      const write = () => writeResponsesStream(res, body);
       if (slow) {
         res.writeHead(200, { "content-type": "text/event-stream" });
         setTimeout(write, 4000);
@@ -419,6 +402,16 @@ async function main() {
     throw new Error(`aborted chat did not refund, balance ${await profileCredits(userA.uid)}`);
   }
   note("interrupted", "aborted chat refunded the 25 credit debit");
+
+  for (const attempt of ["first", "retry"]) {
+    const empty = await chat(cookieA, { text: "EMPTY_REPLY", idempotencyKey: "chat-empty-1" });
+    if (!empty.ok) throw new Error(`empty-reply ${attempt} returned ${empty.status}`);
+    await empty.text();
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    const balance = await profileCredits(userA.uid);
+    if (balance !== 975) throw new Error(`empty reply (${attempt}) charged, balance ${balance}`);
+  }
+  note("empty-reply", "content-filtered reply was refunded and the same key could retry");
 
   const [first, second] = await Promise.all([
     chat(cookieA, { text: "parallel one", idempotencyKey: "chat-race-1" }),

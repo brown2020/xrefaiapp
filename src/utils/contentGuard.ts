@@ -1,7 +1,7 @@
 "use client";
 
 import toast from "react-hot-toast";
-import { checkRestrictedWords, isIOSReactNativeWebView } from "./platform";
+import { checkRestrictedWords, isReactNativeWebView } from "./platform";
 
 interface ValidationResult {
   valid: boolean;
@@ -15,8 +15,8 @@ interface ValidationResult {
  * (iOS WebView). The server does NOT re-apply this list. If broader
  * moderation is needed in the future, move it to the server side.
  */
-export function validateContent(content: string): ValidationResult {
-  if (isIOSReactNativeWebView() && checkRestrictedWords(content)) {
+function validateContent(content: string): ValidationResult {
+  if (isReactNativeWebView() && checkRestrictedWords(content)) {
     return {
       valid: false,
       error: "Your description contains restricted words and cannot be used.",

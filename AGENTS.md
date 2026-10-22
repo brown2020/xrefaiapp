@@ -66,7 +66,9 @@ npm run lint       # ESLint 10 flat config
 npm run test:browser # Headless Playwright smoke tests
 npm run typecheck # tsc --noEmit
 npm run test # Contract tests in tests/code-reliability.spec.ts; needs a server already on the Playwright base URL
-npm run doctor # React Doctor, latest release
+npm run doctor # React Doctor 0.9.14, full scope (pinned)
+npm run prove:workflows # Critical workflows on Firebase emulators + local model fixture; no paid calls
+npm run prove:state # Account switch and credits badge vs ledger on emulators, headless
 ```
 
 Canonical validation for documentation-only changes:
@@ -109,7 +111,7 @@ npm run test:browser
 - AI text: Vercel AI SDK 6 with OpenAI, Anthropic, xAI, and Google providers.
 - AI images: Fireworks AI `stable-diffusion-xl-1024-v1-0`.
 - Payments: Stripe 22 Checkout Sessions on web plus signed React Native WebView IAP confirmation.
-- Tests: Playwright smoke tests under `tests/` cover activation starter paths, proxy route protection, API auth rejection, redirect normalization, and writing-control surfaces. No unit test runner is currently configured.
+- Tests: Playwright specs under `tests/` cover activation starter paths, auth entry, proxy route protection, API auth rejection, redirect normalization, writing-control surfaces, and source/contract checks in `code-reliability.spec.ts`. No unit test runner is currently configured.
 
 ## Repository Structure
 
@@ -123,13 +125,15 @@ src/
   data/           Static choice lists for image/design prompt builders
   firebase/       Firebase client setup and lazy Admin SDK proxies
   hooks/          Auth, store init, chat/history, scraping, generation, Firestore hooks
-  types/          Domain types and runtime type guards
+  types/          Domain types
   utils/          Credits, idempotency, rate limit, errors, messages, platform, clipboard, proxy helpers
   zustand/        Auth, profile, payments, paywall, and initialization stores
   proxy.ts        Edge soft gate for protected routes
 
 tests/
   activation-starter-paths.spec.ts
+  auth-entry.spec.ts
+  code-reliability.spec.ts
   route-protection.spec.ts
   writing-controls.spec.ts
 ```
@@ -147,7 +151,7 @@ Root config files include `package.json`, `package-lock.json`, `next.config.mjs`
 - Writing tools: Summarize Website, Summarize Text with summary controls, Freestyle Writing with deliverable controls, Simplify Writing.
 - Image tools: Generate Image and Designer Tool.
 - Firestore-backed saved chat and summary history.
-- History search, pagination, expandable cards, markdown rendering, copy/download, and text repurpose actions.
+- History search, pagination, expandable cards, markdown rendering, copy/download, text repurpose actions, per-item delete, and Clear all (`deleteHistoryItemServer()` / `clearHistoryServer()` in `serverHistory.ts`; summaries only, generated Storage files stay).
 - Credit balances, credit ledger, credit packs, Stripe checkout, payment confirmation, and paywall modal.
 - BYO API key mode for text providers and Fireworks image generation.
 - Expo/React Native WebView branches for IAP, auth differences, cookie consent suppression, and localStorage differences.
@@ -177,6 +181,7 @@ The active chat UI is `src/components/Chat.tsx` using `@ai-sdk/react` and `Defau
 - gates debits with idempotency;
 - streams with `streamText`;
 - refunds and clears idempotency on stream failure or abort;
+- refunds and clears idempotency when the stream finishes with no text (for example a content filter); the client restores the prompt and saves nothing;
 - saves chat history from the client after successful stream completion.
 
 Chat work should use `Chat.tsx` plus `/api/chat`. (A previously legacy `useChatGeneration` hook has been removed.)
@@ -191,7 +196,7 @@ Writing tools call `generateAIResponse()` through `generateResponse()` in `src/a
 - calculates text-generation cost from requested word count;
 - idempotency-gates debits;
 - streams through AI SDK RSC streamable values;
-- refunds on generation errors;
+- refunds on generation errors and on a completion with no text; writing clients throw `EmptyCompletionError` so nothing is saved;
 - saves summaries through `saveHistoryServer()`.
 
 Freestyle Writing adds client-side controls for deliverable, tone, audience, length, and call to action. Summarize Text adds client-side controls for summary format, audience, emphasis, and focus. These controls only shape the generated prompt and optional history metadata; credit cost remains based on requested word count.
@@ -275,7 +280,7 @@ Account deletion currently calls `deleteAccountServer()` from `serverProfile.ts`
 
 - `useAuthStore` tracks Firebase auth details and profile sync status.
 - `useProfileStore` stores profile/credits and performs serialized optimistic profile updates with rollback.
-- `usePaymentsStore` fetches payment history. Its `addPayment` path is currently not used by the UI; Stripe and IAP are the real purchase flows.
+- `usePaymentsStore` only reads payment history. Payment records are written only by Stripe confirmation and IAP fulfillment.
 - `usePaywallStore` keeps paywall context across close to avoid flicker.
 - `useInitializeStores` resets profile/payments on UID changes and fetches profile after auth sync or timeout.
 - Use `useShallow` for multi-field Zustand selectors.
@@ -323,8 +328,8 @@ Do not remove WebView branches as dead code.
 ## Development Conventions
 
 - Keep changes scoped to the requested behavior.
-- Use existing constants, route maps, hooks, stores, UI primitives, type guards, auth helpers, credit helpers, and idempotency helpers.
-- Prefer structured parsers and type guards over ad hoc unknown-data handling.
+- Use existing constants, route maps, hooks, stores, UI primitives, Zod contracts, auth helpers, credit helpers, and idempotency helpers.
+- Prefer structured parsers (Zod schemas in `src/utils/actionContracts.ts`) over ad hoc unknown-data handling.
 - Keep security-sensitive refactors small and reviewable.
 - Do not casually remove `package.json` overrides; they pin patched transitive versions.
 - Do not modify generated files such as `.next/`, `tsconfig.tsbuildinfo`, Playwright trace output, or local test build artifacts.
@@ -332,7 +337,7 @@ Do not remove WebView branches as dead code.
 
 ## TypeScript And Lint Expectations
 
-- TypeScript is strict. Avoid `as` casts when a runtime guard from `src/types/guards.ts` fits.
+- TypeScript is strict. Avoid `as` casts when a Zod schema or narrow type check fits.
 - `@/*` maps to `./src/*`.
 - `eslint.config.mjs` is an ESLint 10 flat config, intentionally not `eslint-config-next`.
 - Hooks lint is limited to classic `rules-of-hooks` and `exhaustive-deps`; do not enable React Compiler rules without auditing the app.
@@ -388,7 +393,7 @@ High-risk UX/platform paths:
 ## Deployment And Infrastructure Notes
 
 - No `vercel.json`, `firebase.json`, Dockerfile, cron config, or queue worker config is present in the repository.
-- `.github/workflows/ci.yml` runs on pushes and pull requests to `dev` and `main` on Node 22: `npm ci --ignore-scripts`, `npm run lint`, `npm run typecheck`, and `npm run build`. It does not run Playwright. Build-time client values come from repository secrets listed in `docs/ci-secrets.md`. The Firebase client defers initialization when `NEXT_PUBLIC_FIREBASE_APIKEY` is empty, so the build succeeds without them.
+- `.github/workflows/ci.yml` runs on pushes and pull requests to `dev` and `main` on Node 22: `npm ci --ignore-scripts`, `npm run lint`, `npm run typecheck`, and `npm run build`, then installs Chromium and runs `npm run test:browser` headlessly. Build-time client values come from repository secrets listed in `docs/ci-secrets.md`. The Firebase client defers initialization when `NEXT_PUBLIC_FIREBASE_APIKEY` is empty, so the build succeeds without them.
 - Deployment is currently inferred to be a standard Next.js deployment driven by `package.json`, `next.config.mjs`, environment variables, and the hosting platform configuration outside this repo.
 - `public/.well-known/apple-app-site-association` and `public/.well-known/assetlinks.json` support native app/WebView association paths. Do not remove them as unused website assets.
 - `next.config.mjs` allows Firebase/Google Storage image hosts and has `reactStrictMode: false`; re-enabling Strict Mode requires auditing auth/profile effects first.
@@ -489,10 +494,9 @@ Stop and report instead of continuing when:
 ## Current Known Architecture Notes
 
 - `/api/chat` is the active chat streaming path. (The legacy `useChatGeneration` hook has been removed.)
-- `usePaymentsStore.addPayment()` and `serverPayments.addPaymentServer()` are not currently connected to user-facing purchase UI.
 - `src/utils/messages.ts` exposes `getMessageText()` and `calculateWordCount()` (both used by the chat path). The previously unused `buildContextFromHistory()` and `truncateText()` helpers have been removed.
 - `GenerationNextActions` exists for fresh text tool outputs, but expanded History cards currently expose repurpose actions only; "continue in chat" from History is still roadmap work.
-- `src/constants/index.ts` contains some historical constants that are not read by active server paths, such as `IDEMPOTENCY_TIME_WINDOW_MS` and the exported rate-limit constants. Check actual imports before treating constants as active behavior.
+- Rate-limit windows live in `src/utils/rateLimit.ts` and the idempotency TTL in `src/utils/idempotency.ts`; `src/constants/index.ts` holds only values that are read.
 - Image generation uses fresh client request IDs like text generation, with a payload-hash fallback on the server action.
 - Payment confirmation is return-page driven; Stripe webhooks or reconciliation are future reliability work.
 - Firebase/GA4 measurement config exists, but there is no product analytics helper yet.

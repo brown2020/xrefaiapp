@@ -3,7 +3,7 @@
 import useProfileStore from "@/zustand/useProfileStore";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { isIOSReactNativeWebView } from "@/utils/platform";
+import { isReactNativeWebView } from "@/utils/platform";
 import { usePaymentsStore } from "@/zustand/usePaymentsStore";
 import { inputClassName, labelClassName } from "@/components/ui/FormInput";
 import { ChevronDown, Eye, EyeOff } from "lucide-react";
@@ -37,7 +37,7 @@ function useIapSuccessListener(
 ) {
   useEffect(() => {
     const handleMessageFromRN = async (event: MessageEvent) => {
-      if (!isIOSReactNativeWebView() || !window.ReactNativeWebView) return;
+      if (!isReactNativeWebView() || !window.ReactNativeWebView) return;
 
       const message = event.data;
       if (message?.type !== "IAP_SUCCESS") return;
@@ -110,7 +110,7 @@ export default function ProfileComponent() {
 
   const showCreditsSection = useSyncExternalStore(
     subscribeNoop,
-    () => !isIOSReactNativeWebView(),
+    () => !isReactNativeWebView(),
     () => true
   );
 
@@ -263,7 +263,7 @@ export default function ProfileComponent() {
               </div>
 
               <button
-                className="font-bold bg-primary hover:opacity-90 rounded-3xl text-primary-foreground w-56 block mx-auto px-3 py-2 flex-1 text-center transition-opacity disabled:opacity-60"
+                className="font-bold bg-primary hover:opacity-90 rounded-3xl text-primary-foreground w-full max-w-56 block mx-auto px-3 py-2 flex-1 text-center transition-opacity disabled:opacity-60"
                 onClick={handleBuyClick}
               >
                 Buy credits
@@ -470,7 +470,7 @@ function ApiKeysPanel({
       <button
         onClick={onSave}
         disabled={isSaving || isUnchanged}
-        className="mt-2 w-56 font-bold bg-primary hover:opacity-90 rounded-3xl text-primary-foreground px-3 py-2 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed mx-auto transition-opacity flex items-center justify-center gap-2"
+        className="mt-2 w-full max-w-56 font-bold bg-primary hover:opacity-90 rounded-3xl text-primary-foreground px-3 py-2 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed mx-auto transition-opacity flex items-center justify-center gap-2"
       >
         {isSaving && <InlineSpinner size="sm" />}
         {isSaving ? "Updating..." : "Update API Keys"}
@@ -507,7 +507,7 @@ function ApiKeyField({
           id={id}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`${inputClassName} pr-10`}
+          className={`${inputClassName} pr-12`}
           placeholder={placeholder}
           autoComplete="off"
           spellCheck={false}
@@ -516,7 +516,7 @@ function ApiKeyField({
         <button
           type="button"
           onClick={onToggleVisibility}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          className="absolute right-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
           aria-label={isVisible ? "Hide API key" : "Show API key"}
         >
           {isVisible ? <EyeOff size={16} /> : <Eye size={16} />}

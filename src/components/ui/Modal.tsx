@@ -107,49 +107,39 @@ interface ConfirmModalProps {
   onConfirm: () => void;
   title: string;
   message: string;
-  confirmText?: string;
-  cancelText?: string;
-  confirmVariant?: "primary" | "danger";
+  confirmText: string;
+  busy?: boolean;
 }
 
+/** Destructive confirmation dialog. */
 export function ConfirmModal({
   isOpen,
   onClose,
   onConfirm,
   title,
   message,
-  confirmText = "Confirm",
-  cancelText = "Cancel",
-  confirmVariant = "primary",
+  confirmText,
+  busy = false,
 }: ConfirmModalProps) {
-  const confirmClasses =
-    confirmVariant === "danger"
-      ? "bg-destructive hover:opacity-90 text-destructive-foreground"
-      : "bg-primary hover:opacity-90 text-primary-foreground";
-
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      maxWidth="sm"
-      showCloseButton={false}
-    >
-      <h3 className="text-lg font-semibold mb-2">{title}</h3>
-      <p className="text-muted-foreground mb-6">{message}</p>
+    <Modal isOpen={isOpen} onClose={onClose} maxWidth="sm" title={title}>
+      <p className="mb-6 text-muted-foreground">{message}</p>
       <div className="flex justify-end gap-3">
         <button
           type="button"
           onClick={onClose}
-          className="px-4 py-2 bg-muted hover:opacity-90 text-foreground rounded-lg transition-colors"
+          disabled={busy}
+          className="rounded-lg bg-muted px-4 py-2 text-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
         >
-          {cancelText}
+          Cancel
         </button>
         <button
           type="button"
           onClick={onConfirm}
-          className={`px-4 py-2 rounded-lg transition-colors ${confirmClasses}`}
+          disabled={busy}
+          className="rounded-lg bg-destructive px-4 py-2 font-semibold text-destructive-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
         >
-          {confirmText}
+          {busy ? "Deleting…" : confirmText}
         </button>
       </div>
     </Modal>

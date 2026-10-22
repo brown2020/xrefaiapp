@@ -5,7 +5,7 @@ import { usePaymentsStore, PaymentType } from "@/zustand/usePaymentsStore";
 import { useEffect } from "react";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { CreditCard, Calendar, DollarSign, CheckCircle } from "lucide-react";
-import { formatStableDateTime } from "@/utils/formatDateTime";
+import { formatDateTime } from "@/utils/formatDateTime";
 
 export default function PaymentsPage() {
   const uid = useAuthStore((state) => state.uid);
@@ -55,7 +55,7 @@ export default function PaymentsPage() {
 
 function EmptyPaymentsState() {
   return (
-    <div className="text-center py-12 text-gray-400 bg-white rounded-2xl border border-gray-100 border-dashed">
+    <div className="text-center py-12 text-muted-foreground bg-white rounded-2xl border border-gray-100 border-dashed">
       <CreditCard size={48} className="mx-auto mb-4 opacity-50" />
       <p>No payments found.</p>
       <p className="text-sm mt-1">Your payment history will appear here.</p>
@@ -88,10 +88,10 @@ function PaymentCard({ payment }: { payment: PaymentType }) {
             <div className="text-sm text-gray-500 flex items-center gap-1">
               <Calendar size={14} />
               {payment.createdAt
-                ? formatStableDateTime(new Date(payment.createdAt).getTime())
+                ? formatDateTime(new Date(payment.createdAt).getTime())
                 : "N/A"}
             </div>
-            <div className="text-xs text-gray-400 mt-0.5">
+            <div className="text-xs text-muted-foreground mt-0.5">
               ID:{" "}
               {payment.id.length > 16
                 ? `${payment.id.slice(0, 16)}…`
@@ -106,7 +106,7 @@ function PaymentCard({ payment }: { payment: PaymentType }) {
               <DollarSign size={18} />
               {(payment.amount / 100).toFixed(2)}
             </div>
-            <div className="text-xs text-gray-400 uppercase">
+            <div className="text-xs text-muted-foreground uppercase">
               {payment.currency || "USD"}
             </div>
           </div>

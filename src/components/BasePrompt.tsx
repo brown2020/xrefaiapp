@@ -24,7 +24,11 @@ import { getTextGenerationCreditsCost } from "@/constants/credits";
 import { usePaywallStore } from "@/zustand/usePaywallStore";
 import { ROUTES } from "@/constants/routes";
 import { useShallow } from "zustand/react/shallow";
-import { isInsufficientCreditsError } from "@/utils/errors";
+import {
+  EmptyCompletionError,
+  emptyCompletionMessage,
+  isInsufficientCreditsError,
+} from "@/utils/errors";
 import { createClientIdempotencyKey } from "@/utils/clientIdempotencyKey";
 import GenerationNextActions from "@/components/GenerationNextActions";
 import { clampStarterWordCount } from "@/constants/toolMetadata";
@@ -151,6 +155,7 @@ export default function BasePrompt({
       }
 
       if (!isMountedRef.current) return;
+      if (!finishedSummary) throw new EmptyCompletionError();
 
       completeWithSuccess(finishedSummary);
       if (generationConfig.useCredits) {
@@ -200,6 +205,11 @@ export default function BasePrompt({
           "That request is already being handled. Please wait a moment."
         );
         completeWithError("Duplicate request");
+        return;
+      }
+      if (error instanceof EmptyCompletionError) {
+        toast.error(emptyCompletionMessage(generationConfig.useCredits));
+        completeWithError("No text returned");
         return;
       }
       completeWithError(

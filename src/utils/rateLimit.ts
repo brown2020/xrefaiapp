@@ -13,7 +13,7 @@ export interface RateLimitConfig {
 /**
  * Default rate limit configurations for different endpoints
  */
-export const RATE_LIMITS: Record<string, RateLimitConfig> = {
+const RATE_LIMITS: Record<string, RateLimitConfig> = {
   chat: { maxRequests: 60, windowMs: 60_000 },
   image: { maxRequests: 10, windowMs: 60_000 },
   tools: { maxRequests: 30, windowMs: 60_000 },
@@ -123,7 +123,7 @@ export async function checkRateLimit(
 /**
  * Creates a rate limit error response with appropriate headers.
  */
-export function createRateLimitResponse(result: RateLimitResult): Response {
+function createRateLimitResponse(result: RateLimitResult): Response {
   const retryAfterSeconds = Math.max(1, Math.ceil(result.resetMs / 1000));
 
   return Response.json(

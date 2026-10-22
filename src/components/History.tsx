@@ -7,6 +7,7 @@ import {
   Calendar,
   Copy,
   Download,
+  Trash2,
 } from "lucide-react";
 import { useState, useCallback, useMemo } from "react";
 import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
@@ -20,6 +21,7 @@ import Image from "next/image";
 import MarkdownRenderer from "./MarkdownRenderer";
 import { LoadingSpinner, InlineSpinner } from "@/components/ui/LoadingSpinner";
 import { CopyButton } from "@/components/ui/CopyButton";
+import { ConfirmModal } from "@/components/ui/Modal";
 import { useFirestorePagination } from "@/hooks/useFirestorePagination";
 import { MAX_HISTORY_LOAD } from "@/constants";
 import { ROUTES } from "@/constants/routes";
@@ -28,9 +30,17 @@ import { useHistorySaver } from "@/hooks/useHistorySaver";
 import toast from "react-hot-toast";
 import { readStreamableValue } from "@ai-sdk/rsc";
 import { generateResponse } from "@/actions/generateAIResponse";
-import { isInsufficientCreditsError } from "@/utils/errors";
+import {
+  clearHistoryServer,
+  deleteHistoryItemServer,
+} from "@/actions/serverHistory";
+import {
+  EmptyCompletionError,
+  emptyCompletionMessage,
+  isInsufficientCreditsError,
+} from "@/utils/errors";
 import { createClientIdempotencyKey } from "@/utils/clientIdempotencyKey";
-import { formatStableDateTime } from "@/utils/formatDateTime";
+import { formatDateTime } from "@/utils/formatDateTime";
 
 function readHistorySettings(value: unknown): Record<string, string> | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -55,6 +65,13 @@ export default function History() {
     {}
   );
   const [localAdds, setLocalAdds] = useState<UserHistoryType[]>([]);
+  const [removedIds, setRemovedIds] = useState<ReadonlySet<string>>(
+    () => new Set()
+  );
+  const [pendingDelete, setPendingDelete] = useState<
+    { kind: "item"; id: string } | { kind: "all" } | null
+  >(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Transform function for Firestore documents
   const transformHistoryDoc = useCallback(
@@ -83,6 +100,7 @@ export default function History() {
     loadingMore,
     hasMore,
     loadMore,
+    clearItems,
   } = useFirestorePagination<UserHistoryType>({
     uid,
     collectionName: "summaries",
@@ -95,25 +113,57 @@ export default function History() {
     setExpandedItems((prev) => ({ ...prev, [id]: !prev[id] }));
   }, []);
 
-  // Filter summaries by search term. Dedupe via Set for O(N) instead of O(N²).
-  const filteredSummaries = useMemo(() => {
+  // Dedupe via Set for O(N) instead of O(N²).
+  const visibleSummaries = useMemo(() => {
     const seenIds = new Set<string>();
     const deduped: UserHistoryType[] = [];
     for (const item of [...localAdds, ...summaries]) {
-      if (seenIds.has(item.id)) continue;
+      if (seenIds.has(item.id) || removedIds.has(item.id)) continue;
       seenIds.add(item.id);
       deduped.push(item);
     }
-    deduped.sort(
+    return deduped.sort(
       (a, b) =>
         (b.timestamp?.toMillis?.() ?? 0) - (a.timestamp?.toMillis?.() ?? 0)
     );
-    const needle = search.toUpperCase();
-    if (!needle) return deduped;
-    return deduped.filter((summary) =>
+  }, [localAdds, summaries, removedIds]);
+
+  const filteredSummaries = useMemo(() => {
+    const needle = search.trim().toUpperCase();
+    if (!needle) return visibleSummaries;
+    return visibleSummaries.filter((summary) =>
       (summary.response + " " + summary.prompt).toUpperCase().includes(needle)
     );
-  }, [localAdds, summaries, search]);
+  }, [visibleSummaries, search]);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    try {
+      if (pendingDelete.kind === "item") {
+        const { id } = pendingDelete;
+        await deleteHistoryItemServer(id);
+        setRemovedIds((prev) => new Set(prev).add(id));
+        setLocalAdds((prev) => prev.filter((item) => item.id !== id));
+        toast.success("Deleted from History");
+      } else {
+        const count = await clearHistoryServer();
+        setLocalAdds([]);
+        setRemovedIds(new Set());
+        setSearch("");
+        clearItems();
+        toast.success(
+          count === 1 ? "Deleted 1 saved item" : `Deleted ${count} saved items`
+        );
+      }
+      setPendingDelete(null);
+    } catch (error) {
+      console.error("History delete error:", error);
+      toast.error("Could not delete right now. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
+  }, [pendingDelete, clearItems]);
 
   if (!uid) {
     return (
@@ -135,10 +185,22 @@ export default function History() {
               <div>
                 <h1 className="text-2xl font-bold text-foreground">History</h1>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Your past conversations
+                  Saved writing, summaries, and images
                 </p>
               </div>
-              <SearchInput value={search} onChange={setSearch} />
+              <div className="flex flex-wrap items-end gap-3">
+                <SearchInput value={search} onChange={setSearch} />
+                {visibleSummaries.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setPendingDelete({ kind: "all" })}
+                    className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  >
+                    <Trash2 size={16} aria-hidden />
+                    Clear all
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -158,10 +220,32 @@ export default function History() {
                   onAddDerived={(entry) =>
                     setLocalAdds((prev) => [entry, ...prev])
                   }
+                  onDelete={() =>
+                    setPendingDelete({ kind: "item", id: summary.id })
+                  }
                 />
               ))}
 
-              {!loading && filteredSummaries.length === 0 && (
+              {visibleSummaries.length > 0 && filteredSummaries.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground bg-card rounded-2xl border border-border border-dashed">
+                  <p>No saved items match &ldquo;{search.trim()}&rdquo;.</p>
+                  {hasMore && (
+                    <p className="mt-2 text-sm">
+                      Only loaded items are searched. Load older history to
+                      search further.
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    className="mt-3 text-sm font-medium text-foreground underline"
+                  >
+                    Clear search
+                  </button>
+                </div>
+              )}
+
+              {visibleSummaries.length === 0 && (
                 <div className="text-center py-12 text-muted-foreground bg-card rounded-2xl border border-border border-dashed">
                   <p>Nothing saved yet.</p>
                   <p className="mt-2 text-sm">
@@ -183,7 +267,7 @@ export default function History() {
                   <button
                     onClick={loadMore}
                     disabled={loadingMore}
-                    className="text-sm font-medium text-[#192449] hover:text-blue-700 bg-white border border-gray-200 hover:bg-gray-50 px-6 py-3 rounded-full transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50 cursor-pointer hover:shadow-md"
+                    className="text-sm font-medium text-foreground bg-card border border-border hover:bg-muted px-6 py-3 rounded-full transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50 cursor-pointer hover:shadow-md"
                   >
                     {loadingMore && <InlineSpinner size="sm" />}
                     {loadingMore
@@ -196,6 +280,23 @@ export default function History() {
           )}
         </div>
       </div>
+      <ConfirmModal
+        isOpen={pendingDelete !== null}
+        onClose={() => {
+          if (!deleting) setPendingDelete(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        busy={deleting}
+        title={
+          pendingDelete?.kind === "all" ? "Clear all history?" : "Delete this item?"
+        }
+        message={
+          pendingDelete?.kind === "all"
+            ? "This permanently deletes every saved item in History. Chat conversations, credits, and payments are not affected."
+            : "This permanently deletes this saved item from History."
+        }
+        confirmText={pendingDelete?.kind === "all" ? "Clear all" : "Delete"}
+      />
     </div>
   );
 }
@@ -235,6 +336,7 @@ interface HistoryCardProps {
   isExpanded: boolean;
   onToggleExpand: () => void;
   onAddDerived: (entry: UserHistoryType) => void;
+  onDelete: () => void;
 }
 
 function HistoryCard({
@@ -243,6 +345,7 @@ function HistoryCard({
   isExpanded,
   onToggleExpand,
   onAddDerived,
+  onDelete,
 }: HistoryCardProps) {
   const isImage = summary.words === "image";
   const { saveHistory } = useHistorySaver();
@@ -305,8 +408,11 @@ function HistoryCard({
           finished = String(chunk).trim();
           setRepurposeOutput(finished);
         }
+        if (!finished) throw new EmptyCompletionError();
       } catch (error) {
-        if (isInsufficientCreditsError(error)) {
+        if (error instanceof EmptyCompletionError) {
+          toast.error(emptyCompletionMessage(profile.useCredits));
+        } else if (isInsufficientCreditsError(error)) {
           toast.error("Not enough credits. Please buy more credits in Account.");
         } else if (
           error instanceof Error &&
@@ -386,7 +492,7 @@ function HistoryCard({
         <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
           <Calendar size={14} />
           {summary.timestamp?.seconds
-            ? formatStableDateTime(summary.timestamp.seconds * 1000)
+            ? formatDateTime(summary.timestamp.seconds * 1000)
             : "Pending…"}
           {summary.derivedFromId ? (
             <span className="ml-2 inline-flex items-center rounded-full border border-border bg-card px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
@@ -394,13 +500,24 @@ function HistoryCard({
             </span>
           ) : null}
         </div>
-        <button
-          onClick={onToggleExpand}
-          aria-label={isExpanded ? "Collapse history item" : "Expand history item"}
-          className="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition-colors cursor-pointer"
-        >
-          {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={onDelete}
+            aria-label="Delete history item"
+            className="text-muted-foreground hover:text-red-600 p-1.5 rounded-md hover:bg-muted transition-colors cursor-pointer"
+          >
+            <Trash2 size={18} aria-hidden />
+          </button>
+          <button
+            type="button"
+            onClick={onToggleExpand}
+            aria-label={isExpanded ? "Collapse history item" : "Expand history item"}
+            className="text-muted-foreground hover:text-foreground p-1.5 rounded-md hover:bg-muted transition-colors cursor-pointer"
+          >
+            {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </button>
+        </div>
       </div>
 
       <div className="p-5 space-y-6">

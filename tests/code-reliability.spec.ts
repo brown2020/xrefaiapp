@@ -182,7 +182,8 @@ test.describe("code reliability contracts", () => {
 
   test("text generation keeps a single conversation entry", () => {
     const source = readFileSync("src/actions/generateAIResponse.ts", "utf8");
-    expect(source).toContain("export async function generateAIResponse(");
+    expect(source).toContain("\nasync function generateAIResponse(");
+    expect(source).not.toContain("export async function generateAIResponse(");
     expect(source).toContain("export async function generateResponse(");
     expect(source).not.toContain("generateResponseWithMemory");
   });
@@ -205,17 +206,18 @@ test.describe("code reliability contracts", () => {
     expect(history).not.toContain("No history found.");
   });
 
-  test("advisory floors stay on the patched next, postcss, and sharp lines", () => {
+  test("advisory floors stay on the patched next, postcss, sharp, and grpc lines", () => {
     const pkg = JSON.parse(readFileSync("package.json", "utf8")) as {
       dependencies: { next: string; sharp: string };
       devDependencies: { "@next/eslint-plugin-next": string; postcss: string };
-      overrides: { postcss: string };
+      overrides: { postcss: string; "@grpc/grpc-js": string };
     };
-    expect(pkg.dependencies.next).toBe("^16.3.6");
-    expect(pkg.devDependencies["@next/eslint-plugin-next"]).toBe("^16.3.6");
-    expect(pkg.dependencies.sharp).toBe("^0.35.4");
-    expect(pkg.devDependencies.postcss).toBe("8.5.28");
-    expect(pkg.overrides.postcss).toBe("8.5.28");
+    expect(pkg.dependencies.next).toBe("^16.4.2");
+    expect(pkg.devDependencies["@next/eslint-plugin-next"]).toBe("^16.4.2");
+    expect(pkg.dependencies.sharp).toBe("^0.35.5");
+    expect(pkg.devDependencies.postcss).toBe("8.5.31");
+    expect(pkg.overrides.postcss).toBe("8.5.31");
+    expect(pkg.overrides["@grpc/grpc-js"]).toBe("^1.14.6");
   });
 
   test("setup commands and env names match the docs", () => {
@@ -277,5 +279,48 @@ test.describe("code reliability contracts", () => {
     expect(session).toContain('process.env.ALLOW_UNVERIFIED_SESSION_COOKIE === "true"');
     expect(session).toContain("status: 503");
     expect(session).not.toMatch(/project_id\|service account/);
+  });
+
+  test("an empty or filtered completion is refunded and the client keeps the prompt", () => {
+    expect(readFileSync("src/app/api/chat/route.ts", "utf8")).toMatch(
+      /if \(text\.trim\(\)\) \{\s*await settleSuccess\(\);\s*\} else \{\s*await settleFailure\(\);/
+    );
+    expect(readFileSync("src/actions/generateAIResponse.ts", "utf8")).toContain(
+      "void (text.trim() ? settleSuccess() : settleFailure());"
+    );
+    const chat = readFileSync("src/components/Chat.tsx", "utf8");
+    expect(chat).toContain("setInput((current) => current || draft);");
+    for (const file of [
+      "src/components/BasePrompt.tsx",
+      "src/components/SummarizeTopic.tsx",
+      "src/components/History.tsx",
+    ]) {
+      expect(readFileSync(file, "utf8")).toContain("throw new EmptyCompletionError()");
+    }
+  });
+
+  test("each debit gets its own refund id so a retried key stays refundable", () => {
+    const chatRoute = readFileSync("src/app/api/chat/route.ts", "utf8");
+    expect(chatRoute).toContain("const refundId = `refund_chat_${idempotencyKey}_${randomUUID()}`;");
+    expect(chatRoute).toContain("deterministicId: refundId,");
+    expect(readFileSync("src/actions/generateAIResponse.ts", "utf8")).toContain(
+      "deterministicId: `refund_generation_${idempotencyKey}_${refundAttemptId}`,"
+    );
+  });
+
+  test("History deletes are signed-in, owner-scoped, and id-checked", () => {
+    const source = readFileSync("src/actions/serverHistory.ts", "utf8");
+    for (const name of ["deleteHistoryItemServer", "clearHistoryServer"]) {
+      const body = source.slice(source.indexOf(`export async function ${name}(`));
+      expect(body.slice(0, 200)).toContain("await requireAuthedUid();");
+    }
+    expect(source).toContain("adminDb.doc(`users/${uid}/summaries/${id}`).delete()");
+    expect(source).toContain('throw new Error("INVALID_HISTORY_ID")');
+  });
+
+  test("the payment store cannot write payment records", () => {
+    const actions = readFileSync("src/actions/serverPayments.ts", "utf8");
+    expect(actions).not.toMatch(/\.set\(|\.add\(|\.update\(/);
+    expect(readFileSync("src/zustand/usePaymentsStore.ts", "utf8")).not.toContain("addPayment");
   });
 });

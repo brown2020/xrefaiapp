@@ -28,10 +28,10 @@
   --accent: #3f6b38;
   --accent-foreground: #041d34;
   --muted: #f5f5f5;
-  --muted-foreground: #6b7280;
+  --muted-foreground: #4b5563;
   --border: #e5e7eb;
   --ring: #2563eb;
-  --destructive: #ef4444;
+  --destructive: #dc2626;
   --destructive-foreground: #ffffff;
 }
 

@@ -39,7 +39,7 @@ export function CreditsBadge() {
   if (!uid) return null;
 
   const balanceLabel = profileLoaded
-    ? `Credits balance: ${creditsLabel}. Open account to buy more.`
+    ? `Credits balance: ${creditsLabel} credits. Open account to buy more.`
     : "Credits balance loading";
 
   return (
@@ -50,8 +50,8 @@ export function CreditsBadge() {
         aria-label={balanceLabel}
         title="Open account / buy credits"
       >
-        <Coins className="h-4 w-4 text-muted-foreground" />
-        <span className="tabular-nums">{profileLoaded ? creditsLabel : "…"}</span>
+        <Coins className="h-4 w-4 text-muted-foreground" aria-hidden />
+        <span className="tabular-nums">{profileLoaded ? creditsLabel : "…"}</span>{" "}
         <span className="text-muted-foreground font-medium hidden md:inline">
           credits
         </span>

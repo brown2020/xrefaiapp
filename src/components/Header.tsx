@@ -12,7 +12,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { NAV_MENU_ITEMS, ROUTES } from "@/constants/routes";
-import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui";
+import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui/Sheet";
 import { CreditsBadge } from "@/components/ui/CreditsBadge";
 import { ProtectedLink } from "@/components/ui/ProtectedLink";
 import { useAuthStore } from "@/zustand/useAuthStore";
@@ -51,14 +51,13 @@ export default function Header() {
   return (
     <div className="sticky top-0 z-20 border-b border-border bg-card/90 backdrop-blur-md">
       <div className="container mx-auto px-4 py-3 text-sm">
-        <div className="flex items-center justify-between text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-y-2 text-sm">
           {/* Logo */}
           <Link
             href="/"
             className="flex items-center gap-2 rounded-lg focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/30"
-            aria-label="Xref.ai home"
           >
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#f97316] text-lg font-extrabold text-white">
+            <span aria-hidden className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#f97316] text-lg font-extrabold text-white">
               X
             </span>
             <span className="text-lg font-extrabold tracking-normal text-foreground">
@@ -66,9 +65,9 @@ export default function Header() {
             </span>
           </Link>
 
-          <div className="hidden sm:flex items-center gap-3">
+          <div className="hidden sm:flex flex-wrap items-center justify-end gap-3">
             {/* Desktop Menu */}
-            <nav className="flex gap-1">
+            <nav className="flex flex-wrap gap-1">
               {menuItems.map((item) => (
                 <ProtectedLink
                   key={item.href}

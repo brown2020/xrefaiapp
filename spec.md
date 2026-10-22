@@ -159,6 +159,8 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
 
 - History reads `users/{uid}/summaries` with Firestore pagination.
 - Supports search, expandable cards, markdown rendering, image rendering, text copy, image URL copy, and image download.
+- Each item can be deleted, and Clear all removes every saved item after a confirmation. Chat conversations, credits, and payments are not affected; generated image files stay in Storage.
+- A search with no matches says so and offers Clear search, separate from the empty state.
 - Text history items can be repurposed into:
   - Twitter thread;
   - LinkedIn post;
@@ -265,8 +267,6 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
 - Chat cannot explicitly reference selected history items or project context.
 - API-key mode currently requires Fireworks even for text-first users.
 - Account deletion currently leaves user subcollections and generated image storage behind unless removed separately.
-- `usePaymentsStore.addPayment()` and `serverPayments.addPaymentServer()` are not connected to the active purchase UI.
-- `src/constants/index.ts` includes some historical exported constants that are not read by active server paths.
 - Product analytics/event taxonomy is not implemented.
 - Admin/support tools for user lookup, manual credits, refunds, and diagnostics do not exist.
 

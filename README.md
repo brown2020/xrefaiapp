@@ -12,7 +12,7 @@ Deeper docs for agents and product direction live in [AGENTS.md](./AGENTS.md) an
 - **Firebase Auth** — Google popup, email/password, password reset, email-link (`/loginfinish`); cookie `xrefAuthToken` (name overridable); soft route gating via `src/proxy.ts`
 - **Streaming chat** (`/chat`) — Vercel AI SDK transport; recent history as context; credit debit / refund / rate limits / idempotency; saves under `users/{uid}/chats`
 - **Tools** (`/tools`) — Summarize Website (via SSRF-hardened `/api/proxy`), Summarize Text, Freestyle Writing, Simplify Writing, Generate Image (Fireworks SDXL), Designer Prompt builder
-- **History** (`/history`) — search, pagination, expand, copy/download, markdown, text repurpose actions
+- **History** (`/history`) — search, pagination, expand, copy/download, markdown, text repurpose actions, per-item delete, and Clear all
 - **Account** (`/account`) — credits, ledger, Stripe credit packs, payment history, API-key mode + model selection, account deletion
 - **Payments** — Stripe Checkout (`/api/billing/checkout` + `/confirm`); Expo/WebView IAP confirmation with HMAC + optional Apple receipt verify
 - **Public pages** — `/about`, `/privacy`, `/terms`, `/support`
@@ -22,8 +22,8 @@ Deeper docs for agents and product direction live in [AGENTS.md](./AGENTS.md) an
 
 | Layer | Choice |
 | --- | --- |
-| Framework | Next.js `^16.3.6` (App Router + `src/proxy.ts`) |
-| UI | React `^19.2.5`, Tailwind CSS `^4.3`, Radix dialog, Lucide, Plus Jakarta Sans, react-hot-toast, react-markdown |
+| Framework | Next.js `^16.4.2` (App Router + `src/proxy.ts`) |
+| UI | React `^19.3.1`, Tailwind CSS `^4.3`, Radix dialog, Lucide, Plus Jakarta Sans, react-hot-toast, react-markdown |
 | Language | TypeScript `^6` |
 | Auth / data | Firebase `^12` + Firebase Admin `^13` (Auth, Firestore, Storage) |
 | AI text | Vercel AI SDK (`ai` `^6`, `@ai-sdk/openai|anthropic|google|xai|rsc|react`) |
@@ -105,7 +105,7 @@ Copy `.env.example` to `.env.local`. **Never commit real keys.**
 | `FIREBASE_TOKEN_URI` | Google token URI | Service account JSON |
 | `FIREBASE_AUTH_PROVIDER_X509_CERT_URL` | Certs URL | Service account JSON |
 | `FIREBASE_CLIENT_CERTS_URL` | Client certs URL | Service account JSON |
-| `FIREBASE_UNIVERSE_DOMAIN` | Usually `googleapis.com` | Service account JSON |
+| `FIREBASE_UNIVERSE_DOMAIN` | Present in service account JSON; not read by the app | Optional |
 | `OPENAI_API_KEY` | Credits-mode OpenAI | [OpenAI](https://platform.openai.com/) |
 | `OPENAI_ORG_ID` | Optional OpenAI org | OpenAI dashboard |
 | `ANTHROPIC_API_KEY` | Credits-mode Anthropic | [Anthropic](https://console.anthropic.com/) |
@@ -144,12 +144,14 @@ Open [http://localhost:3000](http://localhost:3000).
 | --- | --- |
 | `npm run dev` | Next.js development server |
 | `npm run build` | Production build |
-| `npm start` | Serve production build |
+| `npm run start` | Serve production build |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm test` | Playwright reliability suite (`tests/code-reliability.spec.ts`) without webServer |
 | `npm run test:browser` | Full Playwright suite |
-| `npm run doctor` | `react-doctor` check |
+| `npm run doctor` | React Doctor full scan (pinned `react-doctor@0.9.14`) |
+| `npm run prove:workflows` | Critical workflows against Firebase emulators and a local model fixture (needs `firebase-tools` and Java; no paid calls) |
+| `npm run prove:state` | Signed-in account switch and credits badge against the ledger, in headless Chromium on the emulators |
 
 ## Testing and CI
 
@@ -159,6 +161,7 @@ CI (`.github/workflows/ci.yml`) on `dev` / `main` and PRs:
 2. `npm run lint`
 3. `npm run typecheck`
 4. `npm run build` with Firebase/Stripe `NEXT_PUBLIC_*` from `${{ secrets.* }}`
+5. `npm run test:browser` in headless Chromium against that build
 
 A separate `malware-scan.yml` workflow exists for dependency/malware scanning. Playwright specs under `tests/` cover activation paths, auth entry, route protection, writing controls, and code reliability.
 

@@ -55,10 +55,11 @@ type MessageInput = SimpleMessage | ConversationMessage;
  * - Credits are debited BEFORE the stream starts.
  * - An idempotency key gates the debit so a retry (same content or same
  *   client-supplied key) is a no-op.
- * - If the stream errors or is aborted, credits are refunded and the
- *   idempotency record is cleared so the user can retry cleanly.
+ * - If the stream errors, is aborted, or finishes with no text (for example a
+ *   content filter), credits are refunded and the idempotency record is
+ *   cleared so the user can retry cleanly.
  */
-export async function generateAIResponse(rawInput: MessageInput) {
+async function generateAIResponse(rawInput: MessageInput) {
   const authedUid = await requireAuthedUid();
   const parsed = generationInputSchema.safeParse(rawInput);
   if (!parsed.success) {
@@ -86,17 +87,11 @@ export async function generateAIResponse(rawInput: MessageInput) {
 
   const messages: ModelMessage[] =
     input.type === "simple"
-      ? [
-          { role: "system", content: input.systemPrompt },
-          { role: "user", content: input.userPrompt },
-        ]
-      : [
-          { role: "system", content: input.systemPrompt },
-          ...input.messages.map((msg) => ({
-            role: msg.role as "user" | "assistant",
-            content: msg.content,
-          })),
-        ];
+      ? [{ role: "user", content: input.userPrompt }]
+      : input.messages.map((msg) => ({
+          role: msg.role as "user" | "assistant",
+          content: msg.content,
+        }));
 
   const useCredits = input.useCredits !== false;
   const cost =
@@ -116,6 +111,9 @@ export async function generateAIResponse(rawInput: MessageInput) {
   let creditsCharged = false;
   let idempotencyKey = "";
   let settled = false;
+  // One refund id per debit: a retry with the same key after a refund is a new
+  // charge and must be refundable again.
+  const refundAttemptId = randomUUID();
 
   const payloadForIdempotency =
     input.type === "simple"
@@ -146,7 +144,7 @@ export async function generateAIResponse(rawInput: MessageInput) {
               : "text_generation_refund",
           tool: input.type === "conversation" ? "chat" : "tools",
           modelKey: input.modelKey,
-          deterministicId: `refund_generation_${idempotencyKey || randomUUID()}`,
+          deterministicId: `refund_generation_${idempotencyKey}_${refundAttemptId}`,
         });
       } catch (refundError) {
         console.error("Generation refund failed:", refundError);
@@ -201,10 +199,12 @@ export async function generateAIResponse(rawInput: MessageInput) {
   try {
     const result = streamText({
       model,
+      system: input.systemPrompt,
       messages,
       abortSignal: abortController.signal,
-      onFinish: () => {
-        void settleSuccess();
+      onFinish: ({ text }) => {
+        // A filtered or empty completion delivers nothing, so it is not charged.
+        void (text.trim() ? settleSuccess() : settleFailure());
       },
       onError: (event) => {
         const streamError =

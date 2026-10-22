@@ -1,7 +1,16 @@
-import { expect, test, type BrowserContext } from "@playwright/test";
+import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 
 const AUTH_COOKIE_NAME = "xrefAuthToken";
 const SOFT_AUTH_COOKIE_VALUE = "playwright-soft-auth";
+
+/** Retries until the choice survives hydration of the server-rendered select. */
+async function choose(page: Page, label: string, value: string) {
+  const select = page.getByLabel(label);
+  await expect(async () => {
+    await select.selectOption(value);
+    await expect(select).toHaveValue(value, { timeout: 500 });
+  }).toPass();
+}
 
 async function addSoftAuthCookie(context: BrowserContext) {
   await context.addCookies([
@@ -33,10 +42,10 @@ test.describe("Freestyle Writing controls", () => {
       "220"
     );
 
-    await page.getByLabel("Deliverable").selectOption("blog-outline");
-    await page.getByLabel("Tone").selectOption("expert");
-    await page.getByLabel("Audience").selectOption("executives");
-    await page.getByLabel("Draft length").selectOption("detailed");
+    await choose(page, "Deliverable", "blog-outline");
+    await choose(page, "Tone", "expert");
+    await choose(page, "Audience", "executives");
+    await choose(page, "Draft length", "detailed");
 
     await expect(page.getByLabel("Deliverable")).toHaveValue("blog-outline");
     await expect(page.getByLabel("Tone")).toHaveValue("expert");
@@ -91,9 +100,9 @@ test.describe("Summarize Text controls", () => {
     await expect(page.getByLabel("Audience")).toHaveValue("general");
     await expect(page.getByLabel("Emphasis")).toHaveValue("main-ideas");
 
-    await page.getByLabel("Summary format").selectOption("executive-brief");
-    await page.getByLabel("Audience").selectOption("executives");
-    await page.getByLabel("Emphasis").selectOption("actions-decisions");
+    await choose(page, "Summary format", "executive-brief");
+    await choose(page, "Audience", "executives");
+    await choose(page, "Emphasis", "actions-decisions");
     await page.getByLabel("Focus").fill("launch risks");
 
     await expect(page.getByLabel("Summary format")).toHaveValue(

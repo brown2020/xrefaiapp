@@ -1,4 +1,4 @@
-export const DEFAULT_AUTH_COOKIE_NAME = "xrefAuthToken" as const;
+const DEFAULT_AUTH_COOKIE_NAME = "xrefAuthToken" as const;
 
 /**
  * Returns the cookie name used to store the Firebase ID token.

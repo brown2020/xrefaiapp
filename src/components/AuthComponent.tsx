@@ -29,7 +29,7 @@ export default function AuthComponent() {
           onClick={showModal}
           aria-haspopup="dialog"
           aria-expanded={isVisible}
-          className="bg-[#02C173] hover:bg-[#009d5b] hover:opacity-100 btn-blue mt-0 w-auto flex items-center gap-2"
+          className="bg-[#047857] hover:bg-[#065f46] hover:opacity-100 btn-blue mt-0 w-auto flex items-center gap-2"
         >
           Sign In to Enable Your Account
           <ArrowRight size={16} />

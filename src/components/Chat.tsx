@@ -80,13 +80,27 @@ export default function Chat({ initialPrompt, starterIntentId }: ChatProps) {
     transport,
     experimental_throttle: 100,
     onFinish: async ({ message, messages: allMessages }) => {
-      // The send succeeded; drop the remembered draft so it can't be restored later.
-      lastSentInputRef.current = "";
       const latestUser = [...allMessages]
         .reverse()
         .find((m) => m.role === "user");
       const prompt = latestUser ? getMessageText(latestUser) : "";
       const response = getMessageText(message);
+
+      if (prompt && !response.trim()) {
+        // The server refunds an empty or filtered reply; give the prompt back.
+        const draft = lastSentInputRef.current || prompt;
+        lastSentInputRef.current = "";
+        setInput((current) => current || draft);
+        setMessages([]);
+        toast.error(
+          generationConfig.useCredits
+            ? "The model returned no reply, so you were not charged. Try rephrasing your message."
+            : "The model returned no reply. Try rephrasing your message."
+        );
+        return;
+      }
+      // The send succeeded; drop the remembered draft so it can't be restored later.
+      lastSentInputRef.current = "";
 
       if (uid && prompt && response) {
         try {

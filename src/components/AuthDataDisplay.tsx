@@ -89,13 +89,13 @@ export default function AuthDataDisplay() {
           <div className="text-base text-[#041D34] font-semibold">
             Login email
           </div>
-          <div className="text-[#0B3C68] border-b pb-3 border-[#B8D2FA] text-word">
+          <div className="text-[#0B3C68] border-b pb-3 border-[#B8D2FA] text-word break-all">
             {authEmail}
           </div>
         </div>
         <div className="flex flex-col space-y-1">
           <div className="text-base text-[#041D34] font-semibold">User ID</div>
-          <div className="text-[#0B3C68] border-b pb-3 border-[#B8D2FA] text-word">
+          <div className="text-[#0B3C68] border-b pb-3 border-[#B8D2FA] text-word break-all">
             {uid}
           </div>
         </div>
@@ -106,7 +106,7 @@ export default function AuthDataDisplay() {
           <div>
             <div className="flex flex-col md:flex-row md:items-start md:space-x-4">
               <div className="shrink-0 mb-4 md:mb-0">
-                <div className="relative w-44 aspect-square">
+                <div className="relative w-44 max-w-full aspect-square">
                   {profile.photoUrl ? (
                     <Image
                       width={512}
@@ -139,7 +139,7 @@ export default function AuthDataDisplay() {
                   </label>
                 </div>
               </div>
-              <div className="grow space-y-3">
+              <div className="min-w-0 grow space-y-3">
                 <div>
                   <label htmlFor="first-name" className={labelClassName}>
                     First Name
@@ -171,14 +171,14 @@ export default function AuthDataDisplay() {
                     type="button"
                     disabled={!hasChanges || saving}
                     onClick={handleSubmit}
-                    className="w-56 text-white px-3 py-2 custom-write bottom bg-[#192449] opacity-100! hover:bg-[#83A873] rounded-3xl! font-bold transition-transform duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full max-w-56 text-white px-3 py-2 custom-write bottom bg-[#192449] opacity-100! hover:bg-[#83A873] rounded-3xl! font-bold transition-transform duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {saving ? "Saving..." : "Save Profile Changes"}
                   </button>
                   <button
                     type="button"
                     onClick={logoutUser}
-                    className="w-56 text-white px-3 py-2 custom-write bottom bg-[#192449] opacity-100! hover:bg-[#83A873] rounded-3xl! font-bold transition-transform duration-300 ease-in-out"
+                    className="w-full max-w-56 text-white px-3 py-2 custom-write bottom bg-[#192449] opacity-100! hover:bg-[#83A873] rounded-3xl! font-bold transition-transform duration-300 ease-in-out"
                   >
                     Logout
                   </button>

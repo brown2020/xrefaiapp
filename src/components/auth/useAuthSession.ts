@@ -18,7 +18,7 @@ import { signOutUser, useSignOut } from "@/hooks/useSignOut";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { auth } from "@/firebase/firebaseClient";
 import toast from "react-hot-toast";
-import { isIOSReactNativeWebView } from "@/utils/platform";
+import { isReactNativeWebView } from "@/utils/platform";
 import {
   SESSION_START_ERROR,
   authErrorCode,
@@ -104,7 +104,7 @@ const persistAuthCookie = async (user: User): Promise<boolean> => {
 
 const showGoogleSignIn = useSyncExternalStore(
   subscribeNoop,
-  () => !isIOSReactNativeWebView(),
+  () => !isReactNativeWebView(),
   () => true
 );
 

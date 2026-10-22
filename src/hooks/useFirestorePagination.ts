@@ -37,6 +37,8 @@ interface UseFirestorePaginationReturn<T> {
   hasMore: boolean;
   loadMore: () => Promise<void>;
   refresh: () => Promise<void>;
+  /** Drops loaded items after the caller deleted them on the server. */
+  clearItems: () => void;
 }
 
 /**
@@ -148,6 +150,12 @@ export function useFirestorePagination<T>({
     await fetchData(true);
   }, [fetchData]);
 
+  const clearItems = useCallback(() => {
+    setItems([]);
+    setLastDoc(null);
+    setHasMore(false);
+  }, []);
+
   return {
     items,
     loading,
@@ -155,5 +163,6 @@ export function useFirestorePagination<T>({
     hasMore,
     loadMore,
     refresh,
+    clearItems,
   };
 }

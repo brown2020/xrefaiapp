@@ -39,7 +39,7 @@ export default function DeleteAccount() {
       <div className="w-full flex justify-end">
         <button
           onClick={handleDeleteClick}
-          className="font-bold bg-[#FF5356] hover:bg-[#c0373a] rounded-3xl text-white w-56 block px-3 py-2"
+          className="font-bold bg-[#c42b2e] hover:bg-[#9f1f22] rounded-3xl text-white w-full max-w-56 block px-3 py-2"
         >
           {loadingDelete ? "Deleting..." : "Delete Account"}
         </button>

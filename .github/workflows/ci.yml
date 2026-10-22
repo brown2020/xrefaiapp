@@ -11,8 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -36,3 +36,5 @@ jobs:
           NEXT_PUBLIC_FIREBASE_MEASUREMENTID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENTID }}
           NEXT_PUBLIC_STRIPE_PRODUCT_NAME: ${{ secrets.NEXT_PUBLIC_STRIPE_PRODUCT_NAME }}
         run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser

@@ -115,4 +115,4 @@ if (hasClientConfig) {
   storage = null as unknown as FirebaseStorage;
 }
 
-export { auth, db, storage, hasClientConfig };
+export { auth, db, storage };

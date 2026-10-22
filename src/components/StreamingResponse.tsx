@@ -10,7 +10,7 @@ export default function StreamingResponse({ content }: StreamingResponseProps) {
   return (
     <BotMessageWrapper
       header={
-        <span className="flex items-center gap-1 text-xs text-gray-400 ml-2">
+        <span className="flex items-center gap-1 text-xs text-muted-foreground ml-2">
           <InlineSpinner size="sm" />
           Generating...
         </span>

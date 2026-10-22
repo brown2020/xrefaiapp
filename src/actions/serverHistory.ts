@@ -80,6 +80,33 @@ export async function saveHistoryServer(
   return docRef.id;
 }
 
+const HISTORY_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
+/** Firestore caps a write batch at 500 operations. */
+const CLEAR_BATCH_SIZE = 400;
+
+export async function deleteHistoryItemServer(id: string): Promise<void> {
+  const uid = await requireAuthedUid();
+  if (typeof id !== "string" || !HISTORY_ID_PATTERN.test(id)) {
+    throw new Error("INVALID_HISTORY_ID");
+  }
+  await adminDb.doc(`users/${uid}/summaries/${id}`).delete();
+}
+
+/** Deletes every saved History entry for the caller. Returns the count removed. */
+export async function clearHistoryServer(): Promise<number> {
+  const uid = await requireAuthedUid();
+  const collRef = adminDb.collection(`users/${uid}/summaries`);
+  let deleted = 0;
+  for (;;) {
+    const snap = await collRef.limit(CLEAR_BATCH_SIZE).get();
+    if (snap.empty) return deleted;
+    const batch = adminDb.batch();
+    for (const doc of snap.docs) batch.delete(doc.ref);
+    await batch.commit();
+    deleted += snap.size;
+  }
+}
+
 export async function saveChatServer(
   prompt: string,
   response: string

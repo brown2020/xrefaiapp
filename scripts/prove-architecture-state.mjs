@@ -8,6 +8,7 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { writeResponsesStream } from "./openai-fixture.mjs";
 import { chromium } from "playwright";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -44,25 +45,7 @@ function startOpenAi() {
         `hit wait=${body.includes("WAIT_STREAM")} bytes=${body.length}\n`
       );
       const slow = true;
-      const write = () => {
-        if (!res.headersSent) {
-          res.writeHead(200, { "content-type": "text/event-stream" });
-        }
-        res.write(
-          `data: ${JSON.stringify({
-            type: "response.output_text.delta",
-            item_id: "item_1",
-            delta: "Local fixture reply.",
-          })}\n\n`
-        );
-        res.write(
-          `data: ${JSON.stringify({
-            type: "response.completed",
-            response: { usage: { input_tokens: 1, output_tokens: 4 } },
-          })}\n\n`
-        );
-        res.end();
-      };
+      const write = () => writeResponsesStream(res, body);
       if (slow) {
         res.writeHead(200, { "content-type": "text/event-stream" });
         setTimeout(write, 4000);
@@ -338,13 +321,14 @@ async function main() {
   await browser.close();
   openai.close();
   shutdown();
+  fs.mkdirSync(path.dirname(logPath), { recursive: true });
   fs.writeFileSync(logPath, JSON.stringify({ ok: true, log }, null, 2));
   console.log(`wrote ${logPath}`);
 }
 
 main().catch((error) => {
   note("failed", error instanceof Error ? error.stack || error.message : String(error));
-  fs.mkdirSync("/tmp/app-eval-xrefai", { recursive: true });
+  fs.mkdirSync(path.dirname(logPath), { recursive: true });
   fs.writeFileSync(logPath, JSON.stringify({ ok: false, log }, null, 2));
   shutdown();
   process.exit(1);

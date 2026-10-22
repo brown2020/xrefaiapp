@@ -58,11 +58,11 @@ const RETIRED_MODEL_KEYS: Record<string, AiModelKey> = {
   "xai:grok-4": "xai:grok-4.7",
 };
 
-export const DEFAULT_TEXT_MODEL_KEY: AiModelKey = "openai:gpt-5.4";
+const DEFAULT_TEXT_MODEL_KEY: AiModelKey = "openai:gpt-5.4";
 
 export const listAiModels = (): AiModelDefinition[] => Object.values(AI_MODELS);
 
-export function isAiModelKey(value: unknown): value is AiModelKey {
+function isAiModelKey(value: unknown): value is AiModelKey {
   return typeof value === "string" && value in AI_MODELS;
 }
 

@@ -34,20 +34,6 @@ export function coerceCredits(value: unknown, fallback: number): number {
 }
 
 /**
- * Validates that a credit amount is valid for debiting.
- */
-export function isValidDebitAmount(amount: number): boolean {
-  return Number.isFinite(amount) && amount > 0;
-}
-
-/**
- * Validates that a credit amount is valid for crediting.
- */
-export function isValidCreditAmount(amount: number): boolean {
-  return Number.isFinite(amount) && amount > 0;
-}
-
-/**
  * Calculates a new balance after a credit operation, rounding to an integer.
  * Throws if the result would be invalid (negative for debit, non-finite).
  */
@@ -64,12 +50,4 @@ export function calculateNewBalance(currentBalance: number, delta: number): numb
   }
 
   return rounded;
-}
-
-/**
- * Formats credits for display (e.g., "1,000 credits").
- */
-export function formatCredits(credits: number): string {
-  const safeCredits = coerceCredits(credits, 0);
-  return `${safeCredits.toLocaleString()} credit${safeCredits === 1 ? "" : "s"}`;
 }

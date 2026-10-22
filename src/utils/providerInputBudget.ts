@@ -7,7 +7,7 @@ export const MAX_PROVIDER_INPUT_CHARS = MAX_WORDS_IN_CONTEXT * 8;
 type ChatTurn = { prompt: string; response: string };
 type ConversationTurn = { role: "user" | "assistant"; content: string };
 
-export function boundPromptText(
+function boundPromptText(
   text: string,
   maxWords = MAX_WORDS_IN_CONTEXT,
   maxChars = MAX_PROVIDER_INPUT_CHARS
@@ -18,7 +18,7 @@ export function boundPromptText(
   return words.slice(0, Math.max(0, maxWords)).join(" ");
 }
 
-export function fitsProviderInputBudget(text: string): boolean {
+function fitsProviderInputBudget(text: string): boolean {
   return (
     text.length <= MAX_PROVIDER_INPUT_CHARS &&
     calculateWordCount(text) <= MAX_WORDS_IN_CONTEXT

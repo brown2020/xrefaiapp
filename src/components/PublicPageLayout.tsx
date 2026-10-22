@@ -17,7 +17,7 @@ export function PublicPageLayout({
 }: PublicPageLayoutProps) {
   return (
     <main className="min-h-full bg-background text-foreground">
-      <div className="mx-auto w-full max-w-3xl px-5 py-12 md:py-16">
+      <div className="mx-auto w-full max-w-3xl break-words px-5 py-12 md:py-16">
         <header className="mb-10">
           <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
             {eyebrow}
@@ -61,19 +61,5 @@ export function PublicContentSection({
         {children}
       </div>
     </section>
-  );
-}
-
-export function PublicCard({
-  children,
-  className = "",
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={`rounded-lg border border-border bg-card p-5 ${className}`}>
-      {children}
-    </div>
   );
 }

@@ -40,20 +40,6 @@ export function isProtectedPath(pathname: string | null | undefined): boolean {
   );
 }
 
-/**
- * Routes that don't require authentication
- */
-export const PUBLIC_ROUTES = [
-  ROUTES.home,
-  ROUTES.about,
-  ROUTES.terms,
-  ROUTES.privacy,
-  ROUTES.support,
-  ROUTES.login,
-  ROUTES.signup,
-  ROUTES.loginFinish,
-] as const;
-
 /** Where signed-in users land when a sign-in page has no `next`. */
 export const DEFAULT_SIGNED_IN_ROUTE = ROUTES.tools;
 

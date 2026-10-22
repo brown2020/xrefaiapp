@@ -24,7 +24,11 @@ import { usePaywallStore } from "@/zustand/usePaywallStore";
 import { getTextGenerationCreditsCost } from "@/constants/credits";
 import { ROUTES } from "@/constants/routes";
 import { useShallow } from "zustand/react/shallow";
-import { isInsufficientCreditsError } from "@/utils/errors";
+import {
+  EmptyCompletionError,
+  emptyCompletionMessage,
+  isInsufficientCreditsError,
+} from "@/utils/errors";
 import { createClientIdempotencyKey } from "@/utils/clientIdempotencyKey";
 import GenerationNextActions from "@/components/GenerationNextActions";
 import { clampStarterWordCount } from "@/constants/toolMetadata";
@@ -131,6 +135,7 @@ export default function SummarizeTopic({
         chunkCount++;
         setProgress(Math.min(70 + (chunkCount / wordnum) * 30, 95));
       }
+      if (!finishedSummary) throw new EmptyCompletionError();
 
       completeWithSuccess(finishedSummary);
       if (generationConfig.useCredits) {
@@ -170,6 +175,11 @@ export default function SummarizeTopic({
           "That request is already being handled. Please wait a moment."
         );
         completeWithError("Duplicate request");
+        return;
+      }
+      if (error instanceof EmptyCompletionError) {
+        toast.error(emptyCompletionMessage(generationConfig.useCredits));
+        completeWithError("No text returned");
         return;
       }
       completeWithError(
