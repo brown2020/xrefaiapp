@@ -69,6 +69,9 @@
     "fast-xml-parser": ">=5.7.0",
     "postcss": "8.5.31",
     "@grpc/grpc-js": "^1.14.6",
-    "postcss-selector-parser": "^7.1.6"
+    "postcss-selector-parser": "^7.1.6",
+    "jwks-rsa": {
+      "jose": "^5.10.0"
+    }
   }
 }

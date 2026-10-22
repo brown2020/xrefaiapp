@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
@@ -25,6 +26,17 @@ import { safeProxyHeaders } from "../src/utils/proxyResponse";
 import { creditsForNewProfile } from "../src/utils/starterGrant";
 
 test.describe("code reliability contracts", () => {
+  test("Firebase Admin auth loads where Node cannot require() ES modules", () => {
+    // Vercel's function runtime rejected jwks-rsa's require("jose") with
+    // ERR_REQUIRE_ESM, taking down every route that imports firebase-admin.
+    const output = execFileSync(
+      process.execPath,
+      ["--no-experimental-require-module", "-e", "require('firebase-admin/auth'); console.log('ok')"],
+      { encoding: "utf8" }
+    );
+    expect(output.trim()).toBe("ok");
+  });
+
   test("markdown output gets typography styles", () => {
     const css = readFileSync("src/app/globals.css", "utf8");
     const pkg = JSON.parse(readFileSync("package.json", "utf8"));
