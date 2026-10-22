@@ -42,6 +42,7 @@ import {
 import { createClientIdempotencyKey } from "@/utils/clientIdempotencyKey";
 import { useIsOverflowing } from "@/hooks/useIsOverflowing";
 import { formatDateTime } from "@/utils/formatDateTime";
+import { notEnoughCreditsMessage } from "@/utils/platform";
 
 function readHistorySettings(value: unknown): Record<string, string> | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -425,7 +426,7 @@ function HistoryCard({
         if (error instanceof EmptyCompletionError) {
           toast.error(emptyCompletionMessage(profile.useCredits));
         } else if (isInsufficientCreditsError(error)) {
-          toast.error("Not enough credits. Please buy more credits in Account.");
+          toast.error(notEnoughCreditsMessage());
         } else if (
           error instanceof Error &&
           (error.message === "DUPLICATE_REQUEST" ||

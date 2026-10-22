@@ -1,10 +1,9 @@
 "use client";
 
 import useProfileStore from "@/zustand/useProfileStore";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { isReactNativeWebView } from "@/utils/platform";
-import { usePaymentsStore } from "@/zustand/usePaymentsStore";
+import { useShowWebOnly } from "@/hooks/useShowWebOnly";
 import {
   cardClassName,
   inputClassName,
@@ -21,14 +20,9 @@ import {
   formatDollarsFromCents,
   getCreditPack,
 } from "@/constants/creditPacks";
-import { confirmIapPurchase } from "@/actions/confirmIapPurchase";
 import toast from "react-hot-toast";
 
 const creditsFormatter = new Intl.NumberFormat();
-
-function subscribeNoop() {
-  return () => {};
-}
 
 type ApiKeyName =
   | "fireworks"
@@ -37,60 +31,10 @@ type ApiKeyName =
   | "xai"
   | "google";
 
-function useIapSuccessListener(
-  fetchProfile: () => Promise<void>,
-  fetchPayments: () => Promise<void>
-) {
-  useEffect(() => {
-    const handleMessageFromRN = async (event: MessageEvent) => {
-      if (!isReactNativeWebView() || !window.ReactNativeWebView) return;
-
-      const message = event.data;
-      if (message?.type !== "IAP_SUCCESS") return;
-
-      const transactionId = String(message.transactionId || message.message || "");
-      const signature = String(message.signature || "");
-      const credits =
-        typeof message.credits === "number" && Number.isFinite(message.credits)
-          ? Math.max(0, Math.floor(message.credits))
-          : 0;
-
-      if (!transactionId || !signature || !credits) {
-        console.error("IAP confirmation missing required fields");
-        return;
-      }
-
-      try {
-        await confirmIapPurchase({
-            transactionId,
-            productId: String(message.productId || "iap"),
-            amount: Number(message.amount || 0),
-            currency: String(message.currency || "USD"),
-            platform: String(message.platform || "ios"),
-            credits,
-            ts: Number(message.ts || Date.now()),
-            receipt: String(message.receipt || ""),
-            signature,
-          });
-
-        await fetchProfile();
-        await fetchPayments();
-      } catch (error) {
-        console.error("IAP confirmation failed:", error);
-      }
-    };
-
-    window.addEventListener("message", handleMessageFromRN);
-    return () => window.removeEventListener("message", handleMessageFromRN);
-  }, [fetchPayments, fetchProfile]);
-}
-
 export default function ProfileComponent() {
   const router = useRouter();
   const profile = useProfileStore((state) => state.profile);
   const updateProfile = useProfileStore((state) => state.updateProfile);
-  const fetchProfile = useProfileStore((state) => state.fetchProfile);
-  const fetchPayments = usePaymentsStore((state) => state.fetchPayments);
 
   const [fireworksApiKey, setFireworksApiKey] = useState(profile.fireworks_api_key);
   const [openaiApiKey, setOpenaiApiKey] = useState(profile.openai_api_key);
@@ -112,13 +56,7 @@ export default function ProfileComponent() {
     google: false,
   });
 
-  const showCreditsSection = useSyncExternalStore(
-    subscribeNoop,
-    () => !isReactNativeWebView(),
-    () => true
-  );
-
-  useIapSuccessListener(fetchProfile, fetchPayments);
+  const canBuyCredits = useShowWebOnly();
 
   // Sync individual key inputs from the profile only when the user hasn't
   // actively edited that particular field.
@@ -205,17 +143,13 @@ export default function ProfileComponent() {
   }, [areApiKeysAvailable, profile.useCredits, updateProfile]);
 
   const handleBuyClick = useCallback(() => {
-    if (showCreditsSection) {
-      const pack = getCreditPack(selectedPackId);
-      router.push(
-        `${ROUTES.paymentAttempt}?pack=${encodeURIComponent(
-          pack.id
-        )}&redirect=${encodeURIComponent(ROUTES.account)}`,
-      );
-    } else {
-      window.ReactNativeWebView?.postMessage("INIT_IAP");
-    }
-  }, [selectedPackId, showCreditsSection, router]);
+    const pack = getCreditPack(selectedPackId);
+    router.push(
+      `${ROUTES.paymentAttempt}?pack=${encodeURIComponent(
+        pack.id
+      )}&redirect=${encodeURIComponent(ROUTES.account)}`,
+    );
+  }, [selectedPackId, router]);
 
   // Effective select value — if apikeys isn't available, always show "credits"
   const useCreditsSelectValue =
@@ -237,46 +171,48 @@ export default function ProfileComponent() {
               </span>
             </div>
           </div>
-          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end md:w-auto">
-            <div className="w-full sm:min-w-80">
-              <label htmlFor="credit-pack" className={labelClassName}>
-                Credit pack
-              </label>
-              <div className="relative">
-                <select
-                  id="credit-pack"
-                  value={selectedPackId}
-                  onChange={(e) => setSelectedPackId(e.target.value)}
-                  className={`${inputClassName} appearance-none pr-10`}
-                  disabled={!showCreditsSection}
-                >
-                  {CREDIT_PACKS.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.label} — ${formatDollarsFromCents(p.amountCents)} →{" "}
-                      {p.credits.toLocaleString()} credits
-                      {p.badge ? ` (${p.badge})` : ""}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown
-                  size={16}
-                  aria-hidden
-                  className="absolute right-4 top-1/2 mt-0.5 -translate-y-1/2 text-muted-foreground pointer-events-none"
-                />
+          {canBuyCredits ? (
+            <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end md:w-auto">
+              <div className="w-full sm:min-w-80">
+                <label htmlFor="credit-pack" className={labelClassName}>
+                  Credit pack
+                </label>
+                <div className="relative">
+                  <select
+                    id="credit-pack"
+                    value={selectedPackId}
+                    onChange={(e) => setSelectedPackId(e.target.value)}
+                    className={`${inputClassName} appearance-none pr-10`}
+                  >
+                    {CREDIT_PACKS.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.label} — ${formatDollarsFromCents(p.amountCents)} →{" "}
+                        {p.credits.toLocaleString()} credits
+                        {p.badge ? ` (${p.badge})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    size={16}
+                    aria-hidden
+                    className="absolute right-4 top-1/2 mt-0.5 -translate-y-1/2 text-muted-foreground pointer-events-none"
+                  />
+                </div>
               </div>
+              <button
+                type="button"
+                className={`${primaryButtonClassName} shrink-0 sm:py-3`}
+                onClick={handleBuyClick}
+              >
+                Buy credits
+              </button>
             </div>
-            <button
-              type="button"
-              className={`${primaryButtonClassName} shrink-0 sm:py-3`}
-              onClick={handleBuyClick}
-            >
-              Buy credits
-            </button>
-          </div>
+          ) : null}
         </div>
         <p className="mt-4 text-sm text-muted-foreground">
-          Buy credits, or add your own provider keys below and switch billing
-          to API keys.
+          {canBuyCredits
+            ? "Buy credits, or add your own provider keys below and switch billing to API keys."
+            : "Add your own provider keys below and switch billing to API keys to keep going when credits run out."}
         </p>
       </section>
 

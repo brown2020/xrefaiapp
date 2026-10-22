@@ -24,6 +24,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
+import { useShowWebOnly } from "@/hooks/useShowWebOnly";
 import {
   STARTER_INTENTS,
   buildStarterIntentHref,
@@ -110,6 +111,8 @@ const TYPEWRITER_HOLD_DELAY_MS = 1250;
 const TYPEWRITER_NEXT_WORD_DELAY_MS = 180;
 
 export default function Home() {
+  const canBuyCredits = useShowWebOnly();
+
   return (
     <div className="min-h-full bg-[#fbfaf7] text-foreground">
       <section className="relative overflow-hidden border-b border-border bg-[#111827] text-white">
@@ -259,13 +262,15 @@ export default function Home() {
               their own API keys.
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-              <ProtectedLink
-                href={ROUTES.account}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-bold text-foreground transition-opacity hover:opacity-90"
-              >
-                Buy credits
-                <ArrowRight className="h-4 w-4" />
-              </ProtectedLink>
+              {canBuyCredits ? (
+                <ProtectedLink
+                  href={ROUTES.account}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-bold text-foreground transition-opacity hover:opacity-90"
+                >
+                  Buy credits
+                  <ArrowRight className="h-4 w-4" />
+                </ProtectedLink>
+              ) : null}
               <Link
                 href={ROUTES.terms}
                 className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/20 px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-white/10"
@@ -278,7 +283,7 @@ export default function Home() {
           <div className="grid gap-3 sm:grid-cols-3 md:grid-cols-1">
             {[
               "Transparent generation costs",
-              "Stripe checkout",
+              ...(canBuyCredits ? ["Stripe checkout"] : []),
               "Server-side credit ledger",
             ].map((item) => (
               <div

@@ -19,7 +19,7 @@ The app helps users turn rough ideas, URLs, notes, text, and visual concepts int
 - generate text, summaries, chat responses, or images;
 - save outputs into account history;
 - repurpose text history into common deliverables;
-- buy credits through Stripe on web or through signed native IAP messages in the Expo WebView path;
+- buy credits through Stripe on web (the Expo app does not sell credits; purchase UI is hidden in the WebView);
 - optionally bring provider API keys instead of spending credits.
 
 For product direction, roadmap milestones, and user-facing promises, use `spec.md`.
@@ -68,6 +68,7 @@ npm run typecheck # tsc --noEmit
 npm run test # Contract tests in tests/code-reliability.spec.ts; needs a server already on the Playwright base URL
 npm run doctor # React Doctor 0.9.14, full scope (pinned)
 npm run prove:workflows # Critical workflows on Firebase emulators + local model fixture; no paid calls
+npm run prove:deletion # Full account deletion on Auth/Firestore/Storage emulators; needs npm run build
 npm run prove:state # Account switch and credits badge vs ledger on emulators, headless
 ```
 
@@ -110,7 +111,7 @@ npm run test:browser
 - Auth/data/storage: Firebase client SDK 13 and Firebase Admin 14 for Auth, Firestore, and Storage. Admin uses the modular entry points (`firebase-admin/app`, `/auth`, `/firestore`, `/storage`); the namespaced `admin.firestore()` API no longer exists.
 - AI text: Vercel AI SDK 7 with OpenAI, Anthropic, xAI, and Google providers. Use `instructions` and `onEnd` (not `system` and `onFinish`) on `streamText`.
 - AI images: Fireworks AI `stable-diffusion-xl-1024-v1-0`.
-- Payments: Stripe 23 Checkout Sessions on web plus signed React Native WebView IAP confirmation.
+- Payments: Stripe 23 Checkout Sessions on web. The signed IAP confirmation action remains but the Expo app no longer sends purchases.
 - Tests: Playwright specs under `tests/` cover activation starter paths, auth entry, proxy route protection, API auth rejection, redirect normalization, writing-control surfaces, and source/contract checks in `code-reliability.spec.ts`. No unit test runner is currently configured.
 
 ## Repository Structure
@@ -274,7 +275,7 @@ iapTransactions/{transactionId}
 
 Profile strings from client writes are allowlisted and clamped in `profileContract.ts`, which `serverProfile.ts` uses. Credit balance and email are not client-writable. History strings are clamped in `serverHistory.ts`.
 
-Account deletion currently calls `deleteAccountServer()` from `serverProfile.ts`, which deletes the Firebase Auth user and then `users/{uid}/profile/userData`. It leaves `users/{uid}/account/bootstrap` in place so a later profile recreate does not grant the starter balance again. It does not cascade `chats`, `summaries`, `payments`, `creditsLedger`, `idempotency`, `rateLimit`, `locks`, global IAP claim docs, or generated Storage files. Treat complete account-data deletion as an open product/privacy gap until implemented.
+Account deletion calls `deleteAccountServer()` in `serverProfile.ts`. It recursively deletes `users/{uid}` (every subcollection, including `account/bootstrap`), deletes Storage under `users/{uid}/` and `generated/{uid}/`, removes `uid` from global `iapTransactions` claims (the claim stays so a receipt cannot be redeemed again), and deletes the Firebase Auth user last so a failed run can be retried. Server auth does not check revocation, so `fetchProfileServer()` calls `adminAuth.getUser()` before creating a profile; a deleted account's still-valid ID token cannot recreate it. `npm run prove:deletion` proves this on emulators. If you add a new per-user collection or Storage path, keep it under those prefixes or extend deletion.
 
 ### State Management
 
@@ -317,8 +318,8 @@ React Native WebView support is intentional:
 
 - `window.ReactNativeWebView` detection lives in `src/utils/platform.ts` and `src/hooks/useClientSetup.ts`.
 - Google popup sign-in is hidden in WebView.
-- Web Stripe checkout controls are hidden in WebView; native purchase starts with `INIT_IAP`.
-- Native success returns `IAP_SUCCESS`, then `confirmIapPurchase()` verifies the signed payload. `productId` must be a credit pack id (`starter`, `plus`, `pro`, or `power`) and `credits` must equal that pack.
+- The Expo app does not sell credits. `useShowWebOnly()` (`src/hooks/useShowWebOnly.ts`) is false during SSR and in WebView; it gates every purchase surface (Account credit packs, paywall packs, header Top up, homepage Buy credits and Stripe mention) and Google sign-in. `/payment-attempt` never starts checkout in WebView. Out-of-credits toasts use `notEnoughCreditsMessage()`, which points app users to API keys.
+- `confirmIapPurchase()` still verifies signed `IAP_SUCCESS` payloads if a native purchase flow returns; `productId` must be a credit pack id (`starter`, `plus`, `pro`, or `power`) and `credits` must equal that pack.
 - Cookie consent is suppressed in WebView.
 - Some localStorage coordination is skipped in WebView.
 - The restricted-word guard is client-only and WebView-only. It is UX protection, not server moderation.

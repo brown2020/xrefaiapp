@@ -1,7 +1,7 @@
 "use server";
 
 import { FieldValue } from "firebase-admin/firestore";
-import { adminAuth, adminDb } from "@/firebase/firebaseAdmin";
+import { adminAuth, adminBucket, adminDb } from "@/firebase/firebaseAdmin";
 import { requireAuthedUid } from "@/actions/serverAuth";
 import { coerceCredits } from "@/utils/credits";
 import { creditsForNewProfile } from "@/utils/starterGrant";
@@ -91,6 +91,10 @@ export async function fetchProfileServer(authOverrides?: {
     };
   }
 
+  // ID tokens stay valid for up to an hour after the Auth user is deleted, so
+  // a deleted account's other sessions must not recreate its profile.
+  await adminAuth.getUser(uid);
+
   const created = await adminDb.runTransaction(async (tx) => {
     const [profileSnap, claimSnap] = await Promise.all([
       tx.get(profileRef),
@@ -154,9 +158,36 @@ export async function updateProfileServer(
   await profileRef.set(sanitized, { merge: true });
 }
 
+/**
+ * Permanently deletes the caller's account: every document under `users/{uid}`
+ * (profile, chats, summaries, payments, ledger, idempotency, rate limits,
+ * locks, bootstrap), their Storage files, and the uid on global IAP claims
+ * (the claim itself stays so a receipt can never be redeemed again). The Auth
+ * user is deleted last so a failed run can be retried while still signed in.
+ */
 export async function deleteAccountServer(): Promise<void> {
   const uid = await requireAuthedUid();
-  const profileRef = adminDb.doc(`users/${uid}/profile/userData`);
-  await adminAuth.deleteUser(uid);
-  await profileRef.delete();
+
+  await adminDb.recursiveDelete(adminDb.doc(`users/${uid}`));
+
+  await Promise.all(
+    [`users/${uid}/`, `generated/${uid}/`].map((prefix) =>
+      adminBucket.deleteFiles({ prefix })
+    )
+  );
+
+  const claims = await adminDb.collection("iapTransactions").where("uid", "==", uid).get();
+  if (!claims.empty) {
+    const batch = adminDb.batch();
+    for (const claim of claims.docs) batch.update(claim.ref, { uid: FieldValue.delete() });
+    await batch.commit();
+  }
+
+  try {
+    await adminAuth.deleteUser(uid);
+  } catch (error) {
+    const isMissingUser =
+      typeof error === "object" && error !== null && "code" in error && error.code === "auth/user-not-found";
+    if (!isMissingUser) throw error;
+  }
 }

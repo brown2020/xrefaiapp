@@ -13,6 +13,17 @@ export function isReactNativeWebView(): boolean {
 }
 
 /**
+ * Out-of-credits toast copy. The mobile app does not sell credits, so inside
+ * the WebView it points to API keys instead of buying more.
+ */
+export function notEnoughCreditsMessage(requiredCredits?: number): string {
+  const need = requiredCredits === undefined ? "" : ` (need ${requiredCredits})`;
+  return isReactNativeWebView()
+    ? `Not enough credits${need}. Add your own API keys in Account to keep going.`
+    : `Not enough credits${need}. Please buy more credits in Account.`;
+}
+
+/**
  * Restricted word patterns for content moderation
  * Used to prevent inappropriate content in image generation
  */

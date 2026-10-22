@@ -153,10 +153,14 @@ export default function Privacy({
             comply with law, and enforce our terms.
           </p>
           <p>
-            You may delete certain content in the product where that option is
-            available or contact us to request deletion. Some records, such as
-            payment, fraud-prevention, ledger, backup, or legal compliance
-            records, may be retained when required or reasonably necessary.
+            You can delete your account at any time from Account &gt; Delete
+            account, on the web or in the mobile app. This permanently deletes
+            your sign-in, profile, saved chats and summaries, generated images,
+            credit ledger, and payment history from Xref.ai. Payment processors
+            and app stores keep their own transaction records under their
+            policies, and we keep an anonymized record of redeemed in-app
+            purchase transactions so they cannot be reused. You can also
+            contact us to request deletion.
           </p>
         </Section>
 

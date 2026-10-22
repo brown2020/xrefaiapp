@@ -151,6 +151,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `npm run test:browser` | Full Playwright suite |
 | `npm run doctor` | React Doctor full scan (pinned `react-doctor@0.9.14`) |
 | `npm run prove:workflows` | Critical workflows against Firebase emulators and a local model fixture (needs `firebase-tools` and Java; no paid calls) |
+| `npm run prove:deletion` | Account deletion removes every Firestore document, Storage file, and Auth record for the user (Auth, Firestore, and Storage emulators; run `npm run build` first) |
 | `npm run prove:state` | Signed-in account switch and credits badge against the ledger, in headless Chromium on the emulators |
 
 ## Testing and CI

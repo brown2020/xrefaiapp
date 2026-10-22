@@ -35,7 +35,7 @@ Inferred from current product: the homepage starter paths and copy prioritize cr
 5. Credits are debited server-side in credits mode, or the user's provider keys are used in API-key mode.
 6. Successful outputs can be saved into History.
 7. User can search History, expand saved items, copy/download, or repurpose text into a few common formats.
-8. User buys more credits through Stripe on web or through signed IAP messages in the Expo WebView path.
+8. User buys more credits through Stripe on web. The Expo app does not sell credits; app users can add their own API keys.
 
 ### Product Goals
 
@@ -187,7 +187,7 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
 - A Firestore payment lock prevents double-processing the same session.
 - Account shows payment history and a live credits ledger.
 - The paywall modal can show required credits, current context, credit packs, and an API-key alternative.
-- Account includes a Delete Account control. Current server behavior deletes the profile document and Firebase Auth user, but does not cascade saved subcollections or generated image storage.
+- Account includes a Delete Account control (web and app). It deletes every document under `users/{uid}`, the user's Storage files, the uid on IAP claim records, and the Firebase Auth user.
 
 #### API-Key Mode
 
@@ -206,8 +206,8 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
 - The web app contains React Native WebView branches using `window.ReactNativeWebView`.
 - WebView suppresses cookie consent.
 - WebView hides Google popup sign-in.
-- WebView hides web Stripe checkout controls and starts native purchase with `INIT_IAP`.
-- Native purchase success sends `IAP_SUCCESS` with a store receipt; the server action verifies HMAC signature over that receipt, timestamp skew, a catalog pack id with that pack's exact credit count, that the receipt names the same product and transaction, and global transaction claim docs.
+- WebView hides every credit purchase surface (Account packs, paywall packs, Top up, homepage Buy credits) and `/payment-attempt` does not start checkout; app users are pointed to API keys.
+- The signed `IAP_SUCCESS` confirmation action remains on the server but the app no longer sends purchases.
 - The restricted-word guard is client-only and WebView-only.
 
 #### Public Legal And Support Pages
@@ -225,7 +225,7 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
 - Stripe Checkout for web credit purchases.
 - Fireworks AI for image generation.
 - Vercel AI SDK with OpenAI, Anthropic, xAI, and Google for text/chat.
-- React Native WebView message bridge for native IAP.
+- React Native WebView detection for app-specific UI (no purchases, no Google popup).
 - Firebase measurement ID exists in config, but no product analytics helper is implemented yet.
 
 ### Architecture Summary
@@ -265,7 +265,6 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
 - Image generation is single-shot: no aspect ratio, seed, variation, quality, style preset, prompt enhancer, or gallery view.
 - Chat cannot explicitly reference selected history items or project context.
 - API-key mode currently requires Fireworks even for text-first users.
-- Account deletion currently leaves user subcollections and generated image storage behind unless removed separately.
 - Product analytics/event taxonomy is not implemented.
 - Admin/support tools for user lookup, manual credits, refunds, and diagnostics do not exist.
 
@@ -381,6 +380,8 @@ Acceptance criteria:
 - Source relationships remain understandable.
 
 ### Milestone 4: Account Data Deletion Completeness
+
+Status: shipped October 22, 2026 (`deleteAccountServer()`, proven by `npm run prove:deletion`). Payment processors and app stores keep their own records; Xref.ai keeps only anonymized IAP claim docs to block receipt reuse.
 
 User value: account deletion matches user expectations and the trust promised by account/privacy surfaces.
 

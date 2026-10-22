@@ -8,7 +8,7 @@ export default function page() {
       companyEmail="info@ignitechannel.com"
       companyAddress="190 W Amado Road"
       companyLocation="Palm Springs, CA 92262"
-      updatedAt="May 22, 2026"
+      updatedAt="October 22, 2026"
     />
   );
 }

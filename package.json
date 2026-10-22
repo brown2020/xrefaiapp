@@ -15,6 +15,7 @@
     "doctor": "npx -y react-doctor@0.9.14 --scope full --score -y",
     "test": "env -u FORCE_COLOR -u NO_COLOR PLAYWRIGHT_NO_WEBSERVER=1 playwright test tests/code-reliability.spec.ts",
     "prove:workflows": "node scripts/prove-critical-workflows.mjs",
+    "prove:deletion": "node scripts/prove-account-deletion.mjs",
     "prove:state": "node scripts/prove-architecture-state.mjs"
   },
   "dependencies": {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useState } from "react";
 import {
   GoogleAuthProvider,
   getIdToken,
@@ -18,7 +18,7 @@ import { signOutUser, useSignOut } from "@/hooks/useSignOut";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { auth } from "@/firebase/firebaseClient";
 import toast from "react-hot-toast";
-import { isReactNativeWebView } from "@/utils/platform";
+import { useShowWebOnly } from "@/hooks/useShowWebOnly";
 import {
   SESSION_START_ERROR,
   authErrorCode,
@@ -31,10 +31,6 @@ export type AuthFeedback = {
   tone: "error" | "info" | "success";
   message: string;
 } | null;
-
-function subscribeNoop() {
-  return () => {};
-}
 
 function isFirebaseError(
   error: unknown
@@ -102,11 +98,7 @@ const persistAuthCookie = async (user: User): Promise<boolean> => {
   return false;
 };
 
-const showGoogleSignIn = useSyncExternalStore(
-  subscribeNoop,
-  () => !isReactNativeWebView(),
-  () => true
-);
+const showGoogleSignIn = useShowWebOnly();
 
 const signInWithGoogle = async () => {
   clearAuthFeedback();

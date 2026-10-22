@@ -33,6 +33,7 @@ import { createClientIdempotencyKey } from "@/utils/clientIdempotencyKey";
 import GenerationNextActions from "@/components/GenerationNextActions";
 import { clampStarterWordCount } from "@/constants/toolMetadata";
 import type { ToolInitialProps } from "@/types/ToolInitialProps";
+import { notEnoughCreditsMessage } from "@/utils/platform";
 
 export default function SummarizeTopic({
   initialInput,
@@ -155,9 +156,7 @@ export default function SummarizeTopic({
       toast.success("Summary generated successfully");
     } catch (error) {
       if (isInsufficientCreditsError(error)) {
-        toast.error(
-          `Not enough credits (need ${cost}). Please buy more credits in Account.`
-        );
+        toast.error(notEnoughCreditsMessage(cost));
         openPaywall({
           actionLabel: "Website summary",
           requiredCredits: cost,

@@ -32,6 +32,7 @@ import {
 import { createClientIdempotencyKey } from "@/utils/clientIdempotencyKey";
 import GenerationNextActions from "@/components/GenerationNextActions";
 import { clampStarterWordCount } from "@/constants/toolMetadata";
+import { notEnoughCreditsMessage } from "@/utils/platform";
 
 export interface BasePromptProps {
   title: string;
@@ -185,9 +186,7 @@ export default function BasePrompt({
       toast.success(`${title} generated successfully`);
     } catch (error) {
       if (isInsufficientCreditsError(error)) {
-        toast.error(
-          `Not enough credits (need ${cost}). Please buy more credits in Account.`
-        );
+        toast.error(notEnoughCreditsMessage(cost));
         openPaywall({
           actionLabel: title,
           requiredCredits: cost,

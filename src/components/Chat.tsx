@@ -28,6 +28,7 @@ import {
   type StarterIntent,
 } from "@/constants/starterIntents";
 import { ChatType } from "@/types/ChatType";
+import { notEnoughCreditsMessage } from "@/utils/platform";
 
 interface ChatProps {
   initialPrompt?: string;
@@ -132,7 +133,7 @@ export default function Chat({ initialPrompt, starterIntentId }: ChatProps) {
         return;
       }
       if (isInsufficientCreditsError(error)) {
-        toast.error("Not enough credits. Please buy more credits in Account.");
+        toast.error(notEnoughCreditsMessage());
         openPaywall({
           actionLabel: "Chat message",
           requiredCredits: CREDITS_COSTS.chatMessage,

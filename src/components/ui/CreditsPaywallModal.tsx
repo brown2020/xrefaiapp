@@ -6,12 +6,14 @@ import { usePaywallStore } from "@/zustand/usePaywallStore";
 import useProfileStore from "@/zustand/useProfileStore";
 import { CREDIT_PACKS, DEFAULT_CREDIT_PACK_ID, formatDollarsFromCents } from "@/constants/creditPacks";
 import { ROUTES } from "@/constants/routes";
+import { useShowWebOnly } from "@/hooks/useShowWebOnly";
 
 export function CreditsPaywallModal() {
   const isOpen = usePaywallStore((s) => s.isOpen);
   const context = usePaywallStore((s) => s.context);
   const closePaywall = usePaywallStore((s) => s.closePaywall);
   const credits = useProfileStore((s) => s.profile.credits);
+  const canBuyCredits = useShowWebOnly();
 
   const required = Number.isFinite(Number(context.requiredCredits))
     ? Math.max(0, Math.floor(Number(context.requiredCredits)))
@@ -22,52 +24,56 @@ export function CreditsPaywallModal() {
   const actionLabel = context.actionLabel || "this action";
 
   return (
-    <Modal isOpen={isOpen} onClose={closePaywall} title="Buy credits to continue" maxWidth="md">
+    <Modal
+      isOpen={isOpen}
+      onClose={closePaywall}
+      title={canBuyCredits ? "Buy credits to continue" : "Not enough credits"}
+      maxWidth="md"
+    >
       <div className="space-y-4">
         <div className="text-sm text-muted-foreground">
           {required !== null ? (
-            <>
-              <div>
-                <span className="font-semibold text-foreground">{actionLabel}</span> costs{" "}
-                <span className="font-semibold text-foreground">{required.toLocaleString()}</span>{" "}
-                credits. You have{" "}
-                <span className="font-semibold text-foreground">{current.toLocaleString()}</span>.
-              </div>
-            </>
+            <div>
+              <span className="font-semibold text-foreground">{actionLabel}</span> costs{" "}
+              <span className="font-semibold text-foreground">{required.toLocaleString()}</span>{" "}
+              credits. You have{" "}
+              <span className="font-semibold text-foreground">{current.toLocaleString()}</span>.
+            </div>
           ) : (
             <div>
-              You don’t have enough credits to continue. Choose a pack below, or switch to API Keys
-              mode.
+              {canBuyCredits
+                ? "You don’t have enough credits to continue. Choose a pack below, or switch to API Keys mode."
+                : "You don’t have enough credits to continue. Add your own provider API keys in Account to keep going."}
             </div>
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {CREDIT_PACKS.map((p) => (
-            <Link
-              key={p.id}
-              href={`${ROUTES.paymentAttempt}?pack=${encodeURIComponent(
-                p.id
-              )}&redirect=${encodeURIComponent(redirectPath)}`}
-              onClick={() => closePaywall()}
-              className={`rounded-xl border border-border bg-card hover:bg-muted/40 transition-colors p-4 text-left ${
-                p.id === DEFAULT_CREDIT_PACK_ID ? "" : ""
-              }`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="font-semibold text-foreground">{p.label}</div>
-                {p.badge ? (
-                  <div className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary text-primary-foreground">
-                    {p.badge}
-                  </div>
-                ) : null}
-              </div>
-              <div className="mt-1 text-sm text-muted-foreground">
-                ${formatDollarsFromCents(p.amountCents)} · {p.credits.toLocaleString()} credits
-              </div>
-            </Link>
-          ))}
-        </div>
+        {canBuyCredits ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {CREDIT_PACKS.map((p) => (
+              <Link
+                key={p.id}
+                href={`${ROUTES.paymentAttempt}?pack=${encodeURIComponent(
+                  p.id
+                )}&redirect=${encodeURIComponent(redirectPath)}`}
+                onClick={() => closePaywall()}
+                className="rounded-xl border border-border bg-card hover:bg-muted/40 transition-colors p-4 text-left"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-semibold text-foreground">{p.label}</div>
+                  {p.badge ? (
+                    <div className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary text-primary-foreground">
+                      {p.badge}
+                    </div>
+                  ) : null}
+                </div>
+                <div className="mt-1 text-sm text-muted-foreground">
+                  ${formatDollarsFromCents(p.amountCents)} · {p.credits.toLocaleString()} credits
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : null}
 
         <div className="flex flex-col sm:flex-row gap-3 sm:justify-end pt-2">
           <Link
@@ -75,20 +81,21 @@ export function CreditsPaywallModal() {
             onClick={() => closePaywall()}
             className="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-border bg-card text-foreground hover:opacity-90 transition-opacity"
           >
-            Use API keys instead
+            {canBuyCredits ? "Use API keys instead" : "Add API keys"}
           </Link>
-          <Link
-            href={`${ROUTES.paymentAttempt}?pack=${encodeURIComponent(
-              DEFAULT_CREDIT_PACK_ID
-            )}&redirect=${encodeURIComponent(redirectPath)}`}
-            onClick={() => closePaywall()}
-            className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
-          >
-            Buy credits
-          </Link>
+          {canBuyCredits ? (
+            <Link
+              href={`${ROUTES.paymentAttempt}?pack=${encodeURIComponent(
+                DEFAULT_CREDIT_PACK_ID
+              )}&redirect=${encodeURIComponent(redirectPath)}`}
+              onClick={() => closePaywall()}
+              className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+            >
+              Buy credits
+            </Link>
+          ) : null}
         </div>
       </div>
     </Modal>
   );
 }
-

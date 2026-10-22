@@ -49,8 +49,14 @@ function ensureInitialized(): void {
     return;
   }
   if (usesEmulator()) {
+    const projectId = process.env.FIREBASE_PROJECT_ID || "demo-xref";
+    // Only point Storage at a bucket when its emulator is running; NEXT_PUBLIC_*
+    // is inlined at build time and would name the production bucket here.
     initializeApp({
-      projectId: process.env.FIREBASE_PROJECT_ID || "demo-xref",
+      projectId,
+      ...(process.env.FIREBASE_STORAGE_EMULATOR_HOST
+        ? { storageBucket: `${projectId}.appspot.com` }
+        : {}),
     });
   } else {
     initializeApp({

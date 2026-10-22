@@ -22,6 +22,7 @@ import { ROUTES } from "@/constants/routes";
 import { useShallow } from "zustand/react/shallow";
 import type { ToolInitialProps } from "@/types/ToolInitialProps";
 import { createClientIdempotencyKey } from "@/utils/clientIdempotencyKey";
+import { notEnoughCreditsMessage } from "@/utils/platform";
 
 const IMAGE_ERROR_MESSAGE =
   "I can't do that. I can't do real people or anything that violates the terms of service. Please try changing the prompt.";
@@ -115,7 +116,7 @@ export default function ImagePrompt({ initialInput }: ToolInitialProps) {
 
     toast.dismiss(toastId);
     if (result.error === "INSUFFICIENT_CREDITS") {
-      toast.error("Not enough credits. Please buy more credits in Account.");
+      toast.error(notEnoughCreditsMessage());
       openPaywall({
         actionLabel: "Image generation",
         requiredCredits: CREDITS_COSTS.imageGeneration,

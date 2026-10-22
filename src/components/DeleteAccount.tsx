@@ -44,7 +44,8 @@ export default function DeleteAccount() {
           Delete account
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Permanently removes your sign-in and profile. This cannot be undone.
+          Permanently deletes your sign-in, profile, chats, saved history,
+          generated images, credits, and payment history. This cannot be undone.
         </p>
       </div>
       <button

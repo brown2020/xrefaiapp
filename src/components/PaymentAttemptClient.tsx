@@ -10,6 +10,8 @@ import { auth } from "@/firebase/firebaseClient";
 import { getIdToken } from "firebase/auth";
 import { sanitizeInternalRedirectPath } from "@/utils/redirectPath";
 import { startCheckoutSession } from "@/utils/billingClient";
+import { isReactNativeWebView } from "@/utils/platform";
+import { useIsInApp } from "@/hooks/useShowWebOnly";
 
 export default function PaymentAttemptClient() {
   const searchParams = useSearchParams();
@@ -20,6 +22,7 @@ export default function PaymentAttemptClient() {
   );
   const pack = getCreditPack(packId);
   const [error, setError] = useState<string | null>(null);
+  const isInApp = useIsInApp();
 
   const payload = useMemo(
     () => ({ packId: pack.id, redirectPath: redirect }),
@@ -27,6 +30,8 @@ export default function PaymentAttemptClient() {
   );
 
   useEffect(() => {
+    // The mobile app does not sell credits; never start web checkout there.
+    if (isReactNativeWebView()) return;
     let isCancelled = false;
 
     const run = async () => {
@@ -52,6 +57,31 @@ export default function PaymentAttemptClient() {
       isCancelled = true;
     };
   }, [payload]);
+
+  if (isInApp) {
+    return (
+      <main className="min-h-full flex items-center justify-center px-4 py-10 bg-muted/30">
+        <div className="w-full max-w-lg bg-card text-card-foreground border border-border rounded-2xl shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-border">
+            <h1 className="text-xl font-bold text-foreground">
+              Purchases aren&apos;t available in the app
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              You can add your own provider API keys in Account to keep going.
+            </p>
+          </div>
+          <div className="p-6 flex justify-end">
+            <Link
+              href={ROUTES.account}
+              className="inline-flex items-center justify-center px-5 py-2.5 bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition-opacity"
+            >
+              Back to account
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   if (error) {
     return (
