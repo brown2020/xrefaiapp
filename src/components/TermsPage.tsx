@@ -79,7 +79,7 @@ export default function Terms({
           </p>
           <p>
             Some features depend on third-party AI providers, Firebase, Google
-            Cloud, Stripe, Fireworks AI, and other service providers. Their
+            Cloud, Stripe, and other service providers. Their
             systems and policies may affect availability, performance, and
             handling of your content.
           </p>

@@ -11,16 +11,15 @@ import { CREDITS_COSTS } from "@/constants/credits";
 import { ROUTES } from "@/constants/routes";
 import { useShallow } from "zustand/react/shallow";
 import { createClientIdempotencyKey } from "@/utils/clientIdempotencyKey";
-
-const IMAGE_ERROR_MESSAGE =
-  "I can't do that. I can't do real people or anything that violates the terms of service. Please try changing the prompt.";
+import { notEnoughCreditsMessage } from "@/utils/platform";
+import { imageFailureMessage } from "@/utils/imageErrors";
 
 export function useImageGeneration(uid: string | null) {
   const { saveHistory } = useHistorySaver();
   const generationConfig = useProfileStore(
     useShallow((s) => ({
       useCredits: s.profile.useCredits,
-      fireworksApiKey: s.profile.fireworks_api_key,
+      openaiApiKey: s.profile.openai_api_key,
     }))
   );
   const fetchProfile = useProfileStore((s) => s.fetchProfile);
@@ -51,7 +50,7 @@ export function useImageGeneration(uid: string | null) {
     try {
       result = await generateImage(generatedPrompt, {
         useCredits: generationConfig.useCredits,
-        fireworksApiKey: generationConfig.fireworksApiKey,
+        openaiApiKey: generationConfig.openaiApiKey,
         idempotencyKey: createClientIdempotencyKey(),
       });
     } catch (error) {
@@ -92,7 +91,7 @@ export function useImageGeneration(uid: string | null) {
 
     toast.dismiss(toastId);
     if (result.error === "INSUFFICIENT_CREDITS") {
-      toast.error("Not enough credits. Please buy more credits in Account.");
+      toast.error(notEnoughCreditsMessage());
       openPaywall({
         actionLabel: "Image generation",
         requiredCredits: CREDITS_COSTS.imageGeneration,
@@ -114,8 +113,9 @@ export function useImageGeneration(uid: string | null) {
       completeWithError("Rate limited");
       return;
     }
-    completeWithError(IMAGE_ERROR_MESSAGE);
-    toast.error("Could not generate the image. Try again in a moment.");
+    const failureMessage = imageFailureMessage(result.error);
+    completeWithError(failureMessage);
+    toast.error(failureMessage);
   };
 
   return {

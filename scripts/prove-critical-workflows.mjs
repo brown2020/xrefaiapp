@@ -449,6 +449,38 @@ async function main() {
   }
   note("writing-tool", "generateResponse debited 25 credits and reload showed 925");
 
+  if (ids.confirmIapPurchase) {
+    await proveIapGrants(cookieA, userA, ids);
+  } else {
+    note("iap", "skipped: confirmIapPurchase is unreachable because no client imports it (in-app purchases are off)");
+  }
+
+  const broke = await fetch(
+    `http://127.0.0.1:${firestorePort}/v1/projects/${projectId}/databases/(default)/documents/users/${userA.uid}/profile/userData?updateMask.fieldPaths=credits`,
+    {
+      method: "PATCH",
+      headers: { "content-type": "application/json", authorization: "Bearer owner" },
+      body: JSON.stringify({ fields: { credits: { integerValue: "0" } } }),
+    }
+  );
+  if (!broke.ok) throw new Error("could not set a zero balance for the negative case");
+  const poor = await chat(cookieA, { text: "no credits", idempotencyKey: "chat-poor-1" });
+  if (poor.status !== 402) {
+    throw new Error(`insufficient credits expected 402, got ${poor.status}`);
+  }
+  note("negative", "chat with a zero balance returned 402");
+
+  openai.close();
+  receipts.close();
+  shutdown();
+  const result = { ok: true, log };
+  fs.mkdirSync(path.dirname(logPath), { recursive: true });
+  fs.writeFileSync(logPath, JSON.stringify(result, null, 2));
+  console.log(`wrote ${logPath}`);
+}
+
+/** Signed IAP fulfillment: grant, replay, stale, forged receipt, and cross-user claims. */
+async function proveIapGrants(cookieA, userA, ids) {
   const pack = { productId: "starter", credits: 1100, amount: 1000 };
   const receipt = `valid:${pack.productId}:tx-success-1`;
   const purchase = {
@@ -527,29 +559,6 @@ async function main() {
     throw new Error("second user claimed the first user's transaction");
   }
   note("cross-user", "other account did not receive the claimed transaction");
-
-  const broke = await fetch(
-    `http://127.0.0.1:${firestorePort}/v1/projects/${projectId}/databases/(default)/documents/users/${userA.uid}/profile/userData?updateMask.fieldPaths=credits`,
-    {
-      method: "PATCH",
-      headers: { "content-type": "application/json", authorization: "Bearer owner" },
-      body: JSON.stringify({ fields: { credits: { integerValue: "0" } } }),
-    }
-  );
-  if (!broke.ok) throw new Error("could not set a zero balance for the negative case");
-  const poor = await chat(cookieA, { text: "no credits", idempotencyKey: "chat-poor-1" });
-  if (poor.status !== 402) {
-    throw new Error(`insufficient credits expected 402, got ${poor.status}`);
-  }
-  note("negative", "chat with a zero balance returned 402");
-
-  openai.close();
-  receipts.close();
-  shutdown();
-  const result = { ok: true, log };
-  fs.mkdirSync(path.dirname(logPath), { recursive: true });
-  fs.writeFileSync(logPath, JSON.stringify(result, null, 2));
-  console.log(`wrote ${logPath}`);
 }
 
 main().catch((error) => {

@@ -23,16 +23,14 @@ import { useShallow } from "zustand/react/shallow";
 import type { ToolInitialProps } from "@/types/ToolInitialProps";
 import { createClientIdempotencyKey } from "@/utils/clientIdempotencyKey";
 import { notEnoughCreditsMessage } from "@/utils/platform";
-
-const IMAGE_ERROR_MESSAGE =
-  "I can't do that. I can't do real people or anything that violates the terms of service. Please try changing the prompt.";
+import { imageFailureMessage } from "@/utils/imageErrors";
 
 export default function ImagePrompt({ initialInput }: ToolInitialProps) {
   const { saveHistory, uid } = useHistorySaver();
   const generationConfig = useProfileStore(
     useShallow((s) => ({
       useCredits: s.profile.useCredits,
-      fireworksApiKey: s.profile.fireworks_api_key,
+      openaiApiKey: s.profile.openai_api_key,
     }))
   );
   const fetchProfile = useProfileStore((s) => s.fetchProfile);
@@ -74,7 +72,7 @@ export default function ImagePrompt({ initialInput }: ToolInitialProps) {
     try {
       result = await generateImage(finalTopic, {
         useCredits: generationConfig.useCredits,
-        fireworksApiKey: generationConfig.fireworksApiKey,
+        openaiApiKey: generationConfig.openaiApiKey,
         idempotencyKey: createClientIdempotencyKey(),
       });
     } catch (error) {
@@ -138,8 +136,9 @@ export default function ImagePrompt({ initialInput }: ToolInitialProps) {
       completeWithError("Rate limited");
       return;
     }
-    completeWithError(IMAGE_ERROR_MESSAGE);
-    toast.error("Could not generate the image. Try again in a moment.");
+    const failureMessage = imageFailureMessage(result.error);
+    completeWithError(failureMessage);
+    toast.error(failureMessage);
   };
 
   return (

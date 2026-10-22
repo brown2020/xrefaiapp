@@ -25,7 +25,6 @@ import toast from "react-hot-toast";
 const creditsFormatter = new Intl.NumberFormat();
 
 type ApiKeyName =
-  | "fireworks"
   | "openai"
   | "anthropic"
   | "xai"
@@ -36,7 +35,6 @@ export default function ProfileComponent() {
   const profile = useProfileStore((state) => state.profile);
   const updateProfile = useProfileStore((state) => state.updateProfile);
 
-  const [fireworksApiKey, setFireworksApiKey] = useState(profile.fireworks_api_key);
   const [openaiApiKey, setOpenaiApiKey] = useState(profile.openai_api_key);
   const [anthropicApiKey, setAnthropicApiKey] = useState(profile.anthropic_api_key);
   const [xaiApiKey, setXaiApiKey] = useState(profile.xai_api_key);
@@ -49,7 +47,6 @@ export default function ProfileComponent() {
   // Track whether the user has edited each API-key field so we don't clobber
   // in-progress typing when the profile refreshes (e.g. after a credit debit).
   const isDirtyRef = useRef({
-    fireworks: false,
     openai: false,
     anthropic: false,
     xai: false,
@@ -61,13 +58,11 @@ export default function ProfileComponent() {
   // Sync individual key inputs from the profile only when the user hasn't
   // actively edited that particular field.
   useEffect(() => {
-    if (!isDirtyRef.current.fireworks) setFireworksApiKey(profile.fireworks_api_key);
     if (!isDirtyRef.current.openai) setOpenaiApiKey(profile.openai_api_key);
     if (!isDirtyRef.current.anthropic) setAnthropicApiKey(profile.anthropic_api_key);
     if (!isDirtyRef.current.xai) setXaiApiKey(profile.xai_api_key);
     if (!isDirtyRef.current.google) setGoogleApiKey(profile.google_api_key);
   }, [
-    profile.fireworks_api_key,
     profile.openai_api_key,
     profile.anthropic_api_key,
     profile.xai_api_key,
@@ -76,7 +71,6 @@ export default function ProfileComponent() {
 
   const handleApiKeyChange = async () => {
     const hasChanges =
-      fireworksApiKey !== profile.fireworks_api_key ||
       openaiApiKey !== profile.openai_api_key ||
       anthropicApiKey !== profile.anthropic_api_key ||
       xaiApiKey !== profile.xai_api_key ||
@@ -87,7 +81,6 @@ export default function ProfileComponent() {
     setIsSavingApiKeys(true);
     try {
       await updateProfile({
-        fireworks_api_key: fireworksApiKey,
         openai_api_key: openaiApiKey,
         anthropic_api_key: anthropicApiKey,
         xai_api_key: xaiApiKey,
@@ -95,7 +88,6 @@ export default function ProfileComponent() {
       });
       // Reset dirty flags on successful save so subsequent profile refreshes can sync.
       isDirtyRef.current = {
-        fireworks: false,
         openai: false,
         anthropic: false,
         xai: false,
@@ -132,7 +124,7 @@ export default function ProfileComponent() {
         : selectedProvider === "xai"
           ? Boolean(xaiApiKey)
           : Boolean(googleApiKey);
-  const areApiKeysAvailable = Boolean(fireworksApiKey && hasSelectedProviderKey);
+  const areApiKeysAvailable = hasSelectedProviderKey;
 
   // If the user is in apikeys mode but keys become unavailable, force credits mode
   // so the backend doesn't receive `useCredits: false` with no API key.
@@ -217,12 +209,10 @@ export default function ProfileComponent() {
       </section>
 
       <ApiKeysPanel
-        fireworksApiKey={fireworksApiKey}
         openaiApiKey={openaiApiKey}
         anthropicApiKey={anthropicApiKey}
         xaiApiKey={xaiApiKey}
         googleApiKey={googleApiKey}
-        savedFireworksApiKey={profile.fireworks_api_key}
         savedOpenaiApiKey={profile.openai_api_key}
         savedAnthropicApiKey={profile.anthropic_api_key}
         savedXaiApiKey={profile.xai_api_key}
@@ -232,7 +222,6 @@ export default function ProfileComponent() {
         onChange={(key, value) => {
           isDirtyRef.current[key] = true;
           const setters = {
-            fireworks: setFireworksApiKey,
             openai: setOpenaiApiKey,
             anthropic: setAnthropicApiKey,
             xai: setXaiApiKey,
@@ -299,8 +288,8 @@ export default function ProfileComponent() {
           </div>
         </div>
         <p className="mt-3 text-sm text-muted-foreground">
-          Paying with API keys needs a Fireworks key plus a key for the selected
-          model&rsquo;s provider.
+          Paying with API keys needs a key for the selected model&rsquo;s
+          provider. Image tools always use your OpenAI key.
         </p>
       </section>
     </div>
@@ -308,12 +297,10 @@ export default function ProfileComponent() {
 }
 
 function ApiKeysPanel({
-  fireworksApiKey,
   openaiApiKey,
   anthropicApiKey,
   xaiApiKey,
   googleApiKey,
-  savedFireworksApiKey,
   savedOpenaiApiKey,
   savedAnthropicApiKey,
   savedXaiApiKey,
@@ -324,12 +311,10 @@ function ApiKeysPanel({
   onToggleVisibility,
   onSave,
 }: {
-  fireworksApiKey: string;
   openaiApiKey: string;
   anthropicApiKey: string;
   xaiApiKey: string;
   googleApiKey: string;
-  savedFireworksApiKey: string;
   savedOpenaiApiKey: string;
   savedAnthropicApiKey: string;
   savedXaiApiKey: string;
@@ -341,7 +326,6 @@ function ApiKeysPanel({
   onSave: () => void;
 }) {
   const isUnchanged =
-    fireworksApiKey === savedFireworksApiKey &&
     openaiApiKey === savedOpenaiApiKey &&
     anthropicApiKey === savedAnthropicApiKey &&
     xaiApiKey === savedXaiApiKey &&
@@ -357,15 +341,6 @@ function ApiKeysPanel({
         keys.
       </p>
       <div className="mt-4 grid gap-4 md:grid-cols-2">
-        <ApiKeyField
-          id="fireworks-api-key"
-          label="Fireworks API key"
-          value={fireworksApiKey}
-          onChange={(value) => onChange("fireworks", value)}
-          isVisible={Boolean(visibleKeys.fireworks)}
-          onToggleVisibility={() => onToggleVisibility("fireworks")}
-          placeholder="fw_…"
-        />
         <ApiKeyField
           id="openai-api-key"
           label="OpenAI API key"

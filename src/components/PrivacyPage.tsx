@@ -103,9 +103,12 @@ export default function Privacy({
           <p>
             To provide AI features, we may send your prompts, conversation
             context, tool inputs, requested URLs, image prompts, generated
-            content, model selections, and related metadata to AI providers such
-            as OpenAI, Anthropic, xAI, Google, and Fireworks AI, depending on the
-            feature and model you choose.
+            content, model selections, and related metadata to third-party AI
+            providers. Text features use OpenAI, Anthropic, xAI, or Google,
+            depending on the model you choose. Image features use OpenAI. We ask
+            for your permission before any of your content is sent to these
+            providers, and their own terms and privacy policies govern how they
+            handle it.
           </p>
           <p>
             We use Firebase and Google Cloud services for authentication,

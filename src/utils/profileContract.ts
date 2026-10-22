@@ -7,7 +7,6 @@ type ProfileUpdateFields = {
   photoUrl?: string;
   emailVerified?: boolean;
   credits?: number;
-  fireworks_api_key?: string;
   openai_api_key?: string;
   anthropic_api_key?: string;
   xai_api_key?: string;
@@ -25,7 +24,6 @@ const CLIENT_WRITABLE_FIELDS = {
   contactEmail: "string",
   displayName: "string",
   photoUrl: "string",
-  fireworks_api_key: "string",
   openai_api_key: "string",
   anthropic_api_key: "string",
   xai_api_key: "string",

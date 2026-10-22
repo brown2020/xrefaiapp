@@ -6,6 +6,7 @@ import {
   fetchProfileServer,
   updateProfileServer,
   deleteAccountServer,
+  recordAiConsentServer,
 } from "@/actions/serverProfile";
 
 export interface ProfileType {
@@ -15,7 +16,6 @@ export interface ProfileType {
   photoUrl: string;
   emailVerified: boolean;
   credits: number;
-  fireworks_api_key: string;
   openai_api_key: string;
   anthropic_api_key: string;
   xai_api_key: string;
@@ -27,6 +27,8 @@ export interface ProfileType {
   firstName?: string;
   lastName?: string;
   headerUrl?: string;
+  aiConsentVersion?: string;
+  aiConsentAt?: string;
 }
 
 const defaultProfile: ProfileType = {
@@ -36,7 +38,6 @@ const defaultProfile: ProfileType = {
   photoUrl: "",
   emailVerified: false,
   credits: 1000,
-  fireworks_api_key: "",
   openai_api_key: "",
   anthropic_api_key: "",
   xai_api_key: "",
@@ -54,6 +55,7 @@ interface ProfileState {
   resetProfile: () => void;
   updateProfile: (newProfile: Partial<ProfileType>) => Promise<void>;
   deleteAccount: () => Promise<void>;
+  recordAiConsent: (version: string) => Promise<void>;
 }
 
 let profileUpdateQueue: Promise<void> = Promise.resolve();
@@ -129,6 +131,15 @@ const useProfileStore = create<ProfileState>((set, get) => ({
       handleProfileError("deleting account", error);
       throw error;
     }
+  },
+
+  recordAiConsent: async (version: string) => {
+    const uid = useAuthStore.getState().uid;
+    if (!uid) return;
+
+    const consent = await recordAiConsentServer(version);
+    if (useAuthStore.getState().uid !== uid) return;
+    set((state) => ({ profile: { ...state.profile, ...consent } }));
   },
 }));
 

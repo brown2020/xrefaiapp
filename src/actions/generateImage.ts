@@ -1,6 +1,9 @@
 "use server";
 
 import { randomUUID } from "crypto";
+import { generateImage as generateImageWithModel } from "ai";
+import { createOpenAI, openai } from "@ai-sdk/openai";
+import { IMAGE_MODEL_ID } from "@/ai/models";
 import { adminBucket } from "@/firebase/firebaseAdmin";
 import { requireAuthedUid } from "@/actions/serverAuth";
 import { creditCredits, debitCreditsOrThrow } from "@/actions/serverCredits";
@@ -13,10 +16,14 @@ import {
   markIdempotencyFailed,
 } from "@/utils/idempotency";
 import { checkRateLimit } from "@/utils/rateLimit";
+import {
+  classifyImageProviderError,
+  IMAGE_MISSING_OPENAI_KEY,
+} from "@/utils/imageErrors";
 
 type GenerateImageOptions = {
   useCredits?: boolean;
-  fireworksApiKey?: string;
+  openaiApiKey?: string;
   /** Optional client-provided idempotency key to prevent double-charge on retries. */
   idempotencyKey?: string;
 };
@@ -45,17 +52,13 @@ export async function generateImage(
       return { error: "RATE_LIMITED" };
     }
 
-    const apiKey = useCredits
-      ? (process.env.FIREWORKS_API_KEY || "").trim()
-      : (options?.fireworksApiKey || "").trim();
-
-    if (!apiKey) {
-      throw new Error(
-        useCredits
-          ? "Missing server Fireworks API key."
-          : "Missing Fireworks API key (profile.fireworks_api_key)."
-      );
+    const userApiKey = (options?.openaiApiKey || "").trim();
+    if (!useCredits && !userApiKey) {
+      return { error: IMAGE_MISSING_OPENAI_KEY };
     }
+    const imageModel = useCredits
+      ? openai.image(IMAGE_MODEL_ID)
+      : createOpenAI({ apiKey: userApiKey }).image(IMAGE_MODEL_ID);
 
     if (useCredits) {
       idempotencyKey = options?.idempotencyKey
@@ -85,48 +88,15 @@ export async function generateImage(
       }
     }
 
-    const response = await fetch(
-      `https://api.fireworks.ai/inference/v1/image_generation/accounts/fireworks/models/stable-diffusion-xl-1024-v1-0`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "image/jpeg",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          cfg_scale: 7,
-          height: 1024,
-          width: 1024,
-          sampler: null,
-          samples: 1,
-          steps: 30,
-          seed: 0,
-          style_preset: null,
-          safety_check: false,
-          prompt: message,
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error("Something went wrong with Fireworks API");
+    let imageUrl: string;
+    try {
+      imageUrl = await renderAndStoreImage(uid, message, imageModel);
+    } catch (providerError) {
+      const detail =
+        providerError instanceof Error ? providerError.message : String(providerError);
+      console.error("Image generation failed:", detail);
+      throw new Error(classifyImageProviderError(detail), { cause: providerError });
     }
-
-    const imageData = await response.arrayBuffer();
-    const filename = `generated/${uid}/${Date.now()}_${randomUUID()}.jpg`;
-    const file = adminBucket.file(filename);
-
-    await file.save(Buffer.from(imageData), {
-      contentType: "image/jpeg",
-    });
-
-    const signedUrls = await file.getSignedUrl({
-      action: "read",
-      expires: "03-17-2125",
-    });
-
-    const imageUrl = signedUrls[0];
 
     if (useCredits && idempotencyKey) {
       await markIdempotencyComplete(chargedUid, idempotencyKey).catch(() => undefined);
@@ -154,4 +124,35 @@ export async function generateImage(
       error instanceof Error ? error.message : "An unknown error occurred";
     return { error: message };
   }
+}
+
+const IMAGE_EXTENSIONS: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+};
+
+async function renderAndStoreImage(
+  uid: string,
+  prompt: string,
+  model: Parameters<typeof generateImageWithModel>[0]["model"]
+): Promise<string> {
+  const { image } = await generateImageWithModel({
+    model,
+    prompt,
+    size: "1024x1024",
+    maxRetries: 1,
+  });
+
+  const extension = IMAGE_EXTENSIONS[image.mediaType] ?? "png";
+  const file = adminBucket.file(
+    `generated/${uid}/${Date.now()}_${randomUUID()}.${extension}`
+  );
+  await file.save(Buffer.from(image.uint8Array), { contentType: image.mediaType });
+
+  const [signedUrl] = await file.getSignedUrl({
+    action: "read",
+    expires: "03-17-2125",
+  });
+  return signedUrl;
 }

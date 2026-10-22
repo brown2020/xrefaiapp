@@ -8,6 +8,7 @@ import { creditsForNewProfile } from "@/utils/starterGrant";
 import { sanitizeProfileUpdate } from "@/utils/profileContract";
 import { resolveAiModelKey } from "@/ai/models";
 import type { AiModelKey } from "@/ai/models";
+import { AI_CONSENT_VERSION } from "@/constants/aiConsent";
 
 export interface ServerProfileData {
   email: string;
@@ -16,7 +17,6 @@ export interface ServerProfileData {
   photoUrl: string;
   emailVerified: boolean;
   credits: number;
-  fireworks_api_key: string;
   openai_api_key: string;
   anthropic_api_key: string;
   xai_api_key: string;
@@ -28,6 +28,8 @@ export interface ServerProfileData {
   firstName?: string;
   lastName?: string;
   headerUrl?: string;
+  aiConsentVersion?: string;
+  aiConsentAt?: string;
 }
 
 const PROFILE_DEFAULTS: ServerProfileData = {
@@ -37,7 +39,6 @@ const PROFILE_DEFAULTS: ServerProfileData = {
   photoUrl: "",
   emailVerified: false,
   credits: 1000,
-  fireworks_api_key: "",
   openai_api_key: "",
   anthropic_api_key: "",
   xai_api_key: "",
@@ -156,6 +157,21 @@ export async function updateProfileServer(
   if (Object.keys(sanitized).length === 0) return;
 
   await profileRef.set(sanitized, { merge: true });
+}
+
+/**
+ * Records the caller's permission to send their content to the AI providers
+ * listed in the consent screen. `update` (not `set`) so a deleted account's
+ * lingering session can't recreate its profile.
+ */
+export async function recordAiConsentServer(
+  version: string
+): Promise<{ aiConsentVersion: string; aiConsentAt: string }> {
+  if (version !== AI_CONSENT_VERSION) throw new Error("STALE_AI_CONSENT_VERSION");
+  const uid = await requireAuthedUid();
+  const consent = { aiConsentVersion: version, aiConsentAt: new Date().toISOString() };
+  await adminDb.doc(`users/${uid}/profile/userData`).update(consent);
+  return consent;
 }
 
 /**

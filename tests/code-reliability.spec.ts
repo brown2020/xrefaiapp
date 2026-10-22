@@ -17,6 +17,14 @@ import { resolveIapCreditGrant } from "../src/utils/iapGrant";
 import { storeReceiptMatches } from "../src/utils/iapReceipt";
 import { canonicalIapPayload } from "../src/utils/iapSignature";
 import { clientCanWriteProfileField } from "../src/utils/profileContract";
+import { isAiConsentExemptPath } from "../src/constants/aiConsent";
+import {
+  classifyImageProviderError,
+  IMAGE_CONTENT_REJECTED,
+  IMAGE_GENERATION_FAILED,
+  IMAGE_MISSING_OPENAI_KEY,
+  imageFailureMessage,
+} from "../src/utils/imageErrors";
 import {
   boundChatInput,
   boundPromptPair,
@@ -135,9 +143,33 @@ test.describe("code reliability contracts", () => {
     expect(clientCanWriteProfileField("credits")).toBe(false);
     expect(clientCanWriteProfileField("email")).toBe(false);
     expect(clientCanWriteProfileField("displayName")).toBe(true);
+    expect(clientCanWriteProfileField("aiConsentVersion")).toBe(false);
+    expect(clientCanWriteProfileField("aiConsentAt")).toBe(false);
     expect(readFileSync("src/actions/serverProfile.ts", "utf8")).toContain(
       "sanitizeProfileUpdate"
     );
+  });
+
+  test("image failures distinguish content refusals from outages", () => {
+    expect(
+      classifyImageProviderError(
+        "Your request was rejected as a result of our safety system."
+      )
+    ).toBe(IMAGE_CONTENT_REJECTED);
+    expect(classifyImageProviderError("moderation_blocked")).toBe(IMAGE_CONTENT_REJECTED);
+    expect(classifyImageProviderError("fetch failed")).toBe(IMAGE_GENERATION_FAILED);
+    expect(imageFailureMessage(IMAGE_GENERATION_FAILED)).not.toMatch(/real people/);
+    expect(imageFailureMessage(IMAGE_CONTENT_REJECTED)).toMatch(/real people/);
+    expect(imageFailureMessage(IMAGE_MISSING_OPENAI_KEY)).toMatch(/OpenAI API key/);
+  });
+
+  test("AI consent gate leaves policies, help, and account deletion reachable", () => {
+    for (const path of ["/privacy", "/terms", "/support", "/account"]) {
+      expect(isAiConsentExemptPath(path)).toBe(true);
+    }
+    for (const path of ["/", "/chat", "/tools", "/history", "/accounting"]) {
+      expect(isAiConsentExemptPath(path)).toBe(false);
+    }
   });
 
   test("chat, writing, and IAP contracts reject malformed payloads", async ({ request }) => {

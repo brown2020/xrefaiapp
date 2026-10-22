@@ -8,7 +8,7 @@ This guide is intentionally repo-specific. It documents the current application,
 
 ## Project Overview
 
-Xref.ai is an AI creation workspace for writing, chat, summarization, image prompts, image generation, saved history, and credit-based usage. It is built with Next.js 16 App Router, React 19, TypeScript 6 strict mode, Tailwind CSS 4, Firebase, Stripe Checkout, Fireworks AI, and the Vercel AI SDK.
+Xref.ai is an AI creation workspace for writing, chat, summarization, image prompts, image generation, saved history, and credit-based usage. It is built with Next.js 16 App Router, React 19, TypeScript 6 strict mode, Tailwind CSS 4, Firebase, Stripe Checkout, and the Vercel AI SDK.
 
 ## Product Purpose
 
@@ -110,8 +110,8 @@ npm run test:browser
 - State: Zustand 5, with `useShallow` for multi-field selectors.
 - Auth/data/storage: Firebase client SDK 13 and Firebase Admin 14 for Auth, Firestore, and Storage. Admin uses the modular entry points (`firebase-admin/app`, `/auth`, `/firestore`, `/storage`); the namespaced `admin.firestore()` API no longer exists.
 - AI text: Vercel AI SDK 7 with OpenAI, Anthropic, xAI, and Google providers. Use `instructions` and `onEnd` (not `system` and `onFinish`) on `streamText`.
-- AI images: Fireworks AI `stable-diffusion-xl-1024-v1-0`.
-- Payments: Stripe 23 Checkout Sessions on web. The signed IAP confirmation action remains but the Expo app no longer sends purchases.
+- AI images: OpenAI `gpt-image-2` via AI SDK `generateImage` (`IMAGE_MODEL_ID` in `src/ai/models.ts`). Fireworks shut down image generation in August 2026.
+- Payments: Stripe 23 Checkout Sessions on web. The signed IAP confirmation action is still in the code, but no client imports it, so Next.js does not expose it; `prove:workflows` skips its IAP section until a native purchase flow imports it again.
 - Tests: Playwright specs under `tests/` cover activation starter paths, auth entry, proxy route protection, API auth rejection, redirect normalization, writing-control surfaces, and source/contract checks in `code-reliability.spec.ts`. No unit test runner is currently configured.
 
 ## Repository Structure
@@ -154,7 +154,7 @@ Root config files include `package.json`, `package-lock.json`, `next.config.mjs`
 - Firestore-backed saved chat and summary history.
 - History search, pagination, expandable cards, markdown rendering, copy/download, text repurpose actions, per-item delete, and Clear all (`deleteHistoryItemServer()` / `clearHistoryServer()` in `serverHistory.ts`; summaries only, generated Storage files stay).
 - Credit balances, credit ledger, credit packs, Stripe checkout, payment confirmation, and paywall modal.
-- BYO API key mode for text providers and Fireworks image generation.
+- BYO API key mode for text providers; image tools use the profile OpenAI key in that mode.
 - Expo/React Native WebView branches for IAP, auth differences, cookie consent suppression, and localStorage differences.
 - Headless Playwright coverage for activation starter paths, protected/public route behavior, unauthenticated API rejection, payment-success redirect normalization, Freestyle Writing controls, and Summarize Text controls.
 
@@ -164,7 +164,8 @@ Root config files include `package.json`, `package-lock.json`, `next.config.mjs`
 
 - Server actions live in `src/actions/*.ts` and are marked `"use server"` where required.
 - API routes live in `src/app/api/**/route.ts` and use `runtime = "nodejs"` where Node APIs or SDKs are required.
-- Interactive UI is client-side. `ClientProvider` owns auth token refresh, store initialization, cookie consent, toasts, paywall modal, and logout redirects.
+- Interactive UI is client-side. `ClientProvider` owns auth token refresh, store initialization, cookie consent, the AI consent modal, toasts, paywall modal, and logout redirects.
+- `AiConsentModal` blocks signed-in users until they allow sending their content to the providers in `src/constants/aiConsent.ts` (Apple guideline 5.1.2). `recordAiConsentServer()` stores `aiConsentVersion` and `aiConsentAt` on the profile; clients cannot write those fields. Declining signs out. Privacy, terms, support, and account stay reachable. Bump `AI_CONSENT_VERSION` when providers or shared data change. `prove:state` proves allow, persistence, and decline.
 - Do not import server-only Firebase Admin modules into client components.
 - Do not move credit, payment, auth, idempotency, or rate-limit decisions to the client.
 
@@ -207,10 +208,11 @@ Freestyle Writing adds client-side controls for deliverable, tone, audience, len
 `generateImage()` in `src/actions/generateImage.ts`:
 
 - always requires an authenticated user;
-- uses server `FIREWORKS_API_KEY` in credits mode or the profile Fireworks key in API-key mode;
+- calls OpenAI `IMAGE_MODEL_ID` with server `OPENAI_API_KEY` in credits mode or the profile OpenAI key in API-key mode (`IMAGE_MISSING_OPENAI_KEY` when absent);
 - debits `CREDITS_COSTS.imageGeneration` in credits mode;
 - rate-limits authenticated image requests under endpoint `image`;
-- uploads generated JPEGs to Firebase Storage and returns a signed URL;
+- uploads the generated PNG to Firebase Storage under `generated/{uid}/` and returns a signed URL;
+- logs provider failures server-side and returns `IMAGE_CONTENT_REJECTED` or `IMAGE_GENERATION_FAILED` (`src/utils/imageErrors.ts`) so the UI only blames the prompt for real content-policy refusals;
 - saves image outputs as history entries with `words: "image"`.
 
 Image clients pass a fresh client idempotency key so retries can be deduplicated without collapsing intentional repeat generations. Keep the payload-hash fallback for legacy/defensive server-side use.
@@ -319,7 +321,7 @@ React Native WebView support is intentional:
 - `window.ReactNativeWebView` detection lives in `src/utils/platform.ts` and `src/hooks/useClientSetup.ts`.
 - Google popup sign-in is hidden in WebView.
 - The Expo app does not sell credits. `useShowWebOnly()` (`src/hooks/useShowWebOnly.ts`) is false during SSR and in WebView; it gates every purchase surface (Account credit packs, paywall packs, header Top up, homepage Buy credits and Stripe mention) and Google sign-in. `/payment-attempt` never starts checkout in WebView. Out-of-credits toasts use `notEnoughCreditsMessage()`, which points app users to API keys.
-- `confirmIapPurchase()` still verifies signed `IAP_SUCCESS` payloads if a native purchase flow returns; `productId` must be a credit pack id (`starter`, `plus`, `pro`, or `power`) and `credits` must equal that pack.
+- `confirmIapPurchase()` still verifies signed `IAP_SUCCESS` payloads if a native purchase flow imports it again; `productId` must be a credit pack id (`starter`, `plus`, `pro`, or `power`) and `credits` must equal that pack.
 - Cookie consent is suppressed in WebView.
 - Some localStorage coordination is skipped in WebView.
 - The restricted-word guard is client-only and WebView-only. It is UX protection, not server moderation.
@@ -440,7 +442,6 @@ AI providers:
 - `ANTHROPIC_API_KEY`
 - `XAI_API_KEY`
 - `GOOGLE_GENERATIVE_AI_API_KEY`
-- `FIREWORKS_API_KEY`
 
 Billing/runtime:
 

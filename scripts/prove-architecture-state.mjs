@@ -140,6 +140,34 @@ async function ledgerCredits(uid) {
   return { credits: raw === undefined ? null : Number(raw), status: response.status };
 }
 
+async function storedAiConsent(uid) {
+  const url = `http://127.0.0.1:${firestorePort}/v1/projects/${activeProjectId}/databases/(default)/documents/users/${uid}/profile/userData`;
+  const response = await fetch(url, { headers: { Authorization: "Bearer owner" } });
+  const body = response.ok ? await response.json() : {};
+  return body.fields?.aiConsentVersion?.stringValue ?? null;
+}
+
+function aiConsentDialog(page) {
+  return page.getByRole("dialog", { name: "Allow AI processing?" });
+}
+
+/** Proves the consent gate blocks until the user allows, persists, and stays closed after reload. */
+async function allowAiConsent(page, uid) {
+  const dialog = aiConsentDialog(page);
+  await dialog.waitFor({ timeout: 20_000 });
+  await page.reload();
+  await dialog.waitFor({ timeout: 20_000 });
+  await dialog.getByRole("button", { name: "Allow and continue" }).click();
+  await dialog.waitFor({ state: "hidden", timeout: 10_000 });
+  const version = await storedAiConsent(uid);
+  if (!version) throw new Error("AI consent was not stored on the profile");
+  await page.reload();
+  await page.getByLabel(/Credits balance: \d/).waitFor({ timeout: 20_000 });
+  await page.waitForTimeout(1_500);
+  if (await dialog.isVisible()) throw new Error("AI consent dialog reappeared after allowing");
+  note("ai-consent", `stored ${version}; dialog stays closed after reload`);
+}
+
 async function waitForLedger(uid, expected) {
   let last = { credits: null, status: 0 };
   for (let attempt = 0; attempt < 30; attempt += 1) {
@@ -258,6 +286,7 @@ async function main() {
 
   const started = await signUp(page, emailA);
   const uidA = await accountId(page);
+  await allowAiConsent(page, uidA);
   const ledgerStart = await waitForLedger(uidA, 1000);
   note("account-a", `badge "${started}" ledger ${ledgerStart}`);
   if (!started.includes("1,000") || ledgerStart !== 1000) {
@@ -319,6 +348,12 @@ async function main() {
   await page.getByRole("button", { name: "Sign in to get started" }).waitFor();
   const switched = await signUp(page, emailB);
   const uidB = await accountId(page);
+  const consentB = aiConsentDialog(page);
+  await consentB.waitFor({ timeout: 20_000 });
+  await consentB.getByRole("button", { name: "Don’t allow and sign out" }).click();
+  await page.getByRole("button", { name: "Sign in to get started" }).waitFor({ timeout: 15_000 });
+  if ((await storedAiConsent(uidB)) !== null) throw new Error("declining stored AI consent");
+  note("ai-consent-decline", "declining signed account B out without storing consent");
   const ledgerB = await waitForLedger(uidB, 1000);
   const ledgerA = await waitForLedger(uidA, 975);
   note("account-switch", `B badge "${switched}" ledger ${ledgerB}; A ledger ${ledgerA}`);

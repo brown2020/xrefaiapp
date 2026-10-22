@@ -147,8 +147,9 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
 
 #### Image Generation
 
-- Uses Fireworks AI `stable-diffusion-xl-1024-v1-0`.
-- Generates 1024x1024 JPEGs.
+- Uses OpenAI `gpt-image-2` through the AI SDK (Fireworks shut down image generation in August 2026).
+- Generates 1024x1024 PNGs.
+- Content-policy refusals and provider outages show different messages; provider failures are logged server-side.
 - Uploads successful images to Firebase Storage and returns signed URLs.
 - Image generation costs `CREDITS_COSTS.imageGeneration` credits in credits mode.
 - Image results can be copied or downloaded.
@@ -191,7 +192,7 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
 
 #### API-Key Mode
 
-- Users can store Fireworks, OpenAI, Anthropic, xAI, and Google key fields.
+- Users can store OpenAI, Anthropic, xAI, and Google key fields.
 - Current text model whitelist:
   - `openai:gpt-5.4`
   - `anthropic:claude-sonnet-4-6`
@@ -199,7 +200,7 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
   - `google:gemini-3.1-pro-preview`
 - Credits mode uses server provider keys.
 - API-key mode uses profile provider keys.
-- Current UI requires a Fireworks key plus the selected text provider key before enabling API-key mode.
+- API-key mode needs the selected text provider key. Image tools always use the OpenAI key.
 
 #### Expo WebView Support
 
@@ -207,7 +208,13 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
 - WebView suppresses cookie consent.
 - WebView hides Google popup sign-in.
 - WebView hides every credit purchase surface (Account packs, paywall packs, Top up, homepage Buy credits) and `/payment-attempt` does not start checkout; app users are pointed to API keys.
-- The signed `IAP_SUCCESS` confirmation action remains on the server but the app no longer sends purchases.
+- The signed `IAP_SUCCESS` confirmation action is still in the code but unreachable: no client imports it.
+
+#### AI Data Consent
+
+- Signed-in users see a one-time "Allow AI processing?" dialog naming OpenAI, Anthropic, xAI, and Google and what each is used for, with a Privacy Policy link (Apple guideline 5.1.2).
+- Allowing stores `aiConsentVersion` and `aiConsentAt` on the profile through a server action. Declining signs out.
+- Privacy, terms, support, and account pages stay usable without consent, so users can read the policy or delete their account.
 - The restricted-word guard is client-only and WebView-only.
 
 #### Public Legal And Support Pages
@@ -223,7 +230,7 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
 - Firestore for profile, chats, summaries, payments, ledger, idempotency, rate limit counters, and payment locks.
 - Firebase Storage for generated image files.
 - Stripe Checkout for web credit purchases.
-- Fireworks AI for image generation.
+- OpenAI `gpt-image-2` for image generation.
 - Vercel AI SDK with OpenAI, Anthropic, xAI, and Google for text/chat.
 - React Native WebView detection for app-specific UI (no purchases, no Google popup).
 - Firebase measurement ID exists in config, but no product analytics helper is implemented yet.
@@ -232,7 +239,7 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
 
 - Next.js App Router pages render the public/protected product surfaces.
 - `src/proxy.ts` performs soft cookie-presence route gating.
-- `ClientProvider` handles auth token refresh, store initialization, paywall modal, cookie consent, toasts, and logout redirects.
+- `ClientProvider` handles auth token refresh, store initialization, paywall modal, AI consent modal, cookie consent, toasts, and logout redirects.
 - Server actions handle profile, history, credits, text generation, image generation, and IAP confirmation.
 - API routes handle chat streaming, Stripe checkout/confirmation, and the hardened URL proxy.
 - Zustand stores hold auth, profile/credits, payments, and paywall state.
@@ -264,7 +271,6 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
 - Text revision actions are not first-class outside the current repurpose buttons.
 - Image generation is single-shot: no aspect ratio, seed, variation, quality, style preset, prompt enhancer, or gallery view.
 - Chat cannot explicitly reference selected history items or project context.
-- API-key mode currently requires Fireworks even for text-first users.
 - Product analytics/event taxonomy is not implemented.
 - Admin/support tools for user lookup, manual credits, refunds, and diagnostics do not exist.
 
@@ -407,7 +413,7 @@ Implementation intent:
 
 - Expand user-facing request controls where provider behavior and pricing are predictable.
 - Improve image generation error copy for rate limiting, provider failures, and missing keys.
-- Add a non-provider test path for image request state where feasible without calling Fireworks.
+- Add a non-provider test path for image request state where feasible without calling OpenAI.
 
 Acceptance criteria:
 

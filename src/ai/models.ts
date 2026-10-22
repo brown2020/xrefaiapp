@@ -60,6 +60,9 @@ const RETIRED_MODEL_KEYS: Record<string, AiModelKey> = {
 
 const DEFAULT_TEXT_MODEL_KEY: AiModelKey = "openai:gpt-5.4";
 
+/** OpenAI image model behind Generate Image and the Designer tool. */
+export const IMAGE_MODEL_ID = "gpt-image-2";
+
 export const listAiModels = (): AiModelDefinition[] => Object.values(AI_MODELS);
 
 function isAiModelKey(value: unknown): value is AiModelKey {

@@ -11,6 +11,7 @@ import { useClientSetup } from "@/hooks/useClientSetup";
 import ErrorBoundary from "./ErrorBoundary";
 import { getAuthCookieName } from "@/utils/getAuthCookieName";
 import { CreditsPaywallModal } from "@/components/ui/CreditsPaywallModal";
+import { AiConsentModal } from "@/components/AiConsentModal";
 
 /**
  * Client-side provider that handles:
@@ -32,6 +33,7 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
     <ErrorBoundary>
       {children}
       <CreditsPaywallModal />
+      <AiConsentModal />
       {isClient && !isWebView && (
         <CookieConsent
           buttonText="Accept cookies"

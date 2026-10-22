@@ -11,7 +11,7 @@ Deeper docs for agents and product direction live in [AGENTS.md](./AGENTS.md) an
 - **Homepage** — starter paths (Creator / Marketer / Student / Researcher) that deep-link into Chat or Tools with prefills
 - **Firebase Auth** — Google popup, email/password, password reset, email-link (`/loginfinish`); cookie `xrefAuthToken` (name overridable); soft route gating via `src/proxy.ts`
 - **Streaming chat** (`/chat`) — Vercel AI SDK transport; recent history as context; credit debit / refund / rate limits / idempotency; saves under `users/{uid}/chats`
-- **Tools** (`/tools`) — Summarize Website (via SSRF-hardened `/api/proxy`), Summarize Text, Freestyle Writing, Simplify Writing, Generate Image (Fireworks SDXL), Designer Prompt builder
+- **Tools** (`/tools`) — Summarize Website (via SSRF-hardened `/api/proxy`), Summarize Text, Freestyle Writing, Simplify Writing, Generate Image (OpenAI `gpt-image-2`), Designer Prompt builder
 - **History** (`/history`) — search, pagination, expand, copy/download, markdown, text repurpose actions, per-item delete, and Clear all
 - **Account** (`/account`) — credits, ledger, Stripe credit packs, payment history, API-key mode + model selection, account deletion
 - **Payments** — Stripe Checkout (`/api/billing/checkout` + `/confirm`); Expo/WebView IAP confirmation with HMAC + optional Apple receipt verify
@@ -27,7 +27,7 @@ Deeper docs for agents and product direction live in [AGENTS.md](./AGENTS.md) an
 | Language | TypeScript `^6` (held until typescript-eslint supports TypeScript 7) |
 | Auth / data | Firebase `^13` + Firebase Admin `^14` (Auth, Firestore, Storage) |
 | AI text | Vercel AI SDK (`ai` `^7`, `@ai-sdk/openai|anthropic|google|xai|rsc|react`) |
-| AI images | Fireworks Stable Diffusion XL via server action |
+| AI images | OpenAI `gpt-image-2` via AI SDK `generateImage` in a server action |
 | Payments | Stripe `^23` Checkout; native IAP helpers for WebView |
 | State | Zustand `^5` |
 | Validation | Zod `^4` |
@@ -69,7 +69,7 @@ docs/                  # architecture, CI secrets, budget notes
 - npm
 - Firebase project (Auth, Firestore, Storage)
 - Stripe account (for credit purchases)
-- At least one text-model provider key for credits mode; Fireworks key for image generation
+- At least one text-model provider key for credits mode; `OPENAI_API_KEY` also powers image generation
 - Optional: Apple IAP shared secret / verify URL for native purchases
 
 ### Clone and install
@@ -111,7 +111,6 @@ Copy `.env.example` to `.env.local`. **Never commit real keys.**
 | `ANTHROPIC_API_KEY` | Credits-mode Anthropic | [Anthropic](https://console.anthropic.com/) |
 | `XAI_API_KEY` | Credits-mode xAI / Grok | [xAI](https://console.x.ai/) |
 | `GOOGLE_GENERATIVE_AI_API_KEY` | Credits-mode Gemini | [Google AI Studio](https://aistudio.google.com/) |
-| `FIREWORKS_API_KEY` | Image generation (SDXL) | [Fireworks](https://fireworks.ai/) |
 | `NEXT_PUBLIC_COOKIE_NAME` | Auth cookie name (default `xrefAuthToken`) | Your choice |
 | `NEXT_PUBLIC_STRIPE_PRODUCT_NAME` | Product label for Checkout | Stripe / your naming |
 | `STRIPE_SECRET_KEY` | Stripe secret for Checkout + confirm | Stripe Dashboard |
