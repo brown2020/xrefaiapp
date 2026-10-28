@@ -41,6 +41,7 @@ export default function Chat({ initialPrompt, starterIntentId }: ChatProps) {
   const profilePhotoUrl = useProfileStore((s) => s.profile.photoUrl);
   const generationConfig = useProfileStore(
     useShallow((s) => ({
+      credits: s.profile.credits,
       useCredits: s.profile.useCredits,
       textModel: s.profile.text_model,
       openaiApiKey: s.profile.openai_api_key,
@@ -81,12 +82,22 @@ export default function Chat({ initialPrompt, starterIntentId }: ChatProps) {
   const { messages, sendMessage, setMessages, status } = useChat({
     transport,
     experimental_throttle: 100,
-    onFinish: async ({ message, messages: allMessages }) => {
+    onFinish: async ({ message, messages: allMessages, isError }) => {
       const latestUser = [...allMessages]
         .reverse()
         .find((m) => m.role === "user");
       const prompt = latestUser ? getMessageText(latestUser) : "";
       const response = getMessageText(message);
+
+      // A failed request (including not enough credits) is reported by onError.
+      // Do not also say the model returned no reply.
+      if (isError) {
+        const draft = lastSentInputRef.current || prompt;
+        lastSentInputRef.current = "";
+        if (draft) setInput((current) => current || draft);
+        setMessages([]);
+        return;
+      }
 
       if (prompt && !response.trim()) {
         // The server refunds an empty or filtered reply; give the prompt back.
@@ -191,6 +202,18 @@ export default function Chat({ initialPrompt, starterIntentId }: ChatProps) {
     if (isSubmittingRef.current) return;
     if (!input.trim()) return;
     if (!validateContentWithToast(input)) return;
+    if (
+      generationConfig.useCredits &&
+      generationConfig.credits < CREDITS_COSTS.chatMessage
+    ) {
+      toast.error(notEnoughCreditsMessage(CREDITS_COSTS.chatMessage));
+      openPaywall({
+        actionLabel: "Chat message",
+        requiredCredits: CREDITS_COSTS.chatMessage,
+        redirectPath: ROUTES.chat,
+      });
+      return;
+    }
 
     isSubmittingRef.current = true;
     const inputValue = input.trim();
@@ -226,7 +249,7 @@ export default function Chat({ initialPrompt, starterIntentId }: ChatProps) {
     } finally {
       isSubmittingRef.current = false;
     }
-  }, [generationConfig, historyForRequest, input, sendMessage]);
+  }, [generationConfig, historyForRequest, input, openPaywall, sendMessage]);
 
   // Memoize reversed chat list to avoid recalculating on every render.
   const reversedChatlist = useMemo(() => chatlist.slice().reverse(), [chatlist]);

@@ -125,27 +125,40 @@ test.describe("code reliability contracts", () => {
   });
 
   test("a claimed starter grant does not pay the initial balance again", () => {
-    expect(creditsForNewProfile(false, true, 1000)).toBe(1000);
-    expect(creditsForNewProfile(false, false, 1000)).toBe(0);
-    expect(creditsForNewProfile(true, true, 1000)).toBe(0);
+    expect(creditsForNewProfile(false, 1000)).toBe(1000);
+    expect(creditsForNewProfile(true, 1000)).toBe(0);
     expect(starterCreditsToAdd({
-      profileExists: true,
+      profileExists: false,
       claimState: "missing",
-      emailVerified: true,
-      initialCredits: 1000,
-    })).toBe(0);
-    expect(starterCreditsToAdd({
-      profileExists: true,
-      claimState: "pending",
-      emailVerified: true,
       initialCredits: 1000,
     })).toBe(1000);
     expect(starterCreditsToAdd({
-      profileExists: false,
-      claimState: "pending",
-      emailVerified: false,
+      profileExists: true,
+      claimState: "missing",
       initialCredits: 1000,
     })).toBe(0);
+    expect(starterCreditsToAdd({
+      profileExists: true,
+      claimState: "pending",
+      initialCredits: 1000,
+    })).toBe(1000);
+  });
+
+  test("chat refuses a short balance before the model and shows one message", () => {
+    const route = readFileSync("src/app/api/chat/route.ts", "utf8");
+    const debitAt = route.indexOf("debitCreditsIdempotent");
+    const modelAt = route.indexOf("getTextModel(");
+    const streamAt = route.indexOf("streamText(");
+    expect(debitAt).toBeGreaterThan(0);
+    expect(modelAt).toBeGreaterThan(debitAt);
+    expect(streamAt).toBeGreaterThan(modelAt);
+
+    const chat = readFileSync("src/components/Chat.tsx", "utf8");
+    const errorAt = chat.indexOf("if (isError)");
+    const emptyAt = chat.indexOf("The model returned no reply");
+    expect(errorAt).toBeGreaterThan(0);
+    expect(emptyAt).toBeGreaterThan(errorAt);
+    expect(chat).toContain("generationConfig.credits < CREDITS_COSTS.chatMessage");
   });
 
   test("auth session cookies are HttpOnly", () => {

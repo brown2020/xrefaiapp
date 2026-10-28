@@ -95,13 +95,11 @@ export async function fetchProfileServer(authOverrides?: {
     const creditDelta = starterCreditsToAdd({
       profileExists,
       claimState,
-      emailVerified,
       initialCredits: PROFILE_DEFAULTS.credits,
     });
     const nextCredits = currentCredits + creditDelta;
     const sealLegacyClaim = profileExists && claimState === "missing";
-    const markGranted = creditDelta > 0 || (!profileExists && emailVerified);
-    const markPending = !profileExists && !emailVerified && claimState === "missing";
+    const markGranted = creditDelta > 0;
 
     const nextProfile: ServerProfileData = {
       ...PROFILE_DEFAULTS,
@@ -130,15 +128,6 @@ export async function fetchProfileServer(authOverrides?: {
         claimRef,
         {
           starterGrantClaimed: true,
-          claimedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
-    } else if (markPending) {
-      tx.set(
-        claimRef,
-        {
-          starterGrantClaimed: false,
           claimedAt: FieldValue.serverTimestamp(),
         },
         { merge: true }

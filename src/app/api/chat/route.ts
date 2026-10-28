@@ -91,15 +91,6 @@ export async function POST(req: NextRequest) {
       return rateLimitResponse;
     }
 
-    const model = getTextModel({
-      modelKey: body.modelKey,
-      useCredits: body.useCredits,
-      openaiApiKey: body.openaiApiKey,
-      anthropicApiKey: body.anthropicApiKey,
-      xaiApiKey: body.xaiApiKey,
-      googleApiKey: body.googleApiKey,
-    });
-
     const idempotencyKey = body.idempotencyKey
       ? generateClientIdempotencyKey(uid, body.idempotencyKey)
       : generateIdempotencyKey(uid, { userText: bounded.userText, modelKey: body.modelKey });
@@ -170,6 +161,17 @@ export async function POST(req: NextRequest) {
       }
       creditsCharged = true;
     }
+
+    // Balance is settled before the provider is constructed, so a short
+    // balance returns 402 and never calls the model.
+    const model = getTextModel({
+      modelKey: body.modelKey,
+      useCredits: body.useCredits,
+      openaiApiKey: body.openaiApiKey,
+      anthropicApiKey: body.anthropicApiKey,
+      xaiApiKey: body.xaiApiKey,
+      googleApiKey: body.googleApiKey,
+    });
 
     // Abort controller wired to the incoming request and to the provider
     // timeout: if either fires we refund the credit and clear idempotency.
