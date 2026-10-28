@@ -18,7 +18,7 @@ import {
   CREDIT_PACKS,
   DEFAULT_CREDIT_PACK_ID,
   formatDollarsFromCents,
-  getCreditPack,
+  findCreditPack,
 } from "@/constants/creditPacks";
 import toast from "react-hot-toast";
 
@@ -135,7 +135,8 @@ export default function ProfileComponent() {
   }, [areApiKeysAvailable, profile.useCredits, updateProfile]);
 
   const handleBuyClick = useCallback(() => {
-    const pack = getCreditPack(selectedPackId);
+    const pack = findCreditPack(selectedPackId);
+    if (!pack) return;
     router.push(
       `${ROUTES.paymentAttempt}?pack=${encodeURIComponent(
         pack.id

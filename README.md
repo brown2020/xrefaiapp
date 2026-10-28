@@ -114,11 +114,14 @@ Copy `.env.example` to `.env.local`. **Never commit real keys.**
 | `NEXT_PUBLIC_COOKIE_NAME` | Auth cookie name (default `xrefAuthToken`) | Your choice |
 | `NEXT_PUBLIC_STRIPE_PRODUCT_NAME` | Product label for Checkout | Stripe / your naming |
 | `STRIPE_SECRET_KEY` | Stripe secret for Checkout + confirm | Stripe Dashboard |
+| `STRIPE_WEBHOOK_SECRET` | Optional signing secret for `POST /api/billing/webhook`. Unset: the route returns 503 and grants nothing. Return-page confirm still works. | Stripe Dashboard webhook endpoint |
 | `APP_URL` | Canonical app origin for Checkout redirects | e.g. `http://localhost:3000` or production URL |
 | `IAP_WEBVIEW_SECRET` | HMAC secret for Expo WebView IAP messages | Generate a strong secret |
 | `APPLE_IAP_SHARED_SECRET` | Apple verifyReceipt shared secret | App Store Connect |
-| `IAP_RECEIPT_VERIFY_URL` | Optional local/test receipt verify endpoint | Local only / your verifier |
-| `ALLOW_UNVERIFIED_SESSION_COOKIE` | Local/CI stand-in when Admin creds absent | **Never in production** |
+| `APPLE_BUNDLE_ID` | Required for any IAP grant. Receipts must match this bundle id. Unset: IAP returns not configured and grants nothing. | App Store Connect |
+| `APPLE_APP_ITEM_ID` | Required when a production receipt includes `app_item_id`. Sandbox receipts that omit it still match. | App Store Connect |
+| `IAP_RECEIPT_VERIFY_URL` | Optional local/test receipt verify endpoint. Ignored when `NODE_ENV` is `production` unless `FIREBASE_AUTH_EMULATOR_HOST` or `FIRESTORE_EMULATOR_HOST` is set. | Local only / your verifier |
+| `ALLOW_UNVERIFIED_SESSION_COOKIE` | Local/CI stand-in when Admin creds absent. Ignored when `NODE_ENV` is `production`. | **Never in production** |
 
 See `docs/ci-secrets.md` for which `NEXT_PUBLIC_*` values CI expects as GitHub Actions secrets.
 
@@ -126,7 +129,7 @@ See `docs/ci-secrets.md` for which `NEXT_PUBLIC_*` values CI expects as GitHub A
 
 1. Enable Google, Email/Password, and Email link providers as needed.
 2. Configure Firestore collections used by profile, credits ledger, chats, history, and payments (see AGENTS.md / spec for shapes).
-3. Allow Storage uploads for generated images under user-scoped paths.
+3. Deploy `firestore.rules`, `firestore.indexes.json`, and `storage.rules` (see `firebase.json`). Generated images are written by the Admin SDK; the only client Storage write is `users/{uid}/profile.png`. Apply `cors.json` to the Storage bucket separately (`gsutil cors set`).
 4. Map a service account into the `FIREBASE_*` Admin variables.
 
 ### Run locally
@@ -167,7 +170,7 @@ A separate `malware-scan.yml` workflow exists for dependency/malware scanning. P
 
 ## Deployment
 
-Production site: [xref.ai](https://xref.ai) (typically Vercel). Configure the full server env (Firebase Admin, Stripe, provider keys, IAP secrets) in the host. Keep `ALLOW_UNVERIFIED_SESSION_COOKIE` unset in production.
+Production site: [xref.ai](https://xref.ai) (typically Vercel). Configure the full server env (Firebase Admin, Stripe, provider keys, IAP secrets) in the host. Keep `ALLOW_UNVERIFIED_SESSION_COOKIE` unset in production. Set `STRIPE_WEBHOOK_SECRET` when the Stripe webhook endpoint is live; until then checkout still grants on the return page. Set `APPLE_BUNDLE_ID` before any IAP grant.
 
 ## Contributing
 

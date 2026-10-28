@@ -1,11 +1,10 @@
 import { NextRequest } from "next/server";
-import Stripe from "stripe";
 import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "@/firebase/firebaseAdmin";
-import { CREDIT_PACKS } from "@/constants/creditPacks";
-import { coerceCredits } from "@/utils/credits";
-import { requireAuthedUidFromRequest } from "@/utils/requireAuthedRequest";
+import { fulfillPaidCheckoutSession } from "@/actions/stripeFulfillment";
 import { PAYMENT_LOCK_TTL_MS } from "@/constants";
+import { requireAuthedUidFromRequest } from "@/utils/requireAuthedRequest";
+import { getStripe } from "@/utils/stripeServer";
 
 export const runtime = "nodejs";
 
@@ -60,19 +59,6 @@ async function releasePaymentLock(uid: string, sessionId: string): Promise<void>
   }
 }
 
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) throw new Error(`Missing env var: ${name}`);
-  return value;
-}
-
-let stripe: Stripe | null = null;
-function getStripe(): Stripe {
-  if (stripe) return stripe;
-  stripe = new Stripe(requireEnv("STRIPE_SECRET_KEY"));
-  return stripe;
-}
-
 function isSafeFirestoreDocSegment(value: string): boolean {
   return (
     value.length > 0 &&
@@ -110,115 +96,21 @@ export async function POST(req: NextRequest) {
       expand: ["payment_intent"],
     });
 
-    const metadataUid = checkoutSession.metadata?.uid;
-    if (!metadataUid || metadataUid !== uid) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    if (checkoutSession.payment_status !== "paid") {
+    const result = await fulfillPaidCheckoutSession(checkoutSession, uid);
+    if (!result.ok) {
       return Response.json(
-        { error: "Payment not completed", paymentStatus: checkoutSession.payment_status },
-        { status: 402 }
+        { error: result.error, paymentStatus: result.paymentStatus },
+        { status: result.status }
       );
     }
-
-    const packId = checkoutSession.metadata?.packId ?? "";
-    const pack = CREDIT_PACKS.find((p) => p.id === packId);
-    if (!pack) {
-      return Response.json({ error: "Unknown packId on session metadata" }, { status: 400 });
-    }
-
-    const amountTotal = checkoutSession.amount_total ?? 0;
-    if (amountTotal !== pack.amountCents) {
-      return Response.json(
-        { error: "Amount mismatch", expectedUsdCents: pack.amountCents, amountTotal },
-        { status: 400 }
-      );
-    }
-
-    const paymentRef = adminDb.doc(`users/${uid}/payments/checkout_${sessionId}`);
-    const profileRef = adminDb.doc(`users/${uid}/profile/userData`);
-    const ledgerRef = adminDb.doc(`users/${uid}/creditsLedger/stripe_checkout_${sessionId}`);
-
-    const res = await adminDb.runTransaction(
-      async (tx) => {
-        const existingPaymentSnap = await tx.get(paymentRef);
-        if (existingPaymentSnap.exists) {
-          const existing = existingPaymentSnap.data() as
-            | { status?: string; amount?: number }
-            | undefined;
-          if (existing?.status === "paid" || existing?.status === "succeeded") {
-            const profileSnap = await tx.get(profileRef);
-            const currentCredits = coerceCredits(
-              profileSnap.exists ? profileSnap.data()?.credits : 0,
-              0
-            );
-            return { alreadyProcessed: true, creditsAdded: 0, creditsBalance: currentCredits };
-          }
-        }
-
-        const profileSnap = await tx.get(profileRef);
-        const currentCredits = coerceCredits(
-          profileSnap.exists ? profileSnap.data()?.credits : 0,
-          0
-        );
-        const nextCredits = currentCredits + pack.credits;
-        if (!Number.isFinite(nextCredits)) throw new Error("Invalid credits value");
-
-        tx.set(
-          paymentRef,
-          {
-            id: `checkout_${sessionId}`,
-            amount: amountTotal,
-            createdAt: FieldValue.serverTimestamp(),
-            status: checkoutSession.payment_status,
-            mode: "stripe_checkout",
-            platform: "web",
-            productId: pack.id,
-            currency: "USD",
-            stripeCheckoutSessionId: checkoutSession.id,
-            stripePaymentIntentId:
-              typeof checkoutSession.payment_intent === "object" &&
-              checkoutSession.payment_intent !== null &&
-              "id" in checkoutSession.payment_intent
-                ? (checkoutSession.payment_intent as Stripe.PaymentIntent).id
-                : (typeof checkoutSession.payment_intent === "string"
-                    ? checkoutSession.payment_intent
-                    : null),
-          },
-          { merge: true }
-        );
-
-        tx.set(profileRef, { credits: nextCredits }, { merge: true });
-
-        tx.set(
-          ledgerRef,
-          {
-            type: "credit",
-            amount: pack.credits,
-            reason: "purchase",
-            tool: "stripe",
-            modelKey: null,
-            refId: checkoutSession.id,
-            balanceAfter: nextCredits,
-            createdAt: FieldValue.serverTimestamp(),
-          },
-          { merge: true }
-        );
-
-        return {
-          alreadyProcessed: false,
-          creditsAdded: pack.credits,
-          creditsBalance: nextCredits,
-        };
-      }
-    );
 
     return Response.json(
       {
         ok: true,
-        pack: { id: pack.id, name: pack.label, usdCents: pack.amountCents },
-        ...res,
+        pack: result.pack,
+        alreadyProcessed: result.alreadyProcessed,
+        creditsAdded: result.creditsAdded,
+        creditsBalance: result.creditsBalance,
       },
       { status: 200 }
     );

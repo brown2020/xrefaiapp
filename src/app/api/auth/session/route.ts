@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminAuth, isAdminConfigured } from "@/firebase/firebaseAdmin";
+import { isAdminConfigured } from "@/firebase/firebaseAdmin";
 import { hasJwtShape, isTokenVerificationError } from "@/utils/authErrors";
 import { authCookieName, authCookieOptions } from "@/utils/authCookie";
+import { allowsUnverifiedSessionCookie } from "@/utils/sessionCookiePolicy";
+import { sessionFromIdToken } from "@/utils/verifiedIdToken";
 
 export const runtime = "nodejs";
 
 function cookieSecure(req: NextRequest): boolean {
   return req.nextUrl.protocol === "https:";
-}
-
-/** Local/CI opt-in: without Admin, set the proxy soft-gate cookie unverified. APIs still refuse it. */
-function allowsUnverifiedSessionCookie(): boolean {
-  return process.env.ALLOW_UNVERIFIED_SESSION_COOKIE === "true";
 }
 
 function sessionResponse(req: NextRequest, idToken: string): NextResponse {
@@ -45,12 +42,12 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const decoded = await adminAuth.verifyIdToken(idToken);
-    if (!decoded?.uid) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    await sessionFromIdToken(idToken);
   } catch (error) {
-    if (isTokenVerificationError(error)) {
+    if (
+      isTokenVerificationError(error) ||
+      (error instanceof Error && error.message === "AUTH_REQUIRED")
+    ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     console.error("Auth session verification failed:", error);

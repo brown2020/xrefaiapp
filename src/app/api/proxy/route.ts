@@ -231,7 +231,7 @@ export async function GET(req: NextRequest) {
     throw error;
   }
 
-  const rateLimited = await rateLimitMiddleware(uid, "default");
+  const rateLimited = await rateLimitMiddleware(uid, "proxy");
   if (rateLimited) return rateLimited;
 
   const { searchParams } = new URL(req.url);

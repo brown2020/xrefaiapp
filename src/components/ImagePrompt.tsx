@@ -22,6 +22,7 @@ import { ROUTES } from "@/constants/routes";
 import { useShallow } from "zustand/react/shallow";
 import type { ToolInitialProps } from "@/types/ToolInitialProps";
 import { createClientIdempotencyKey } from "@/utils/clientIdempotencyKey";
+import { providerKeysForRequest } from "@/utils/providerRequestKeys";
 import { notEnoughCreditsMessage } from "@/utils/platform";
 import { imageFailureMessage } from "@/utils/imageErrors";
 
@@ -68,11 +69,13 @@ export default function ImagePrompt({ initialInput }: ToolInitialProps) {
     startGeneration();
     const toastId = toast.loading("Generating your image…");
 
-    let result: { imageUrl?: string; error?: string };
+    let result: { imageUrl?: string; storagePath?: string; error?: string };
     try {
       result = await generateImage(finalTopic, {
         useCredits: generationConfig.useCredits,
-        openaiApiKey: generationConfig.openaiApiKey,
+        ...providerKeysForRequest(generationConfig.useCredits, {
+          openaiApiKey: generationConfig.openaiApiKey,
+        }),
         idempotencyKey: createClientIdempotencyKey(),
       });
     } catch (error) {
@@ -95,6 +98,7 @@ export default function ImagePrompt({ initialInput }: ToolInitialProps) {
             topic: finalTopic,
             words: "image",
             xrefs: [],
+            storagePath: result.storagePath,
           });
         } catch (historyError) {
           console.error("Error saving image history:", historyError);

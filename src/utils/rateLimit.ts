@@ -18,8 +18,12 @@ const RATE_LIMITS: Record<string, RateLimitConfig> = {
   chat: { maxRequests: 60, windowMs: 60_000 },
   image: { maxRequests: 10, windowMs: 60_000 },
   tools: { maxRequests: 30, windowMs: 60_000 },
+  /** Website proxy: tight cap so a signed-in user cannot relay at the old default. */
+  proxy: { maxRequests: 10, windowMs: 60_000 },
   default: { maxRequests: 100, windowMs: 60_000 },
 };
+
+const FAIL_CLOSED_ENDPOINTS = new Set(["chat", "image", "tools", "proxy"]);
 
 /**
  * Result of a rate limit check
@@ -30,6 +34,8 @@ export interface RateLimitResult {
   limit: number;
   resetMs: number;
   remaining: number;
+  /** The limiter could not be read. Spend paths fail closed. */
+  unavailable?: boolean;
 }
 
 type RateLimitDoc = {
@@ -110,7 +116,17 @@ export async function checkRateLimit(
     );
   } catch (error) {
     console.error("Rate limit check failed:", error);
-    // Fail open to avoid turning infra hiccups into outages.
+    if (FAIL_CLOSED_ENDPOINTS.has(endpoint)) {
+      return {
+        allowed: false,
+        unavailable: true,
+        current: 0,
+        limit: maxRequests,
+        resetMs: windowMs,
+        remaining: 0,
+      };
+    }
+    // Unknown endpoints still fail open so a Firestore hiccup is not an outage.
     return {
       allowed: true,
       current: 0,
@@ -157,7 +173,15 @@ export async function rateLimitMiddleware(
   config?: RateLimitConfig
 ): Promise<Response | null> {
   const result = await checkRateLimit(uid, endpoint, config);
-  if (!result.allowed) return createRateLimitResponse(result);
+  if (!result.allowed) {
+    if (result.unavailable) {
+      return Response.json(
+        { error: "Too many requests", message: "Rate limit is temporarily unavailable." },
+        { status: 503 }
+      );
+    }
+    return createRateLimitResponse(result);
+  }
   return null;
 }
 

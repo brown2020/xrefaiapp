@@ -76,3 +76,10 @@ export const PROFILE_SYNC_TIMEOUT_MS = 5000;
 
 /** TTL for payment processing locks (30 seconds in milliseconds) */
 export const PAYMENT_LOCK_TTL_MS = 30_000;
+
+/**
+ * Text provider calls must finish before the route maxDuration (120s) so a
+ * timeout still runs the credit refund. Image generation uses the same gap.
+ */
+export const TEXT_PROVIDER_TIMEOUT_MS = 100_000;
+export const GENERATION_MAX_DURATION_SECONDS = 120;

@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 import { AI_MODELS, resolveAiModelKey } from "../src/ai/models";
 import { CREDITS_COSTS, getTextGenerationCreditsCost } from "../src/constants/credits";
-import { CREDIT_PACKS } from "../src/constants/creditPacks";
+import { CREDIT_PACKS, findCreditPack } from "../src/constants/creditPacks";
 import { STARTER_INTENTS } from "../src/constants/starterIntents";
 import {
   chatRequestSchema,
@@ -14,7 +14,7 @@ import {
 import { authCookieOptions } from "../src/utils/authCookie";
 import { hasJwtShape } from "../src/utils/authErrors";
 import { resolveIapCreditGrant } from "../src/utils/iapGrant";
-import { storeReceiptMatches } from "../src/utils/iapReceipt";
+import { iapReceiptOverrideUrlFrom, storeReceiptMatches } from "../src/utils/iapReceipt";
 import { canonicalIapPayload } from "../src/utils/iapSignature";
 import { clientCanWriteProfileField } from "../src/utils/profileContract";
 import { isAiConsentExemptPath } from "../src/constants/aiConsent";
@@ -31,7 +31,10 @@ import {
   MAX_PROVIDER_INPUT_CHARS,
 } from "../src/utils/providerInputBudget";
 import { safeProxyHeaders } from "../src/utils/proxyResponse";
-import { creditsForNewProfile } from "../src/utils/starterGrant";
+import { creditsForNewProfile, starterCreditsToAdd } from "../src/utils/starterGrant";
+import { allowsUnverifiedSessionCookieFrom } from "../src/utils/sessionCookiePolicy";
+import { paidCheckoutMatchesPack } from "../src/utils/stripeCheckout";
+import { providerKeysForRequest } from "../src/utils/providerRequestKeys";
 
 test.describe("code reliability contracts", () => {
   test("Firebase Admin auth loads where Node cannot require() ES modules", () => {
@@ -100,20 +103,49 @@ test.describe("code reliability contracts", () => {
       receipt: "receipt-body",
     })).toContain("\"receipt\":\"receipt-body\"");
 
+    const expected = { productId: "starter", transactionId: "tx-1", bundleId: "ai.xref.app" };
     const match = {
       status: 0,
       receipt: {
-        in_app: [{ product_id: "starter", transaction_id: "tx-1" }],
+        bundle_id: "ai.xref.app",
+        in_app: [{ product_id: "starter", transaction_id: "tx-1", original_transaction_id: "orig-1" }],
       },
     };
-    expect(storeReceiptMatches(match, { productId: "starter", transactionId: "tx-1" })).toBe(true);
-    expect(storeReceiptMatches(match, { productId: "plus", transactionId: "tx-1" })).toBe(false);
-    expect(storeReceiptMatches({ status: 21003 }, { productId: "starter", transactionId: "tx-1" })).toBe(false);
+    expect(storeReceiptMatches(match, expected)).toBe(true);
+    expect(storeReceiptMatches(match, { ...expected, productId: "plus" })).toBe(false);
+    expect(storeReceiptMatches(match, { ...expected, transactionId: "orig-1" })).toBe(false);
+    expect(storeReceiptMatches(match, { ...expected, bundleId: "com.other.app" })).toBe(false);
+    expect(storeReceiptMatches({ status: 21003 }, expected)).toBe(false);
+    const withAppItem = {
+      status: 0,
+      receipt: { ...match.receipt, app_item_id: 123 },
+    };
+    expect(storeReceiptMatches(withAppItem, expected)).toBe(false);
+    expect(storeReceiptMatches(withAppItem, { ...expected, appItemId: "123" })).toBe(true);
   });
 
   test("a claimed starter grant does not pay the initial balance again", () => {
-    expect(creditsForNewProfile(false, 1000)).toBe(1000);
-    expect(creditsForNewProfile(true, 1000)).toBe(0);
+    expect(creditsForNewProfile(false, true, 1000)).toBe(1000);
+    expect(creditsForNewProfile(false, false, 1000)).toBe(0);
+    expect(creditsForNewProfile(true, true, 1000)).toBe(0);
+    expect(starterCreditsToAdd({
+      profileExists: true,
+      claimState: "missing",
+      emailVerified: true,
+      initialCredits: 1000,
+    })).toBe(0);
+    expect(starterCreditsToAdd({
+      profileExists: true,
+      claimState: "pending",
+      emailVerified: true,
+      initialCredits: 1000,
+    })).toBe(1000);
+    expect(starterCreditsToAdd({
+      profileExists: false,
+      claimState: "pending",
+      emailVerified: false,
+      initialCredits: 1000,
+    })).toBe(0);
   });
 
   test("auth session cookies are HttpOnly", () => {
@@ -176,6 +208,32 @@ test.describe("code reliability contracts", () => {
     expect(timeoutMs).toBeGreaterThan(30_000);
     expect(timeoutMs).toBeLessThanOrEqual(maxDurationSeconds * 1000 - 15_000);
     expect(action).toContain("AbortSignal.timeout(IMAGE_PROVIDER_TIMEOUT_MS)");
+    expect(action).not.toContain("03-17-2125");
+    expect(action).toContain('version: "v4"');
+  });
+
+  test("text streams time out before the function is killed", () => {
+    const timeoutMs = Number(
+      readFileSync("src/constants/index.ts", "utf8")
+        .match(/TEXT_PROVIDER_TIMEOUT_MS = ([\d_]+);/)?.[1]
+        .replaceAll("_", "")
+    );
+    for (const file of [
+      "src/app/api/chat/route.ts",
+      "src/app/history/page.tsx",
+      "src/app/tools/page.tsx",
+    ]) {
+      const maxDurationSeconds = Number(
+        readFileSync(file, "utf8").match(/export const maxDuration = (\d+);/)?.[1]
+      );
+      expect(maxDurationSeconds, file).toBe(120);
+      expect(timeoutMs).toBeLessThan(maxDurationSeconds * 1000 - 15_000);
+    }
+    for (const file of ["src/app/api/chat/route.ts", "src/actions/generateAIResponse.ts"]) {
+      const source = readFileSync(file, "utf8");
+      expect(source, file).toContain("AbortSignal.timeout(TEXT_PROVIDER_TIMEOUT_MS)");
+      expect(source, file).toContain("debitCreditsIdempotent");
+    }
   });
 
   test("AI consent gate leaves policies, help, and account deletion reachable", () => {
@@ -314,6 +372,9 @@ test.describe("code reliability contracts", () => {
       "APPLE_IAP_SHARED_SECRET",
       "IAP_RECEIPT_VERIFY_URL",
       "ALLOW_UNVERIFIED_SESSION_COOKIE",
+      "STRIPE_WEBHOOK_SECRET",
+      "APPLE_BUNDLE_ID",
+      "APPLE_APP_ITEM_ID",
     ]) {
       expect(agents).toContain(name);
       expect(readme).toContain(name);
@@ -321,7 +382,7 @@ test.describe("code reliability contracts", () => {
     }
     expect(agents).toContain("deployment owner owns configuration drift");
     expect(agents).toContain(".github/workflows/ci.yml");
-    expect(readFileSync("docs/architecture.md", "utf8")).toContain("no Stripe webhook");
+    expect(readFileSync("docs/architecture.md", "utf8")).toContain("/api/billing/webhook");
   });
 
   test("the cookie action uses one label", () => {
@@ -355,9 +416,18 @@ test.describe("code reliability contracts", () => {
       );
     }
     const session = readFileSync("src/app/api/auth/session/route.ts", "utf8");
-    expect(session).toContain('process.env.ALLOW_UNVERIFIED_SESSION_COOKIE === "true"');
+    expect(session).toContain("allowsUnverifiedSessionCookie()");
     expect(session).toContain("status: 503");
     expect(session).not.toMatch(/project_id\|service account/);
+    expect(allowsUnverifiedSessionCookieFrom("production", "true")).toBe(false);
+    expect(allowsUnverifiedSessionCookieFrom("test", "true")).toBe(true);
+    expect(allowsUnverifiedSessionCookieFrom("development", "false")).toBe(false);
+    expect(readFileSync("src/utils/verifiedIdToken.ts", "utf8")).toContain(
+      "verifyIdToken(idToken, true)"
+    );
+    expect(readFileSync("src/utils/verifiedIdToken.ts", "utf8")).toContain(
+      "isAllowedSignInProvider"
+    );
   });
 
   test("an empty or filtered completion is refunded and the client keeps the prompt", () => {
@@ -412,6 +482,69 @@ test.describe("code reliability contracts", () => {
     }
     expect(source).toContain("adminDb.doc(`users/${uid}/summaries/${id}`).delete()");
     expect(source).toContain('throw new Error("INVALID_HISTORY_ID")');
+    expect(source).toContain("deleteStoredImage");
+  });
+
+  test("billing rejects the wrong currency and an unknown pack", () => {
+    const plus = findCreditPack("plus");
+    expect(plus).toBeTruthy();
+    expect(paidCheckoutMatchesPack({ amount_total: plus!.amountCents, currency: "usd" }, plus!)).toBe(true);
+    expect(paidCheckoutMatchesPack({ amount_total: plus!.amountCents, currency: "eur" }, plus!)).toBe(false);
+    expect(findCreditPack("not-a-pack")).toBeUndefined();
+    expect(readFileSync("src/components/PaymentAttemptClient.tsx", "utf8")).toContain("findCreditPack");
+    expect(readFileSync("src/components/PaymentAttemptClient.tsx", "utf8")).toContain("Unknown credit pack");
+    expect(readFileSync("src/app/api/billing/checkout/route.ts", "utf8")).toContain(
+      "adaptive_pricing: { enabled: false }"
+    );
+    const webhook = readFileSync("src/app/api/billing/webhook/route.ts", "utf8");
+    expect(webhook).toContain("constructEvent");
+    expect(webhook).toContain("status: 503");
+    expect(webhook).toContain("STRIPE_WEBHOOK_SECRET");
+  });
+
+  test("credits-mode requests omit profile provider keys", () => {
+    expect(providerKeysForRequest(true, {
+      openaiApiKey: "sk-user",
+      anthropicApiKey: "sk-ant",
+      xaiApiKey: "sk-x",
+      googleApiKey: "sk-g",
+    })).toEqual({});
+    expect(providerKeysForRequest(false, { openaiApiKey: "sk-user" }).openaiApiKey).toBe("sk-user");
+    expect(readFileSync("src/components/Chat.tsx", "utf8")).toContain("providerKeysForRequest");
+  });
+
+  test("receipt override and client rules stay closed in production", () => {
+    expect(iapReceiptOverrideUrlFrom({
+      nodeEnv: "production",
+      override: "https://evil.example/verify",
+    })).toBeNull();
+    expect(iapReceiptOverrideUrlFrom({
+      nodeEnv: "production",
+      override: "http://127.0.0.1:3332/verify",
+      authEmulatorHost: "127.0.0.1:9099",
+    })).toBe("http://127.0.0.1:3332/verify");
+
+    const firestore = readFileSync("firestore.rules", "utf8");
+    expect(firestore).toContain("allow write: if false");
+    expect(firestore).toContain("match /iapTransactions/{id}");
+    expect(firestore).toContain("match /stripePaymentIntents/{id}");
+    const storage = readFileSync("storage.rules", "utf8");
+    expect(storage).toContain("match /generated/{uid}/{allPaths=**}");
+    expect(storage).toContain('request.resource.contentType == "image/png"');
+    expect(storage).toMatch(/match \/generated\/\{uid\}\/\{allPaths=\*\*\} \{\s*allow read, write: if false;/);
+
+    const cors = JSON.parse(readFileSync("cors.json", "utf8")) as { origin: string[] }[];
+    expect(cors.some((entry) => entry.origin.includes("*"))).toBe(false);
+    expect(cors[0]?.origin).toEqual(["https://xref.ai", "https://www.xref.ai"]);
+
+    const nextConfig = readFileSync("next.config.mjs", "utf8");
+    expect(nextConfig).toContain("frame-ancestors 'none'");
+    expect(nextConfig).toContain("nosniff");
+
+    const limiter = readFileSync("src/utils/rateLimit.ts", "utf8");
+    expect(limiter).toContain("proxy: { maxRequests: 10, windowMs: 60_000 }");
+    expect(limiter).toContain('FAIL_CLOSED_ENDPOINTS = new Set(["chat", "image", "tools", "proxy"])');
+    expect(readFileSync("src/app/api/proxy/route.ts", "utf8")).toContain('rateLimitMiddleware(uid, "proxy")');
   });
 
   test("the payment store cannot write payment records", () => {

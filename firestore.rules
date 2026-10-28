@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Clients may read their own tree. All writes go through the Admin SDK.
+    match /users/{uid}/{document=**} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Global payment and IAP claim docs are server-only.
+    match /iapTransactions/{id} {
+      allow read, write: if false;
+    }
+    match /stripePaymentIntents/{id} {
+      allow read, write: if false;
+    }
+    match /stripeClawbacks/{id} {
+      allow read, write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

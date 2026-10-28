@@ -11,6 +11,7 @@ export interface HistoryEntry {
   tool?: string;
   starterIntentId?: string;
   settings?: Record<string, string>;
+  storagePath?: string;
 }
 
 export function useHistorySaver() {

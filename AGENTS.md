@@ -212,7 +212,7 @@ Freestyle Writing adds client-side controls for deliverable, tone, audience, len
 - debits `CREDITS_COSTS.imageGeneration` in credits mode;
 - rate-limits authenticated image requests under endpoint `image`;
 - requests a medium-quality 1024x1024 JPEG with no retries and aborts after `IMAGE_PROVIDER_TIMEOUT_MS` (100s), which must stay below the `/tools` route's `maxDuration` (120s): Vercel kills a timed-out function without running the refund;
-- uploads the generated JPEG to Firebase Storage under `generated/{uid}/` and returns a signed URL;
+- uploads the generated JPEG to Firebase Storage under `generated/{uid}/` and returns a v4 signed URL that expires in under 7 days. History stores `storagePath` and refreshes the URL; deleting a history row deletes that object. Account deletion still removes `generated/{uid}/`;
 - logs provider failures server-side and returns `IMAGE_CONTENT_REJECTED` or `IMAGE_GENERATION_FAILED` (`src/utils/imageErrors.ts`) so the UI only blames the prompt for real content-policy refusals;
 - saves image outputs as history entries with `words: "image"`.
 
@@ -222,11 +222,11 @@ Image clients pass a fresh client idempotency key so retries can be deduplicated
 
 - `src/proxy.ts` is a soft edge gate. It checks for auth cookie presence only.
 - Protected routes are defined in `src/constants/routes.ts` and mirrored in the proxy matcher.
-- Every mutation and money path must verify the Firebase ID token server-side.
+- Every mutation and money path must verify the Firebase ID token server-side with `checkRevoked: true`. Allowed sign-in providers are `password`, `google.com`, and `emailLink`.
 - Server actions use `requireAuthedUid()` from `src/actions/serverAuth.ts`.
 - Billing, chat, and proxy API routes use `requireAuthedUidFromRequest()` so browser cookies and React Native Bearer tokens both work.
 - `POST /api/auth/session` verifies the Firebase ID token and sets `xrefAuthToken` as an HttpOnly cookie. Clients do not write that cookie from JavaScript.
-- `isAdminConfigured()` in `src/firebase/firebaseAdmin.ts` is true for the emulators or when `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY` are set. Without it, the session route returns 503 and logs `Auth session unavailable`, and both `requireAuthedUid()` and `requireAuthedUidFromRequest()` throw `AUTH_REQUIRED` before touching the SDK. For local or CI runs without Admin, `ALLOW_UNVERIFIED_SESSION_COOKIE=true` makes the session route set the soft-gate cookie unverified. That cookie still never authorizes spend or APIs. Never set it in production.
+- `isAdminConfigured()` in `src/firebase/firebaseAdmin.ts` is true for the emulators or when `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY` are set. Without it, the session route returns 503 and logs `Auth session unavailable`, and both `requireAuthedUid()` and `requireAuthedUidFromRequest()` throw `AUTH_REQUIRED` before touching the SDK. For local or CI runs without Admin, `ALLOW_UNVERIFIED_SESSION_COOKIE=true` makes the session route set the soft-gate cookie unverified. That flag is ignored when `NODE_ENV` is `production`. The cookie still never authorizes spend or APIs.
 - The auth form shows an error and stays signed out when the session cookie cannot be written, instead of closing as though sign-in worked.
 - Sign-out goes through `signOutUser()` / `useSignOut()` in `src/hooks/useSignOut.ts`. Do not call `signOut(auth)` elsewhere.
 - `useAuthToken()` posts the ID token to that route before profile sync and refreshes it on interval/focus/visibility. Sign-out calls `DELETE /api/auth/session`.
@@ -243,6 +243,8 @@ Source files:
 - `src/actions/serverCredits.ts`
 - `src/app/api/billing/checkout/route.ts`
 - `src/app/api/billing/confirm/route.ts`
+- `src/app/api/billing/webhook/route.ts`
+- `src/actions/stripeFulfillment.ts`
 - `src/actions/confirmIapPurchase.ts`
 - `src/components/ui/CreditsPaywallModal.tsx`
 - `src/components/CreditsLedger.tsx`
@@ -254,10 +256,11 @@ Invariants:
 - Ledger entries accompany credit mutations.
 - Chargeable operations are idempotency-protected.
 - Refunds use deterministic IDs where needed.
-- Stripe confirmation validates auth, metadata UID, payment status, pack ID, and amount before crediting.
-- Stripe fulfillment uses a Firestore lock at `users/{uid}/locks/payment_{sessionId}`.
-- IAP fulfillment verifies HMAC signature over the payload including the store receipt, timestamp freshness, a catalog pack id with that pack's exact credit count, a store receipt that names that same product and transaction, and global transaction claim docs. A claim for the same user does not grant again. The signed credit amount is not a grant ceiling. A signature alone does not grant credits.
-- Payment confirmation is currently return-page driven; there is no Stripe webhook route yet.
+- Stripe confirmation validates auth, metadata UID, payment status, pack ID, USD currency, and amount before crediting. Checkout disables Adaptive Pricing.
+- Stripe fulfillment uses a Firestore lock at `users/{uid}/locks/payment_{sessionId}` on the return page. The signed webhook at `POST /api/billing/webhook` grants the same way and claws credits back on `charge.refunded` and `charge.dispute.created`. Without `STRIPE_WEBHOOK_SECRET` the webhook returns 503 and grants nothing.
+- Credit debits for chat, tools, and images share one transaction with the idempotency record (`debitCreditsIdempotent`).
+- New profiles receive the 1000-credit starter balance only when the ID token's `email_verified` is true. A pending claim pays that balance on a later verified fetch. An existing profile with no claim is sealed and not paid again.
+- IAP fulfillment verifies HMAC signature over the payload including the store receipt, timestamp freshness, a catalog pack id with that pack's exact credit count, a store receipt whose `transaction_id` (not `original_transaction_id`) names that product, `receipt.bundle_id` equal to `APPLE_BUNDLE_ID`, and `app_item_id` when the receipt includes one, plus global transaction claim docs. A claim for the same user does not grant again. The signed credit amount is not a grant ceiling. A signature alone does not grant credits. `IAP_RECEIPT_VERIFY_URL` is ignored in production unless an emulator host is set.
 
 ### Firestore Data Model
 
@@ -274,11 +277,15 @@ users/{uid}/
   account/bootstrap
 
 iapTransactions/{transactionId}
+stripePaymentIntents/{paymentIntentId}
+stripeClawbacks/{eventId}
 ```
+
+`firestore.rules` and `storage.rules` are in the repo and are not deployed by the app. Deploy them separately. Clients may read only `users/{uid}/**`. Profile photo uploads are the only client Storage write (`users/{uid}/profile.png`, PNG, under 2 MB). Generated images are not client-readable; the app uses Admin signed URLs.
 
 Profile strings from client writes are allowlisted and clamped in `profileContract.ts`, which `serverProfile.ts` uses. Credit balance and email are not client-writable. History strings are clamped in `serverHistory.ts`.
 
-Account deletion calls `deleteAccountServer()` in `serverProfile.ts`. It recursively deletes `users/{uid}` (every subcollection, including `account/bootstrap`), deletes Storage under `users/{uid}/` and `generated/{uid}/`, removes `uid` from global `iapTransactions` claims (the claim stays so a receipt cannot be redeemed again), and deletes the Firebase Auth user last so a failed run can be retried. Server auth does not check revocation, so `fetchProfileServer()` calls `adminAuth.getUser()` before creating a profile; a deleted account's still-valid ID token cannot recreate it. `npm run prove:deletion` proves this on emulators. If you add a new per-user collection or Storage path, keep it under those prefixes or extend deletion.
+Account deletion calls `deleteAccountServer()` in `serverProfile.ts`. It recursively deletes `users/{uid}` (every subcollection, including `account/bootstrap`), deletes Storage under `users/{uid}/` and `generated/{uid}/`, removes `uid` from global `iapTransactions` claims (the claim stays so a receipt cannot be redeemed again), and deletes the Firebase Auth user last so a failed run can be retried. Global `stripePaymentIntents` and `stripeClawbacks` docs stay so a later refund is still idempotent. `verifyIdToken` checks revocation. `fetchProfileServer()` also calls `adminAuth.getUser()` before creating a profile so a deleted account's token cannot recreate it. `npm run prove:deletion` proves this on emulators. If you add a new per-user collection or Storage path, keep it under those prefixes or extend deletion.
 
 ### State Management
 
@@ -301,7 +308,7 @@ Account deletion calls `deleteAccountServer()` in `serverProfile.ts`. It recursi
 `GET /api/proxy` is used by the website summarizer. It must remain SSRF-hardened:
 
 - auth required;
-- rate-limited;
+- rate-limited at 10 requests per minute (`proxy`); chat, image, tools, and proxy fail closed when the limiter cannot be read;
 - HTTPS only;
 - default port 443 only;
 - no credentials in target URL;
@@ -372,6 +379,8 @@ High-risk money/auth/data paths:
 - `src/app/api/chat/route.ts`
 - `src/app/api/billing/checkout/route.ts`
 - `src/app/api/billing/confirm/route.ts`
+- `src/app/api/billing/webhook/route.ts`
+- `src/actions/stripeFulfillment.ts`
 - `src/app/api/proxy/route.ts`
 - `src/actions/confirmIapPurchase.ts`
 - `src/actions/serverProfile.ts`
@@ -396,7 +405,7 @@ High-risk UX/platform paths:
 
 ## Deployment And Infrastructure Notes
 
-- No `vercel.json`, `firebase.json`, Dockerfile, cron config, or queue worker config is present in the repository.
+- `firebase.json` points at `firestore.rules`, `firestore.indexes.json`, and `storage.rules`. Do not deploy them from app release automation. No `vercel.json`, Dockerfile, cron config, or queue worker config is present.
 - `.github/workflows/ci.yml` runs on pushes and pull requests to `dev` and `main` on Node 24 (AI SDK 7 and Firebase Admin 14 need Node 22 or later): `npm ci --ignore-scripts`, `npm run lint`, `npm run typecheck`, and `npm run build`, then installs Chromium and runs `npm run test:browser` headlessly. Build-time client values come from repository secrets listed in `docs/ci-secrets.md`. The Firebase client defers initialization when `NEXT_PUBLIC_FIREBASE_APIKEY` is empty, so the build succeeds without them.
 - Deployment is currently inferred to be a standard Next.js deployment driven by `package.json`, `next.config.mjs`, environment variables, and the hosting platform configuration outside this repo.
 - `public/.well-known/apple-app-site-association` and `public/.well-known/assetlinks.json` support native app/WebView association paths. Do not remove them as unused website assets.
@@ -405,7 +414,7 @@ High-risk UX/platform paths:
 ## Failure Signals
 
 - An aborted or failed credits-mode chat restores the debit. If that restore throws, the server logs `Chat refund failed`. The user sees a sanitized error.
-- A rate-limit storage error logs `Rate limit check failed` and fails open so a Firestore hiccup does not become an outage.
+- A rate-limit storage error logs `Rate limit check failed`. Chat, image, tools, and proxy fail closed. Other endpoints fail open so a Firestore hiccup does not become an outage.
 - This repository has no paging service. The deployment owner reads those server logs.
 - Stripe grants happen on the return page. The payment lock prevents a second grant for the same session. A missed return does not grant credits.
 
@@ -447,13 +456,16 @@ AI providers:
 Billing/runtime:
 
 - `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET` optional; webhook returns 503 and grants nothing until it is set
 - `NEXT_PUBLIC_STRIPE_PRODUCT_NAME`
 - `APP_URL`
 - `NEXT_PUBLIC_COOKIE_NAME`
 - `IAP_WEBVIEW_SECRET`
-- `ALLOW_UNVERIFIED_SESSION_COOKIE` optional, local/CI only
+- `APPLE_BUNDLE_ID` required for IAP grants
+- `APPLE_APP_ITEM_ID` required when production receipts include `app_item_id`
+- `ALLOW_UNVERIFIED_SESSION_COOKIE` optional, local/CI only; ignored in production
 
-`APPLE_IAP_SHARED_SECRET` is optional and is sent to Apple's verifyReceipt endpoint when `IAP_RECEIPT_VERIFY_URL` is unset. `IAP_RECEIPT_VERIFY_URL` is an optional local receipt verifier. Android grants stay closed unless that verifier is set.
+`APPLE_IAP_SHARED_SECRET` is optional and is sent to Apple's verifyReceipt endpoint when `IAP_RECEIPT_VERIFY_URL` is unset. `IAP_RECEIPT_VERIFY_URL` is an optional local receipt verifier and is ignored when `NODE_ENV` is `production` unless `FIREBASE_AUTH_EMULATOR_HOST` or `FIRESTORE_EMULATOR_HOST` is set. Android grants stay closed unless that verifier is allowed.
 
 The deployment owner owns configuration drift. When a new environment name is read in `src/`, update this list, `README.md`, and `.env.example` together.
 
@@ -501,7 +513,7 @@ Stop and report instead of continuing when:
 - `GenerationNextActions` exists for fresh text tool outputs, but expanded History cards currently expose repurpose actions only; "continue in chat" from History is still roadmap work.
 - Rate-limit windows live in `src/utils/rateLimit.ts` and the idempotency TTL in `src/utils/idempotency.ts`; `src/constants/index.ts` holds only values that are read.
 - Image generation uses fresh client request IDs like text generation, with a payload-hash fallback on the server action.
-- Payment confirmation is return-page driven; Stripe webhooks or reconciliation are future reliability work.
+- Payment confirmation is return-page driven and also runs from the signed Stripe webhook when `STRIPE_WEBHOOK_SECRET` is set. Refunds and disputes claw credits back from that webhook.
 - Firebase/GA4 measurement config exists, but there is no product analytics helper yet.
 
 <!-- BEGIN:nextjs-agent-rules -->

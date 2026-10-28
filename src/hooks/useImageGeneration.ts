@@ -11,6 +11,7 @@ import { CREDITS_COSTS } from "@/constants/credits";
 import { ROUTES } from "@/constants/routes";
 import { useShallow } from "zustand/react/shallow";
 import { createClientIdempotencyKey } from "@/utils/clientIdempotencyKey";
+import { providerKeysForRequest } from "@/utils/providerRequestKeys";
 import { notEnoughCreditsMessage } from "@/utils/platform";
 import { imageFailureMessage } from "@/utils/imageErrors";
 
@@ -46,11 +47,13 @@ export function useImageGeneration(uid: string | null) {
     const toastId = toast.loading("Generating your image…");
     const generatedPrompt = getImagePrompt(promptData, topic);
 
-    let result: { imageUrl?: string; error?: string };
+    let result: { imageUrl?: string; storagePath?: string; error?: string };
     try {
       result = await generateImage(generatedPrompt, {
         useCredits: generationConfig.useCredits,
-        openaiApiKey: generationConfig.openaiApiKey,
+        ...providerKeysForRequest(generationConfig.useCredits, {
+          openaiApiKey: generationConfig.openaiApiKey,
+        }),
         idempotencyKey: createClientIdempotencyKey(),
       });
     } catch (error) {
@@ -72,6 +75,7 @@ export function useImageGeneration(uid: string | null) {
             topic,
             words: "image",
             xrefs: [],
+            storagePath: result.storagePath,
           });
         } catch (historyError) {
           console.error("Error saving image history:", historyError);

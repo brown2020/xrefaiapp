@@ -6,15 +6,15 @@ import { createOpenAI, openai } from "@ai-sdk/openai";
 import { IMAGE_MODEL_ID } from "@/ai/models";
 import { adminBucket } from "@/firebase/firebaseAdmin";
 import { requireAuthedUid } from "@/actions/serverAuth";
-import { creditCredits, debitCreditsOrThrow } from "@/actions/serverCredits";
+import { creditCredits, debitCreditsIdempotent } from "@/actions/serverCredits";
 import { CREDITS_COSTS } from "@/constants/credits";
 import {
-  checkAndSetIdempotency,
   generateClientIdempotencyKey,
   generateIdempotencyKey,
   markIdempotencyComplete,
   markIdempotencyFailed,
 } from "@/utils/idempotency";
+import { IMAGE_READ_URL_TTL_MS } from "@/utils/generatedImagePath";
 import { checkRateLimit } from "@/utils/rateLimit";
 import {
   classifyImageProviderError,
@@ -29,8 +29,8 @@ type GenerateImageOptions = {
 };
 
 type GenerateImageResult =
-  | { imageUrl: string; error?: undefined }
-  | { imageUrl?: undefined; error: string };
+  | { imageUrl: string; storagePath: string; error?: undefined }
+  | { imageUrl?: undefined; storagePath?: undefined; error: string };
 
 export async function generateImage(
   message: string,
@@ -65,7 +65,16 @@ export async function generateImage(
         ? generateClientIdempotencyKey(uid, options.idempotencyKey)
         : generateIdempotencyKey(uid, { message, tool: "image" });
 
-      const idempotencyResult = await checkAndSetIdempotency(uid, idempotencyKey);
+      const idempotencyResult = await debitCreditsIdempotent(
+        uid,
+        idempotencyKey,
+        CREDITS_COSTS.imageGeneration,
+        {
+          reason: "image_generation",
+          tool: "image",
+          refId: idempotencyKey,
+        }
+      );
       if (!idempotencyResult.isNew) {
         return {
           error:
@@ -74,23 +83,15 @@ export async function generateImage(
               : "REQUEST_IN_PROGRESS",
         };
       }
-
-      try {
-        await debitCreditsOrThrow(uid, CREDITS_COSTS.imageGeneration, {
-          reason: "image_generation",
-          tool: "image",
-          refId: idempotencyKey,
-        });
-        creditsCharged = true;
-      } catch (error) {
-        await markIdempotencyFailed(uid, idempotencyKey).catch(() => undefined);
-        throw error;
-      }
+      creditsCharged = true;
     }
 
     let imageUrl: string;
+    let storagePath: string;
     try {
-      imageUrl = await renderAndStoreImage(uid, message, imageModel);
+      const stored = await renderAndStoreImage(uid, message, imageModel);
+      imageUrl = stored.imageUrl;
+      storagePath = stored.storagePath;
     } catch (providerError) {
       const detail =
         providerError instanceof Error ? providerError.message : String(providerError);
@@ -102,7 +103,7 @@ export async function generateImage(
       await markIdempotencyComplete(chargedUid, idempotencyKey).catch(() => undefined);
     }
 
-    return { imageUrl };
+    return { imageUrl, storagePath };
   } catch (error: unknown) {
     if (useCredits && chargedUid) {
       if (creditsCharged) {
@@ -139,7 +140,7 @@ async function renderAndStoreImage(
   uid: string,
   prompt: string,
   model: Parameters<typeof generateImageWithModel>[0]["model"]
-): Promise<string> {
+): Promise<{ imageUrl: string; storagePath: string }> {
   const { image } = await generateImageWithModel({
     model,
     prompt,
@@ -157,7 +158,8 @@ async function renderAndStoreImage(
 
   const [signedUrl] = await file.getSignedUrl({
     action: "read",
-    expires: "03-17-2125",
+    version: "v4",
+    expires: Date.now() + IMAGE_READ_URL_TTL_MS,
   });
-  return signedUrl;
+  return { imageUrl: signedUrl, storagePath: file.name };
 }

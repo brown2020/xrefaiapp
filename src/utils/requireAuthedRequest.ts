@@ -1,16 +1,17 @@
 import { NextRequest } from "next/server";
-import { adminAuth, isAdminConfigured } from "@/firebase/firebaseAdmin";
+import { isAdminConfigured } from "@/firebase/firebaseAdmin";
 import { getAuthCookieName } from "@/utils/getAuthCookieName";
-import { isTokenVerificationError } from "@/utils/authErrors";
+import { sessionFromIdToken, type VerifiedIdToken } from "@/utils/verifiedIdToken";
 
 /**
  * Extracts and verifies the Firebase ID token from a NextRequest.
  * Checks both the auth cookie and the Authorization header (Bearer token).
  * Use this in API route handlers; for server actions use requireAuthedUid from serverAuth.ts.
+ * Revocation is checked. Unexpected sign-in providers are rejected.
  */
-export async function requireAuthedUidFromRequest(
+export async function requireAuthedSessionFromRequest(
   req: NextRequest
-): Promise<string> {
+): Promise<VerifiedIdToken> {
   const cookieName = getAuthCookieName();
   const cookieToken = req.cookies.get(cookieName)?.value;
   const bearer =
@@ -24,17 +25,11 @@ export async function requireAuthedUidFromRequest(
   if (!idToken) throw new Error("AUTH_REQUIRED");
   // Without Admin nothing can be verified, so a cookie alone never authorizes.
   if (!isAdminConfigured()) throw new Error("AUTH_REQUIRED");
+  return sessionFromIdToken(idToken);
+}
 
-  let decoded;
-  try {
-    decoded = await adminAuth.verifyIdToken(idToken);
-  } catch (error) {
-    if (isTokenVerificationError(error)) {
-      throw new Error("AUTH_REQUIRED", { cause: error });
-    }
-    // Transient infra/network failures: don't mask as a 401.
-    throw error;
-  }
-  if (!decoded?.uid) throw new Error("AUTH_REQUIRED");
-  return decoded.uid;
+export async function requireAuthedUidFromRequest(
+  req: NextRequest
+): Promise<string> {
+  return (await requireAuthedSessionFromRequest(req)).uid;
 }

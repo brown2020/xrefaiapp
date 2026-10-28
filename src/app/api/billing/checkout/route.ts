@@ -1,24 +1,11 @@
 import { NextRequest } from "next/server";
-import Stripe from "stripe";
 import { CREDIT_PACKS } from "@/constants/creditPacks";
 import { ROUTES } from "@/constants/routes";
 import { requireAuthedUidFromRequest } from "@/utils/requireAuthedRequest";
 import { sanitizeInternalRedirectPath } from "@/utils/redirectPath";
+import { getStripe } from "@/utils/stripeServer";
 
 export const runtime = "nodejs";
-
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) throw new Error(`Missing env var: ${name}`);
-  return value;
-}
-
-let stripe: Stripe | null = null;
-function getStripe() {
-  if (stripe) return stripe;
-  stripe = new Stripe(requireEnv("STRIPE_SECRET_KEY"));
-  return stripe;
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -45,6 +32,7 @@ export async function POST(req: NextRequest) {
 
     const checkoutSession = await getStripe().checkout.sessions.create({
       mode: "payment",
+      adaptive_pricing: { enabled: false },
       allowed_payment_method_types: ["card"],
       line_items: [
         {

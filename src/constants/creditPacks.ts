@@ -27,9 +27,12 @@ export const CREDIT_PACKS: readonly CreditPack[] = [
 
 export const DEFAULT_CREDIT_PACK_ID: CreditPackId = "plus";
 
+export function findCreditPack(id: string | null | undefined): CreditPack | undefined {
+  return CREDIT_PACKS.find((p) => p.id === id);
+}
+
 export function getCreditPack(id: string | null | undefined): CreditPack {
-  const pack = CREDIT_PACKS.find((p) => p.id === id);
-  return pack ?? CREDIT_PACKS.find((p) => p.id === DEFAULT_CREDIT_PACK_ID)!;
+  return findCreditPack(id) ?? CREDIT_PACKS.find((p) => p.id === DEFAULT_CREDIT_PACK_ID)!;
 }
 
 export function formatDollarsFromCents(amountCents: number): string {

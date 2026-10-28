@@ -5,7 +5,7 @@ import crypto from "crypto";
 /**
  * Default TTL for idempotency keys (24 hours in milliseconds)
  */
-const DEFAULT_IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000;
+export const DEFAULT_IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000;
 
 /**
  * Generates a deterministic idempotency key from user ID and request payload.

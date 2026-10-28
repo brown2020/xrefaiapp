@@ -8,12 +8,12 @@ import {
 import { NextRequest } from "next/server";
 import { getTextModel } from "@/ai/getTextModel";
 import { requireAuthedUidFromRequest } from "@/utils/requireAuthedRequest";
-import { creditCredits, debitCreditsOrThrow } from "@/actions/serverCredits";
+import { creditCredits, debitCreditsIdempotent } from "@/actions/serverCredits";
+import { TEXT_PROVIDER_TIMEOUT_MS } from "@/constants";
 import { CREDITS_COSTS } from "@/constants/credits";
 import {
   generateIdempotencyKey,
   generateClientIdempotencyKey,
-  checkAndSetIdempotency,
   markIdempotencyComplete,
   markIdempotencyFailed,
 } from "@/utils/idempotency";
@@ -23,6 +23,9 @@ import { chatRequestSchema } from "@/utils/actionContracts";
 import { boundChatInput } from "@/utils/providerInputBudget";
 
 export const runtime = "nodejs";
+
+/** Must stay above TEXT_PROVIDER_TIMEOUT_MS so a timed-out stream can refund. */
+export const maxDuration = 120;
 
 type ChatHistoryItem = { prompt: string; response: string };
 
@@ -146,7 +149,17 @@ export async function POST(req: NextRequest) {
     };
 
     if (useCredits) {
-      const idempotencyResult = await checkAndSetIdempotency(uid, idempotencyKey);
+      const idempotencyResult = await debitCreditsIdempotent(
+        uid,
+        idempotencyKey,
+        CREDITS_COSTS.chatMessage,
+        {
+          reason: "chat_message",
+          tool: "chat",
+          modelKey: body.modelKey,
+          refId: idempotencyKey,
+        }
+      );
 
       if (!idempotencyResult.isNew) {
         const errorCode =
@@ -155,29 +168,21 @@ export async function POST(req: NextRequest) {
             : "CHAT_REQUEST_IN_PROGRESS";
         return Response.json({ error: errorCode }, { status: 409 });
       }
-
-      try {
-        await debitCreditsOrThrow(uid, CREDITS_COSTS.chatMessage, {
-          reason: "chat_message",
-          tool: "chat",
-          modelKey: body.modelKey,
-          refId: idempotencyKey,
-        });
-        creditsCharged = true;
-      } catch (error) {
-        await markIdempotencyFailed(uid, idempotencyKey).catch(() => undefined);
-        throw error;
-      }
+      creditsCharged = true;
     }
 
-    // Abort controller wired to the incoming request: if the client
-    // disconnects mid-stream we refund the credit and clear the idempotency
-    // marker so the user can retry.
+    // Abort controller wired to the incoming request and to the provider
+    // timeout: if either fires we refund the credit and clear idempotency.
     const abortController = new AbortController();
     const forwardAbort = () => {
       if (!abortController.signal.aborted) abortController.abort();
     };
     req.signal.addEventListener("abort", forwardAbort, { once: true });
+    AbortSignal.timeout(TEXT_PROVIDER_TIMEOUT_MS).addEventListener(
+      "abort",
+      forwardAbort,
+      { once: true }
+    );
 
     try {
       const result = streamText({

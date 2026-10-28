@@ -1,8 +1,13 @@
 "use server";
 
 import { FieldValue } from "firebase-admin/firestore";
-import { adminDb } from "@/firebase/firebaseAdmin";
+import { adminBucket, adminDb } from "@/firebase/firebaseAdmin";
 import { requireAuthedUid } from "@/actions/serverAuth";
+import {
+  IMAGE_READ_URL_TTL_MS,
+  ownedGeneratedPath,
+  storagePathFromHistoryFields,
+} from "@/utils/generatedImagePath";
 
 export interface SaveHistoryInput {
   prompt: string;
@@ -14,6 +19,8 @@ export interface SaveHistoryInput {
   tool?: string;
   starterIntentId?: string;
   settings?: Record<string, unknown>;
+  /** Storage object path for a generated image, under `generated/{uid}/`. */
+  storagePath?: string;
 }
 
 /** Hard size caps to prevent oversized Firestore documents. */
@@ -59,6 +66,7 @@ export async function saveHistoryServer(
   const safeXrefs = Array.isArray(entry.xrefs)
     ? entry.xrefs.slice(0, MAX_XREFS).map((x) => clampString(x, MAX_XREF_LEN))
     : [];
+  const storagePath = ownedGeneratedPath(uid, entry.storagePath);
 
   await docRef.set({
     id: docRef.id,
@@ -75,6 +83,7 @@ export async function saveHistoryServer(
       : null,
     settings: sanitizeSettings(entry.settings),
     xrefs: safeXrefs,
+    storagePath,
     timestamp: FieldValue.serverTimestamp(),
   });
 
@@ -85,11 +94,23 @@ const HISTORY_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 /** Firestore caps a write batch at 500 operations. */
 const CLEAR_BATCH_SIZE = 400;
 
+async function deleteStoredImage(
+  uid: string,
+  fields: { storagePath?: unknown; response?: unknown } | undefined
+): Promise<void> {
+  const path = storagePathFromHistoryFields(uid, fields ?? {});
+  if (!path) return;
+  await adminBucket.file(path).delete({ ignoreNotFound: true });
+}
+
 export async function deleteHistoryItemServer(id: string): Promise<void> {
   const uid = await requireAuthedUid();
   if (typeof id !== "string" || !HISTORY_ID_PATTERN.test(id)) {
     throw new Error("INVALID_HISTORY_ID");
   }
+  const ref = adminDb.doc(`users/${uid}/summaries/${id}`);
+  const snap = await ref.get();
+  if (snap.exists) await deleteStoredImage(uid, snap.data());
   await adminDb.doc(`users/${uid}/summaries/${id}`).delete();
 }
 
@@ -101,6 +122,9 @@ export async function clearHistoryServer(): Promise<number> {
   for (;;) {
     const snap = await collRef.limit(CLEAR_BATCH_SIZE).get();
     if (snap.empty) return deleted;
+    await Promise.all(
+      snap.docs.map((doc) => deleteStoredImage(uid, doc.data()).catch(() => undefined))
+    );
     const batch = adminDb.batch();
     for (const doc of snap.docs) batch.delete(doc.ref);
     await batch.commit();
@@ -123,4 +147,17 @@ export async function saveChatServer(
   });
 
   return docRef.id;
+}
+
+/** Fresh short-lived read URL for an image this user generated. */
+export async function refreshHistoryImageUrl(storagePath: string): Promise<string | null> {
+  const uid = await requireAuthedUid();
+  const path = ownedGeneratedPath(uid, storagePath);
+  if (!path) return null;
+  const [url] = await adminBucket.file(path).getSignedUrl({
+    action: "read",
+    version: "v4",
+    expires: Date.now() + IMAGE_READ_URL_TTL_MS,
+  });
+  return url;
 }

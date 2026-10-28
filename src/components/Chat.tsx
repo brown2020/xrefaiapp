@@ -29,6 +29,7 @@ import {
 } from "@/constants/starterIntents";
 import { ChatType } from "@/types/ChatType";
 import { notEnoughCreditsMessage } from "@/utils/platform";
+import { providerKeysForRequest } from "@/utils/providerRequestKeys";
 
 interface ChatProps {
   initialPrompt?: string;
@@ -212,10 +213,12 @@ export default function Chat({ initialPrompt, starterIntentId }: ChatProps) {
             history: historyForRequest,
             modelKey: generationConfig.textModel,
             useCredits: generationConfig.useCredits,
-            openaiApiKey: generationConfig.openaiApiKey,
-            anthropicApiKey: generationConfig.anthropicApiKey,
-            xaiApiKey: generationConfig.xaiApiKey,
-            googleApiKey: generationConfig.googleApiKey,
+            ...providerKeysForRequest(generationConfig.useCredits, {
+              openaiApiKey: generationConfig.openaiApiKey,
+              anthropicApiKey: generationConfig.anthropicApiKey,
+              xaiApiKey: generationConfig.xaiApiKey,
+              googleApiKey: generationConfig.googleApiKey,
+            }),
             idempotencyKey,
           },
         }

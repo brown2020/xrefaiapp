@@ -30,6 +30,7 @@ import {
   isInsufficientCreditsError,
 } from "@/utils/errors";
 import { createClientIdempotencyKey } from "@/utils/clientIdempotencyKey";
+import { providerKeysForRequest } from "@/utils/providerRequestKeys";
 import GenerationNextActions from "@/components/GenerationNextActions";
 import { clampStarterWordCount } from "@/constants/toolMetadata";
 import type { ToolInitialProps } from "@/types/ToolInitialProps";
@@ -117,10 +118,12 @@ export default function SummarizeTopic({
         modelKey: generationConfig.textModel,
         useCredits: generationConfig.useCredits,
         requestedWordCount: wordnum,
-        openaiApiKey: generationConfig.openaiApiKey,
-        anthropicApiKey: generationConfig.anthropicApiKey,
-        xaiApiKey: generationConfig.xaiApiKey,
-        googleApiKey: generationConfig.googleApiKey,
+        ...providerKeysForRequest(generationConfig.useCredits, {
+          openaiApiKey: generationConfig.openaiApiKey,
+          anthropicApiKey: generationConfig.anthropicApiKey,
+          xaiApiKey: generationConfig.xaiApiKey,
+          googleApiKey: generationConfig.googleApiKey,
+        }),
         idempotencyKey: createClientIdempotencyKey(),
       });
       let chunkCount = 0;
@@ -174,6 +177,11 @@ export default function SummarizeTopic({
           "That request is already being handled. Please wait a moment."
         );
         completeWithError("Duplicate request");
+        return;
+      }
+      if (error instanceof Error && error.message === "RATE_LIMITED") {
+        toast.error("Too many requests. Please wait a moment.");
+        completeWithError("Rate limited");
         return;
       }
       if (error instanceof EmptyCompletionError) {

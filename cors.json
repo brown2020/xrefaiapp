@@ -1,6 +1,6 @@
 [
   {
-    "origin": ["*"],
+    "origin": ["https://xref.ai", "https://www.xref.ai"],
     "method": ["GET"],
     "maxAgeSeconds": 3600
   }

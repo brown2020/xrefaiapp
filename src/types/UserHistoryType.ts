@@ -25,4 +25,5 @@ export type UserHistoryType = {
    * Optional generation settings for backward-compatible metadata.
    */
   settings?: Record<string, string>;
+  storagePath?: string;
 };

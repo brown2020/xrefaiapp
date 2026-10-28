@@ -83,6 +83,7 @@ function startReceipts() {
         ? {
             status: 0,
             receipt: {
+              bundle_id: "ai.xref.app",
               in_app: [
                 { product_id: body.productId, transaction_id: body.transactionId },
               ],
@@ -177,6 +178,7 @@ async function waitHttp(url, timeoutMs) {
 }
 
 async function signUp(email) {
+  const password = "proof-password-1";
   const response = await fetch(
     `http://127.0.0.1:${authPort}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=demo`,
     {
@@ -184,14 +186,42 @@ async function signUp(email) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         email,
-        password: "proof-password-1",
+        password,
         returnSecureToken: true,
       }),
     }
   );
   const body = await response.json();
   if (!response.ok) throw new Error(`Auth emulator sign-up failed: ${response.status}`);
-  return { uid: body.localId, idToken: body.idToken };
+
+  // Starter credits require a verified email on the ID token. Updating the
+  // user record does not refresh an existing token, so sign in again.
+  const verified = await fetch(
+    `http://127.0.0.1:${authPort}/identitytoolkit.googleapis.com/v1/accounts:update?key=demo`,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: "Bearer owner",
+      },
+      body: JSON.stringify({ localId: body.localId, emailVerified: true }),
+    }
+  );
+  if (!verified.ok) {
+    throw new Error(`Auth emulator email verify failed: ${verified.status}`);
+  }
+
+  const signedIn = await fetch(
+    `http://127.0.0.1:${authPort}/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=demo`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email, password, returnSecureToken: true }),
+    }
+  );
+  const session = await signedIn.json();
+  if (!signedIn.ok) throw new Error(`Auth emulator sign-in failed: ${signedIn.status}`);
+  return { uid: session.localId, idToken: session.idToken };
 }
 
 async function sessionCookie(idToken) {
@@ -302,6 +332,7 @@ async function main() {
     OPENAI_API_KEY: "fixture-openai-key",
     IAP_WEBVIEW_SECRET: iapSecret,
     IAP_RECEIPT_VERIFY_URL: `http://127.0.0.1:${receiptPort}/verify`,
+    APPLE_BUNDLE_ID: "ai.xref.app",
     NEXT_PUBLIC_COOKIE_NAME: "xrefAuthToken",
   };
   const nextServer = spawnLogged(

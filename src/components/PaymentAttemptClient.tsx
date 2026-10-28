@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { getCreditPack } from "@/constants/creditPacks";
+import { findCreditPack } from "@/constants/creditPacks";
 import { ROUTES } from "@/constants/routes";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -20,18 +20,19 @@ export default function PaymentAttemptClient() {
     searchParams?.get("redirect"),
     ROUTES.account
   );
-  const pack = getCreditPack(packId);
+  const pack = findCreditPack(packId);
   const [error, setError] = useState<string | null>(null);
   const isInApp = useIsInApp();
 
   const payload = useMemo(
-    () => ({ packId: pack.id, redirectPath: redirect }),
-    [pack.id, redirect]
+    () => (pack ? { packId: pack.id, redirectPath: redirect } : null),
+    [pack, redirect]
   );
 
   useEffect(() => {
     // The mobile app does not sell credits; never start web checkout there.
     if (isReactNativeWebView()) return;
+    if (!payload) return;
     let isCancelled = false;
 
     const run = async () => {
@@ -83,6 +84,29 @@ export default function PaymentAttemptClient() {
     );
   }
 
+  if (!pack) {
+    return (
+      <main className="min-h-full flex items-center justify-center px-4 py-10 bg-muted/30">
+        <div className="w-full max-w-lg bg-card text-card-foreground border border-border rounded-2xl shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-border">
+            <h1 className="text-xl font-bold text-foreground">Unknown credit pack</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Choose a pack from your account page.
+            </p>
+          </div>
+          <div className="p-6 flex justify-end">
+            <Link
+              href={ROUTES.account}
+              className="inline-flex items-center justify-center px-5 py-2.5 bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition-opacity"
+            >
+              Back to account
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   if (error) {
     return (
       <main className="min-h-full flex items-center justify-center px-4 py-10 bg-muted/30">
@@ -100,14 +124,16 @@ export default function PaymentAttemptClient() {
             >
               Back to account
             </Link>
-            <Link
-              href={`${ROUTES.paymentAttempt}?pack=${encodeURIComponent(
-                pack.id
-              )}&redirect=${encodeURIComponent(redirect)}`}
-              className="inline-flex items-center justify-center px-5 py-2.5 bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition-opacity"
-            >
-              Try again
-            </Link>
+            {pack ? (
+              <Link
+                href={`${ROUTES.paymentAttempt}?pack=${encodeURIComponent(
+                  pack.id
+                )}&redirect=${encodeURIComponent(redirect)}`}
+                className="inline-flex items-center justify-center px-5 py-2.5 bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition-opacity"
+              >
+                Try again
+              </Link>
+            ) : null}
           </div>
         </div>
       </main>

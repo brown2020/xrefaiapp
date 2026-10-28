@@ -6,16 +6,17 @@ import { randomUUID } from "crypto";
 import type { AiModelKey } from "@/ai/models";
 import { getTextModel } from "@/ai/getTextModel";
 import { requireAuthedUid } from "@/actions/serverAuth";
-import { creditCredits, debitCreditsOrThrow } from "@/actions/serverCredits";
+import { creditCredits, debitCreditsIdempotent } from "@/actions/serverCredits";
+import { TEXT_PROVIDER_TIMEOUT_MS } from "@/constants";
 import { CREDITS_COSTS, getTextGenerationCreditsCost } from "@/constants/credits";
 import { MAX_WORD_COUNT, MIN_WORD_COUNT } from "@/constants";
 import {
-  checkAndSetIdempotency,
   generateClientIdempotencyKey,
   generateIdempotencyKey,
   markIdempotencyComplete,
   markIdempotencyFailed,
 } from "@/utils/idempotency";
+import { checkRateLimit } from "@/utils/rateLimit";
 import { generationInputSchema } from "@/utils/actionContracts";
 import { boundConversation, boundPromptPair } from "@/utils/providerInputBudget";
 
@@ -172,29 +173,34 @@ async function generateAIResponse(rawInput: MessageInput) {
       ? generateClientIdempotencyKey(chargedUid, input.idempotencyKey)
       : generateIdempotencyKey(chargedUid, payloadForIdempotency);
 
-    const idempotencyResult = await checkAndSetIdempotency(chargedUid, idempotencyKey);
+    const rateLimit = await checkRateLimit(chargedUid, "tools");
+    if (!rateLimit.allowed) {
+      throw new Error("RATE_LIMITED");
+    }
+
+    const idempotencyResult = await debitCreditsIdempotent(chargedUid, idempotencyKey, cost, {
+      reason: input.type === "conversation" ? "chat_message" : "text_generation",
+      tool: input.type === "conversation" ? "chat" : "tools",
+      modelKey: input.modelKey,
+      refId: idempotencyKey,
+    });
     if (!idempotencyResult.isNew) {
       if (idempotencyResult.status === "completed") {
         throw new Error("DUPLICATE_REQUEST");
       }
       throw new Error("REQUEST_IN_PROGRESS");
     }
-
-    try {
-      await debitCreditsOrThrow(chargedUid, cost, {
-        reason: input.type === "conversation" ? "chat_message" : "text_generation",
-        tool: input.type === "conversation" ? "chat" : "tools",
-        modelKey: input.modelKey,
-        refId: idempotencyKey,
-      });
-      creditsCharged = true;
-    } catch (error) {
-      await markIdempotencyFailed(chargedUid, idempotencyKey).catch(() => undefined);
-      throw error;
-    }
+    creditsCharged = true;
   }
 
   const abortController = new AbortController();
+  AbortSignal.timeout(TEXT_PROVIDER_TIMEOUT_MS).addEventListener(
+    "abort",
+    () => {
+      if (!abortController.signal.aborted) abortController.abort();
+    },
+    { once: true }
+  );
 
   try {
     const result = streamText({

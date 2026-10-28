@@ -9,7 +9,7 @@ import {
   Download,
   Trash2,
 } from "lucide-react";
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 import { Timestamp } from "firebase/firestore";
 
@@ -40,6 +40,8 @@ import {
   isInsufficientCreditsError,
 } from "@/utils/errors";
 import { createClientIdempotencyKey } from "@/utils/clientIdempotencyKey";
+import { providerKeysForRequest } from "@/utils/providerRequestKeys";
+import { refreshHistoryImageUrl } from "@/actions/serverHistory";
 import { useIsOverflowing } from "@/hooks/useIsOverflowing";
 import { formatDateTime } from "@/utils/formatDateTime";
 import { notEnoughCreditsMessage } from "@/utils/platform";
@@ -91,6 +93,7 @@ export default function History() {
         tool: (d.tool as string) || undefined,
         starterIntentId: (d.starterIntentId as string) || undefined,
         settings: readHistorySettings(d.settings),
+        storagePath: typeof d.storagePath === "string" ? d.storagePath : undefined,
       };
     },
     []
@@ -408,10 +411,12 @@ function HistoryCard({
           modelKey: profile.text_model,
           useCredits: profile.useCredits,
           requestedWordCount: target.words,
-          openaiApiKey: profile.openai_api_key,
-          anthropicApiKey: profile.anthropic_api_key,
-          xaiApiKey: profile.xai_api_key,
-          googleApiKey: profile.google_api_key,
+          ...providerKeysForRequest(profile.useCredits, {
+            openaiApiKey: profile.openai_api_key,
+            anthropicApiKey: profile.anthropic_api_key,
+            xaiApiKey: profile.xai_api_key,
+            googleApiKey: profile.google_api_key,
+          }),
           idempotencyKey: createClientIdempotencyKey(),
         });
 
@@ -435,6 +440,8 @@ function HistoryCard({
           toast.error(
             "That repurpose is already being handled. Please wait a moment."
           );
+        } else if (error instanceof Error && error.message === "RATE_LIMITED") {
+          toast.error("Too many requests. Please wait a moment.");
         } else {
           console.error("Repurpose error:", error);
           toast.error("Could not repurpose this item right now.");
@@ -553,7 +560,10 @@ function HistoryCard({
                 <BotResponseHeader />
 
                 {isImage ? (
-                  <ImageResponse imageUrl={summary.response} />
+                  <ImageResponse
+                    imageUrl={summary.response}
+                    storagePath={summary.storagePath}
+                  />
                 ) : (
                   <TextResponse
                     content={summary.response}
@@ -673,12 +683,31 @@ function BotResponseHeader() {
   );
 }
 
-function ImageResponse({ imageUrl }: { imageUrl: string }) {
+function ImageResponse({
+  imageUrl,
+  storagePath,
+}: {
+  imageUrl: string;
+  storagePath?: string;
+}) {
+  const [src, setSrc] = useState(imageUrl);
+
+  useEffect(() => {
+    if (!storagePath) return;
+    let cancelled = false;
+    void refreshHistoryImageUrl(storagePath).then((url) => {
+      if (!cancelled && url) setSrc(url);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [storagePath]);
+
   return (
     <div className="space-y-4">
       <div className="relative rounded-xl overflow-hidden bg-muted border border-border">
         <Image
-          src={imageUrl}
+          src={src}
           alt="Generated Image"
           width={512}
           height={512}
@@ -689,14 +718,14 @@ function ImageResponse({ imageUrl }: { imageUrl: string }) {
       <div className="flex gap-2 flex-wrap">
         <button
           type="button"
-          onClick={() => copyImageToClipboard(imageUrl)}
+          onClick={() => copyImageToClipboard(src)}
           className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted px-3 py-2 rounded-lg border border-border hover:bg-muted/70 transition-colors"
         >
           <Copy size={14} aria-hidden /> Copy URL
         </button>
         <button
           type="button"
-          onClick={() => downloadImage(imageUrl)}
+          onClick={() => downloadImage(src)}
           className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted px-3 py-2 rounded-lg border border-border hover:bg-muted/70 transition-colors"
         >
           <Download size={14} aria-hidden /> Download
