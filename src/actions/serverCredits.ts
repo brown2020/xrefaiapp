@@ -210,7 +210,7 @@ export async function debitCreditsIdempotent(
   });
 }
 
-async function getCredits(uid: string): Promise<number> {
+export async function getCredits(uid: string): Promise<number> {
   const profileRef = adminDb.doc(`users/${uid}/profile/userData`);
   const snap = await profileRef.get();
   return coerceCredits(snap.exists ? snap.data()?.credits : 0, 0);

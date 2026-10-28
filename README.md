@@ -13,7 +13,7 @@ Deeper docs for agents and product direction live in [AGENTS.md](./AGENTS.md) an
 - **Streaming chat** (`/chat`) — Vercel AI SDK transport; recent history as context; credit debit / refund / rate limits / idempotency; saves under `users/{uid}/chats`
 - **Tools** (`/tools`) — Summarize Website (via SSRF-hardened `/api/proxy`), Summarize Text, Freestyle Writing, Simplify Writing, Generate Image (OpenAI `gpt-image-2`), Designer Prompt builder
 - **History** (`/history`) — search, pagination, expand, copy/download, markdown, text repurpose actions, per-item delete, and Clear all
-- **Account** (`/account`) — credits, ledger, Stripe credit packs, payment history, API-key mode + model selection, account deletion
+- **Account** (`/account`) — credits, ledger, Stripe credit packs, payment history, API-key mode + model selection, account deletion. The 1,000 starter credits are granted only after the ID token says the email is verified (Google counts when the token says so). An unverified account stays at 0 and is told to verify; the grant happens once on the next verified sign-in.
 - **Payments** — Stripe Checkout (`/api/billing/checkout` + `/confirm`); Expo/WebView IAP confirmation with HMAC + optional Apple receipt verify
 - **Public pages** — `/about`, `/privacy`, `/terms`, `/support`
 - **Models (credits / user keys)** — OpenAI `gpt-5.4`, Anthropic `claude-sonnet-4-6`, xAI `grok-4.7`, Google `gemini-3.1-pro-preview`

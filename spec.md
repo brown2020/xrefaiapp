@@ -173,7 +173,7 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
 
 #### Account, Credits, And Payments
 
-- New server-created profiles default to 1,000 credits.
+- New server-created profiles receive 1,000 starter credits only when the server-verified ID token has `email_verified: true`. Google sign-in counts when that claim is true. An unverified email/password account stays at 0, is told to verify, and is paid once on a later verified sign-in through the bootstrap claim. A profile that already exists with no claim is not paid again. The client cannot set this flag.
 - Current credit costs:
   - chat message: 25 credits;
   - image generation: 300 credits;

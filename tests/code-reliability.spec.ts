@@ -32,6 +32,8 @@ import {
 } from "../src/utils/providerInputBudget";
 import { safeProxyHeaders } from "../src/utils/proxyResponse";
 import { creditsForNewProfile, starterCreditsToAdd } from "../src/utils/starterGrant";
+import { UNVERIFIED_STARTER_CREDITS_MESSAGE } from "../src/utils/starterCreditsMessage";
+import { isInsufficientCreditsError } from "../src/utils/errors";
 import { allowsUnverifiedSessionCookieFrom } from "../src/utils/sessionCookiePolicy";
 import { paidCheckoutMatchesPack } from "../src/utils/stripeCheckout";
 import { providerKeysForRequest } from "../src/utils/providerRequestKeys";
@@ -124,32 +126,64 @@ test.describe("code reliability contracts", () => {
     expect(storeReceiptMatches(withAppItem, { ...expected, appItemId: "123" })).toBe(true);
   });
 
-  test("a claimed starter grant does not pay the initial balance again", () => {
-    expect(creditsForNewProfile(false, 1000)).toBe(1000);
-    expect(creditsForNewProfile(true, 1000)).toBe(0);
+  test("starter credits wait for a verified email and pay once", () => {
     expect(starterCreditsToAdd({
       profileExists: false,
       claimState: "missing",
+      emailVerified: false,
+      initialCredits: 1000,
+    })).toBe(0);
+    expect(creditsForNewProfile(false, false, 1000)).toBe(0);
+
+    expect(starterCreditsToAdd({
+      profileExists: false,
+      claimState: "missing",
+      emailVerified: true,
       initialCredits: 1000,
     })).toBe(1000);
+    expect(creditsForNewProfile(false, true, 1000)).toBe(1000);
+
     expect(starterCreditsToAdd({
       profileExists: true,
-      claimState: "missing",
+      claimState: "pending",
+      emailVerified: false,
       initialCredits: 1000,
     })).toBe(0);
     expect(starterCreditsToAdd({
       profileExists: true,
       claimState: "pending",
+      emailVerified: true,
       initialCredits: 1000,
     })).toBe(1000);
+    expect(starterCreditsToAdd({
+      profileExists: true,
+      claimState: "granted",
+      emailVerified: true,
+      initialCredits: 1000,
+    })).toBe(0);
+    expect(creditsForNewProfile(true, true, 1000)).toBe(0);
+
+    expect(starterCreditsToAdd({
+      profileExists: true,
+      claimState: "missing",
+      emailVerified: true,
+      initialCredits: 1000,
+    })).toBe(0);
+
+    const profile = readFileSync("src/actions/serverProfile.ts", "utf8");
+    expect(profile).toContain("const emailVerified = session.emailVerified");
+    expect(profile).not.toContain("authOverrides?.authEmailVerified");
+    expect(profile).toContain("starterGrantClaimed: false");
   });
 
   test("chat refuses a short balance before the model and shows one message", () => {
     const route = readFileSync("src/app/api/chat/route.ts", "utf8");
-    const debitAt = route.indexOf("debitCreditsIdempotent");
+    const refusedAt = route.indexOf('{ error: "INSUFFICIENT_CREDITS" }, { status: 402 }');
+    const debitAt = route.indexOf("await debitCreditsIdempotent");
     const modelAt = route.indexOf("getTextModel(");
     const streamAt = route.indexOf("streamText(");
-    expect(debitAt).toBeGreaterThan(0);
+    expect(refusedAt).toBeGreaterThan(0);
+    expect(debitAt).toBeGreaterThan(refusedAt);
     expect(modelAt).toBeGreaterThan(debitAt);
     expect(streamAt).toBeGreaterThan(modelAt);
 
@@ -159,6 +193,9 @@ test.describe("code reliability contracts", () => {
     expect(errorAt).toBeGreaterThan(0);
     expect(emptyAt).toBeGreaterThan(errorAt);
     expect(chat).toContain("generationConfig.credits < CREDITS_COSTS.chatMessage");
+    expect(chat).toContain("UNVERIFIED_STARTER_CREDITS_MESSAGE");
+    expect(UNVERIFIED_STARTER_CREDITS_MESSAGE).toContain("Verify your email");
+    expect(isInsufficientCreditsError({ statusCode: 402, message: "Failed" })).toBe(true);
   });
 
   test("auth session cookies are HttpOnly", () => {

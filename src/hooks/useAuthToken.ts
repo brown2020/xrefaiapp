@@ -153,10 +153,23 @@ const useAuthToken = (cookieName = getAuthCookieName()) => {
     if (typeof window === "undefined") return;
 
     const handleFocus = () => {
-      if (document.visibilityState === "visible" && auth.currentUser) {
-        void refreshAuthToken();
+      if (document.visibilityState !== "visible" || !auth.currentUser) return;
+      void (async () => {
+        const profile = useProfileStore.getState();
+        const waitingOnVerification = profile.profileLoaded && !profile.profile.emailVerified;
+        if (waitingOnVerification) {
+          try {
+            await auth.currentUser?.reload();
+          } catch {
+            // A failed reload still lets the token refresh run.
+          }
+        }
+        await refreshAuthToken();
+        if (waitingOnVerification) {
+          await useProfileStore.getState().fetchProfile();
+        }
         scheduleTokenRefresh();
-      }
+      })();
     };
 
     window.addEventListener("focus", handleFocus);

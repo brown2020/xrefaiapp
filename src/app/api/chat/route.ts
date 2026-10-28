@@ -8,7 +8,7 @@ import {
 import { NextRequest } from "next/server";
 import { getTextModel } from "@/ai/getTextModel";
 import { requireAuthedUidFromRequest } from "@/utils/requireAuthedRequest";
-import { creditCredits, debitCreditsIdempotent } from "@/actions/serverCredits";
+import { creditCredits, debitCreditsIdempotent, getCredits } from "@/actions/serverCredits";
 import { TEXT_PROVIDER_TIMEOUT_MS } from "@/constants";
 import { CREDITS_COSTS } from "@/constants/credits";
 import {
@@ -140,6 +140,11 @@ export async function POST(req: NextRequest) {
     };
 
     if (useCredits) {
+      const balance = await getCredits(uid);
+      if (balance < CREDITS_COSTS.chatMessage) {
+        return Response.json({ error: "INSUFFICIENT_CREDITS" }, { status: 402 });
+      }
+
       const idempotencyResult = await debitCreditsIdempotent(
         uid,
         idempotencyKey,
@@ -225,7 +230,7 @@ export async function POST(req: NextRequest) {
     if (error instanceof Error && error.message === "AUTH_REQUIRED") {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (error instanceof Error && error.message === "INSUFFICIENT_CREDITS") {
+    if (error instanceof Error && error.message.includes("INSUFFICIENT_CREDITS")) {
       return Response.json({ error: "INSUFFICIENT_CREDITS" }, { status: 402 });
     }
     console.error("Chat API error:", error);

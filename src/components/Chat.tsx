@@ -30,6 +30,8 @@ import {
 import { ChatType } from "@/types/ChatType";
 import { notEnoughCreditsMessage } from "@/utils/platform";
 import { providerKeysForRequest } from "@/utils/providerRequestKeys";
+import { UNVERIFIED_STARTER_CREDITS_MESSAGE } from "@/utils/starterCreditsMessage";
+import { VerifyEmailNotice } from "@/components/VerifyEmailNotice";
 
 interface ChatProps {
   initialPrompt?: string;
@@ -39,9 +41,11 @@ interface ChatProps {
 export default function Chat({ initialPrompt, starterIntentId }: ChatProps) {
   const uid = useAuthStore((s) => s.uid);
   const profilePhotoUrl = useProfileStore((s) => s.profile.photoUrl);
+  const profileLoaded = useProfileStore((s) => s.profileLoaded);
   const generationConfig = useProfileStore(
     useShallow((s) => ({
       credits: s.profile.credits,
+      emailVerified: s.profile.emailVerified,
       useCredits: s.profile.useCredits,
       textModel: s.profile.text_model,
       openaiApiKey: s.profile.openai_api_key,
@@ -145,12 +149,16 @@ export default function Chat({ initialPrompt, starterIntentId }: ChatProps) {
         return;
       }
       if (isInsufficientCreditsError(error)) {
-        toast.error(notEnoughCreditsMessage());
-        openPaywall({
-          actionLabel: "Chat message",
-          requiredCredits: CREDITS_COSTS.chatMessage,
-          redirectPath: ROUTES.chat,
-        });
+        if (!generationConfig.emailVerified) {
+          toast.error(UNVERIFIED_STARTER_CREDITS_MESSAGE);
+        } else {
+          toast.error(notEnoughCreditsMessage());
+          openPaywall({
+            actionLabel: "Chat message",
+            requiredCredits: CREDITS_COSTS.chatMessage,
+            redirectPath: ROUTES.chat,
+          });
+        }
         return;
       }
       if (
@@ -202,17 +210,24 @@ export default function Chat({ initialPrompt, starterIntentId }: ChatProps) {
     if (isSubmittingRef.current) return;
     if (!input.trim()) return;
     if (!validateContentWithToast(input)) return;
-    if (
-      generationConfig.useCredits &&
-      generationConfig.credits < CREDITS_COSTS.chatMessage
-    ) {
-      toast.error(notEnoughCreditsMessage(CREDITS_COSTS.chatMessage));
-      openPaywall({
-        actionLabel: "Chat message",
-        requiredCredits: CREDITS_COSTS.chatMessage,
-        redirectPath: ROUTES.chat,
-      });
-      return;
+    if (generationConfig.useCredits) {
+      if (!profileLoaded) {
+        toast.error("Your account is still loading. Try again in a moment.");
+        return;
+      }
+      if (generationConfig.credits < CREDITS_COSTS.chatMessage) {
+        if (!generationConfig.emailVerified) {
+          toast.error(UNVERIFIED_STARTER_CREDITS_MESSAGE);
+        } else {
+          toast.error(notEnoughCreditsMessage(CREDITS_COSTS.chatMessage));
+          openPaywall({
+            actionLabel: "Chat message",
+            requiredCredits: CREDITS_COSTS.chatMessage,
+            redirectPath: ROUTES.chat,
+          });
+        }
+        return;
+      }
     }
 
     isSubmittingRef.current = true;
@@ -249,7 +264,7 @@ export default function Chat({ initialPrompt, starterIntentId }: ChatProps) {
     } finally {
       isSubmittingRef.current = false;
     }
-  }, [generationConfig, historyForRequest, input, openPaywall, sendMessage]);
+  }, [generationConfig, historyForRequest, input, openPaywall, profileLoaded, sendMessage]);
 
   // Memoize reversed chat list to avoid recalculating on every render.
   const reversedChatlist = useMemo(() => chatlist.slice().reverse(), [chatlist]);
@@ -417,6 +432,9 @@ function ChatTranscript({
                 chat message costs {CREDITS_COSTS.chatMessage} credits in
                 credits mode.
               </p>
+              <div className="mt-4">
+                <VerifyEmailNotice />
+              </div>
 
               <div className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
                 <ActivationFact

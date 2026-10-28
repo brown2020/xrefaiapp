@@ -228,6 +228,25 @@ async function signUp(page, email) {
     if (attempt === 39) throw new Error("missing auth cookie");
     await page.waitForTimeout(250);
   }
+  const unverified = await badgeText(page);
+  if (!unverified.startsWith("0")) {
+    throw new Error(`unverified signup should show 0 credits, got ${unverified}`);
+  }
+  const uid = await accountId(page);
+  const verified = await fetch(
+    `http://127.0.0.1:${authPort}/identitytoolkit.googleapis.com/v1/accounts:update?key=demo`,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: "Bearer owner",
+      },
+      body: JSON.stringify({ localId: uid, emailVerified: true }),
+    }
+  );
+  if (!verified.ok) throw new Error(`email verify failed: ${verified.status}`);
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await page.getByLabel(/Credits balance: 1,000/).waitFor({ timeout: 20_000 });
   return badgeText(page);
 }
 

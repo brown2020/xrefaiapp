@@ -21,6 +21,7 @@ import {
   findCreditPack,
 } from "@/constants/creditPacks";
 import toast from "react-hot-toast";
+import { VerifyEmailNotice } from "@/components/VerifyEmailNotice";
 
 const creditsFormatter = new Intl.NumberFormat();
 
@@ -154,6 +155,9 @@ export default function ProfileComponent() {
         <h2 id="credits-heading" className="text-lg font-bold text-foreground">
           Credits
         </h2>
+        <div className="mt-3">
+          <VerifyEmailNotice />
+        </div>
         <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="text-sm text-muted-foreground">Balance</div>

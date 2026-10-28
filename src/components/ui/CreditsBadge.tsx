@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { UNVERIFIED_STARTER_CREDITS_MESSAGE } from "@/utils/starterCreditsMessage";
 import { useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { Coins } from "lucide-react";
@@ -11,13 +12,12 @@ import { DEFAULT_CREDIT_PACK_ID } from "@/constants/creditPacks";
 import { useShowWebOnly } from "@/hooks/useShowWebOnly";
 
 /**
- * Minimal-render credits UI:
- * - Subscribes only to `uid` and `profile.credits`
- * - Re-renders only when the credit number changes
+ * Credits balance, plus a verify-email prompt while the account is unverified.
  */
 export function CreditsBadge({ showLabel = false }: { showLabel?: boolean }) {
   const uid = useAuthStore((s) => s.uid);
   const credits = useProfileStore((s) => s.profile.credits);
+  const emailVerified = useProfileStore((s) => s.profile.emailVerified);
   const profileLoaded = useProfileStore((s) => s.profileLoaded);
   const pathname = usePathname();
   const canBuyCredits = useShowWebOnly();
@@ -61,7 +61,17 @@ export function CreditsBadge({ showLabel = false }: { showLabel?: boolean }) {
         </span>
       </Link>
 
-      {canBuyCredits && profileLoaded && numericCredits > 0 && numericCredits < LOW_CREDITS_THRESHOLD ? (
+      {profileLoaded && !emailVerified ? (
+        <Link
+          href={ROUTES.account}
+          className="hidden md:inline-flex max-w-56 items-center rounded-full border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-semibold text-foreground hover:opacity-90"
+          title={UNVERIFIED_STARTER_CREDITS_MESSAGE}
+        >
+          Verify email for 1,000 credits
+        </Link>
+      ) : null}
+
+      {canBuyCredits && profileLoaded && emailVerified && numericCredits > 0 && numericCredits < LOW_CREDITS_THRESHOLD ? (
         <Link
           href={topUpHref}
           className="hidden md:inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-sm font-semibold hover:opacity-90 transition-opacity"

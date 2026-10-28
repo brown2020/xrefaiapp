@@ -95,6 +95,7 @@ export async function fetchProfileServer(authOverrides?: {
     const creditDelta = starterCreditsToAdd({
       profileExists,
       claimState,
+      emailVerified,
       initialCredits: PROFILE_DEFAULTS.credits,
     });
     const nextCredits = currentCredits + creditDelta;
@@ -128,6 +129,17 @@ export async function fetchProfileServer(authOverrides?: {
         claimRef,
         {
           starterGrantClaimed: true,
+          claimedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+    } else if (!profileExists && !emailVerified && claimState === "missing") {
+      // Hold the one-time claim open so a later verified sign-in can pay it.
+      // A claim that is already granted stays granted.
+      tx.set(
+        claimRef,
+        {
+          starterGrantClaimed: false,
           claimedAt: FieldValue.serverTimestamp(),
         },
         { merge: true }

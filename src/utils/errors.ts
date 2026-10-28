@@ -26,9 +26,9 @@ export function emptyCompletionMessage(useCredits: boolean | undefined): string 
  * Checks if an error is an insufficient credits error.
  */
 export function isInsufficientCreditsError(error: unknown): boolean {
-  if (typeof error !== "object" || error === null || !("message" in error)) {
-    return false;
-  }
+  if (typeof error !== "object" || error === null) return false;
+  if ("statusCode" in error && error.statusCode === 402) return true;
+  if (!("message" in error)) return false;
   const raw = error.message;
   if (typeof raw !== "string") return false;
   const message = raw.toLowerCase();
