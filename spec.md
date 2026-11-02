@@ -248,7 +248,9 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
 ### Existing Technical Constraints
 
 - `main` is the production branch and `dev` is the autonomous working branch.
-- npm is the package manager.
+- npm is the package manager. GitHub CI installs and tests on Node 24.
+- TypeScript stays on `^6.0.3`. TypeScript 7.0.2 is published, but typescript-eslint 8.72.1 only accepts TypeScript `>=4.8.4 <6.1.0`.
+- `jwks-rsa` is overridden onto `jose` `^5.10.0` so Firebase Admin can `require("jose")` on Vercel. `jose` 6 is ESM-only. `minimatch` `^11.0.4` and `glob` `^14.0.3` are overridden to clear the current moderate advisories without downgrading ESLint.
 - No unit test runner is configured.
 - Playwright has smoke coverage for activation starter paths, route protection, unauthenticated API rejection, external payment-success redirect normalization, Freestyle Writing controls, and Summarize Text controls.
 - `npm run build` may require valid enough environment configuration for build-time code paths.

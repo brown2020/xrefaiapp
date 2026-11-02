@@ -22,17 +22,17 @@ Deeper docs for agents and product direction live in [AGENTS.md](./AGENTS.md) an
 
 | Layer | Choice |
 | --- | --- |
-| Framework | Next.js `^16.4.2` (App Router + `src/proxy.ts`) |
-| UI | React `^19.3.1`, Tailwind CSS `^4.3`, Radix dialog, Lucide, Plus Jakarta Sans, react-hot-toast, react-markdown |
-| Language | TypeScript `^6` (held until typescript-eslint supports TypeScript 7) |
-| Auth / data | Firebase `^13` + Firebase Admin `^14` (Auth, Firestore, Storage) |
-| AI text | Vercel AI SDK (`ai` `^7`, `@ai-sdk/openai|anthropic|google|xai|rsc|react`) |
+| Framework | Next.js `^16.4.3` (App Router + `src/proxy.ts`) |
+| UI | React `^19.3.1`, Tailwind CSS `^4.3`, Radix dialog, Lucide `^1.66`, Plus Jakarta Sans, react-hot-toast, react-markdown |
+| Language | TypeScript `^6.0.3` (7.0.2 is published; typescript-eslint 8.72 only accepts TypeScript `<6.1`) |
+| Auth / data | Firebase `^13.1` + Firebase Admin `^14.5` (Auth, Firestore, Storage) |
+| AI text | Vercel AI SDK (`ai` `^7.0.159`, `@ai-sdk/openai|anthropic|google|xai|rsc|react`) |
 | AI images | OpenAI `gpt-image-2` via AI SDK `generateImage` in a server action |
-| Payments | Stripe `^23` Checkout; native IAP helpers for WebView |
+| Payments | Stripe `^23.1` Checkout; native IAP helpers for WebView |
 | State | Zustand `^5` |
 | Validation | Zod `^4` |
-| Tests | Playwright `^1.60` |
-| Lint | ESLint `^10` + typescript-eslint |
+| Tests | Playwright `^1.64` |
+| Lint | ESLint `^10.14` + typescript-eslint `^8.72` |
 
 ## Project structure
 
@@ -65,7 +65,7 @@ docs/                  # architecture, CI secrets, budget notes
 
 ### Prerequisites
 
-- Node.js 22+
+- Node.js 22+ (GitHub CI runs Node 24)
 - npm
 - Firebase project (Auth, Firestore, Storage)
 - Stripe account (for credit purchases)

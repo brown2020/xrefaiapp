@@ -59,6 +59,7 @@ function startOpenAi() {
 
 function writeEmulatorConfig() {
   fs.mkdirSync(emuDir, { recursive: true });
+  fs.mkdirSync("/tmp/app-eval-xrefai", { recursive: true });
   fs.writeFileSync(
     path.join(emuDir, "firestore.rules"),
     "rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /{document=**} {\n      allow read, write: if false;\n    }\n  }\n}\n"
@@ -91,6 +92,7 @@ function spawnLogged(command, args, env, logFile) {
   const child = spawn(command, args, {
     cwd: command === "npm" ? root : emuDir,
     env,
+    detached: true,
     stdio: ["ignore", "pipe", "pipe"],
   });
   const target = fs.createWriteStream(logFile, { flags: "w" });
@@ -102,7 +104,13 @@ function spawnLogged(command, args, env, logFile) {
 
 function shutdown() {
   for (const child of children) {
-    if (!child.killed) child.kill("SIGTERM");
+    const pid = child.pid;
+    if (!pid) continue;
+    try {
+      process.kill(-pid, "SIGTERM");
+    } catch {
+      if (!child.killed) child.kill("SIGTERM");
+    }
   }
 }
 
@@ -276,16 +284,25 @@ async function main() {
     { ...process.env, PATH: process.env.PATH },
     "/tmp/app-eval-xrefai/architecture-emu.log"
   );
-  spawnLogged(
+  const nextServer = spawnLogged(
     "npm",
     ["run", "start", "--", "--hostname", "127.0.0.1", "--port", String(appPort)],
     serverEnv,
     "/tmp/app-eval-xrefai/architecture-next.log"
   );
+  let nextExit = null;
+  nextServer.on("exit", (code) => {
+    nextExit = code;
+  });
 
   await waitFor(`http://127.0.0.1:${authPort}/`);
   await waitFor(`http://127.0.0.1:${firestorePort}/`);
   await waitFor(base);
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  const nextLog = fs.readFileSync("/tmp/app-eval-xrefai/architecture-next.log", "utf8");
+  if (nextExit !== null || nextLog.includes("EADDRINUSE") || nextLog.includes("Failed to start server")) {
+    throw new Error(`next did not stay up on ${appPort}`);
+  }
   note("ready", `next on ${appPort}`);
 
   const browser = await chromium.launch({ headless: true });
@@ -386,6 +403,7 @@ async function main() {
   fs.mkdirSync(path.dirname(logPath), { recursive: true });
   fs.writeFileSync(logPath, JSON.stringify({ ok: true, log }, null, 2));
   console.log(`wrote ${logPath}`);
+  process.exit(0);
 }
 
 main().catch((error) => {

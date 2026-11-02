@@ -99,6 +99,7 @@ function startReceipts() {
 
 function writeEmulatorConfig() {
   fs.mkdirSync(emuDir, { recursive: true });
+  fs.mkdirSync("/tmp/app-eval-xrefai", { recursive: true });
   fs.writeFileSync(
     path.join(emuDir, "firestore.rules"),
     `rules_version = '2';
@@ -135,6 +136,7 @@ function spawnLogged(command, args, env) {
   const child = spawn(command, args, {
     cwd: root,
     env,
+    detached: true,
     stdio: ["ignore", "pipe", "pipe"],
   });
   children.push(child);
@@ -299,7 +301,13 @@ async function chat(cookie, { text, idempotencyKey, signal }) {
 
 function shutdown() {
   for (const child of children) {
-    if (!child.killed) child.kill("SIGTERM");
+    const pid = child.pid;
+    if (!pid) continue;
+    try {
+      process.kill(-pid, "SIGTERM");
+    } catch {
+      if (!child.killed) child.kill("SIGTERM");
+    }
   }
 }
 
@@ -508,6 +516,7 @@ async function main() {
   fs.mkdirSync(path.dirname(logPath), { recursive: true });
   fs.writeFileSync(logPath, JSON.stringify(result, null, 2));
   console.log(`wrote ${logPath}`);
+  process.exit(0);
 }
 
 /** Signed IAP fulfillment: grant, replay, stale, forged receipt, and cross-user claims. */

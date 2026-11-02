@@ -396,15 +396,25 @@ test.describe("code reliability contracts", () => {
     const pkg = JSON.parse(readFileSync("package.json", "utf8")) as {
       dependencies: { next: string; sharp: string };
       devDependencies: { "@next/eslint-plugin-next": string; postcss: string };
-      overrides: { postcss: string; "@grpc/grpc-js": string; "postcss-selector-parser": string };
+      overrides: {
+        postcss: string;
+        "@grpc/grpc-js": string;
+        "postcss-selector-parser": string;
+        minimatch: string;
+        glob: string;
+        "jwks-rsa": { jose: string };
+      };
     };
-    expect(pkg.overrides["postcss-selector-parser"]).toBe("^7.1.6");
+    expect(pkg.overrides["postcss-selector-parser"]).toBe("^7.1.7");
     expect(pkg.dependencies.next).toBe("^16.4.3");
     expect(pkg.devDependencies["@next/eslint-plugin-next"]).toBe("^16.4.3");
     expect(pkg.dependencies.sharp).toBe("^0.35.5");
     expect(pkg.devDependencies.postcss).toBe("8.5.32");
     expect(pkg.overrides.postcss).toBe("8.5.32");
-    expect(pkg.overrides["@grpc/grpc-js"]).toBe("^1.14.6");
+    expect(pkg.overrides["@grpc/grpc-js"]).toBe("^1.14.7");
+    expect(pkg.overrides.minimatch).toBe("^11.0.4");
+    expect(pkg.overrides.glob).toBe("^14.0.3");
+    expect(pkg.overrides["jwks-rsa"].jose).toBe("^5.10.0");
   });
 
   test("setup commands and env names match the docs", () => {

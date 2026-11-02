@@ -62,7 +62,12 @@ function writeEmulatorConfig() {
 }
 
 function spawnLogged(command, args, env) {
-  const child = spawn(command, args, { cwd: root, env, stdio: ["ignore", "pipe", "pipe"] });
+  const child = spawn(command, args, {
+    cwd: root,
+    env,
+    detached: true,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
   children.push(child);
   return child;
 }
@@ -318,5 +323,14 @@ main()
     process.exitCode = 1;
   })
   .finally(() => {
-    for (const child of children) if (!child.killed) child.kill("SIGTERM");
+    for (const child of children) {
+      const pid = child.pid;
+      if (!pid) continue;
+      try {
+        process.kill(-pid, "SIGTERM");
+      } catch {
+        if (!child.killed) child.kill("SIGTERM");
+      }
+    }
+    process.exit(process.exitCode ?? 0);
   });
