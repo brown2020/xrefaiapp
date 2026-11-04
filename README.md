@@ -22,11 +22,11 @@ Deeper docs for agents and product direction live in [AGENTS.md](./AGENTS.md) an
 
 | Layer | Choice |
 | --- | --- |
-| Framework | Next.js `^16.4.3` (App Router + `src/proxy.ts`) |
-| UI | React `^19.3.1`, Tailwind CSS `^4.3`, Radix dialog, Lucide `^1.66`, Plus Jakarta Sans, react-hot-toast, react-markdown |
+| Framework | Next.js `^16.4.5` (App Router + `src/proxy.ts`) |
+| UI | React `^19.3.1`, Tailwind CSS `^4.3.4`, Radix dialog, Lucide `^1.68`, Plus Jakarta Sans, react-hot-toast, react-markdown |
 | Language | TypeScript `^6.0.3` (7.0.2 is published; typescript-eslint 8.72 only accepts TypeScript `<6.1`) |
-| Auth / data | Firebase `^13.1` + Firebase Admin `^14.5` (Auth, Firestore, Storage) |
-| AI text | Vercel AI SDK (`ai` `^7.0.159`, `@ai-sdk/openai|anthropic|google|xai|rsc|react`) |
+| Auth / data | Firebase `^13.2` + Firebase Admin `^14.5` (Auth, Firestore, Storage) |
+| AI text | Vercel AI SDK (`ai` `^7.0.162`, `@ai-sdk/openai|anthropic|google|xai|rsc|react`) |
 | AI images | OpenAI `gpt-image-2` via AI SDK `generateImage` in a server action |
 | Payments | Stripe `^23.1` Checkout; native IAP helpers for WebView |
 | State | Zustand `^5` |

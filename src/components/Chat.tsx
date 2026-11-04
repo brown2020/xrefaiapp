@@ -38,6 +38,139 @@ interface ChatProps {
   starterIntentId?: string;
 }
 
+function useChatSend({
+  chatlist,
+  generationConfig,
+  profileLoaded,
+  openPaywall,
+  sendMessage,
+  input,
+  setInput,
+  setPendingSeconds,
+  isSubmittingRef,
+  lastSentInputRef,
+}: {
+  chatlist: ChatType[];
+  generationConfig: {
+    credits: number;
+    emailVerified: boolean;
+    useCredits: boolean;
+    textModel: string;
+    openaiApiKey: string;
+    anthropicApiKey: string;
+    xaiApiKey: string;
+    googleApiKey: string;
+  };
+  profileLoaded: boolean;
+  openPaywall: (context: {
+    actionLabel: string;
+    requiredCredits: number;
+    redirectPath: string;
+  }) => void;
+  sendMessage: (
+    message: { text: string },
+    options: { body: Record<string, unknown> }
+  ) => Promise<void>;
+  input: string;
+  setInput: (value: string) => void;
+  setPendingSeconds: (value: number) => void;
+  isSubmittingRef: React.RefObject<boolean>;
+  lastSentInputRef: React.RefObject<string>;
+}) {
+  /**
+   * Build the conversation history to send to the server, trimmed to the
+   * word budget while keeping the MOST RECENT messages (the prior
+   * implementation kept the oldest, which dropped recent context).
+   * `chatlist` comes newest-first from Firestore; we walk in that order
+   * and `unshift` to preserve chronological order.
+   */
+  const historyForRequest = useMemo(() => {
+    const picked: Array<{ prompt: string; response: string }> = [];
+    let wordCount = 0;
+    for (const chat of chatlist) {
+      const words =
+        calculateWordCount(chat.prompt) + calculateWordCount(chat.response);
+      if (wordCount + words > MAX_WORDS_IN_CONTEXT) break;
+      picked.unshift({ prompt: chat.prompt, response: chat.response });
+      wordCount += words;
+    }
+    return picked;
+  }, [chatlist]);
+
+  const handleSendPrompt = useCallback(async () => {
+    if (isSubmittingRef.current) return;
+    if (!input.trim()) return;
+    if (!validateContentWithToast(input)) return;
+    if (generationConfig.useCredits) {
+      if (!profileLoaded) {
+        toast.error("Your account is still loading. Try again in a moment.");
+        return;
+      }
+      if (generationConfig.credits < CREDITS_COSTS.chatMessage) {
+        if (!generationConfig.emailVerified) {
+          toast.error(UNVERIFIED_STARTER_CREDITS_MESSAGE);
+        } else {
+          toast.error(notEnoughCreditsMessage(CREDITS_COSTS.chatMessage));
+          openPaywall({
+            actionLabel: "Chat message",
+            requiredCredits: CREDITS_COSTS.chatMessage,
+            redirectPath: ROUTES.chat,
+          });
+        }
+        return;
+      }
+    }
+
+    isSubmittingRef.current = true;
+    const inputValue = input.trim();
+    lastSentInputRef.current = inputValue;
+    setInput("");
+    setPendingSeconds(Math.floor(Date.now() / 1000));
+
+    try {
+      // Generate a unique client idempotency key so the server can
+      // deduplicate retries without blocking legitimate duplicates.
+      const idempotencyKey =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+      await sendMessage(
+        { text: inputValue },
+        {
+          body: {
+            history: historyForRequest,
+            modelKey: generationConfig.textModel,
+            useCredits: generationConfig.useCredits,
+            ...providerKeysForRequest(generationConfig.useCredits, {
+              openaiApiKey: generationConfig.openaiApiKey,
+              anthropicApiKey: generationConfig.anthropicApiKey,
+              xaiApiKey: generationConfig.xaiApiKey,
+              googleApiKey: generationConfig.googleApiKey,
+            }),
+            idempotencyKey,
+          },
+        }
+      );
+    } finally {
+      isSubmittingRef.current = false;
+    }
+  }, [
+    generationConfig,
+    historyForRequest,
+    input,
+    isSubmittingRef,
+    lastSentInputRef,
+    openPaywall,
+    profileLoaded,
+    sendMessage,
+    setInput,
+    setPendingSeconds,
+  ]);
+
+  return handleSendPrompt;
+}
+
 export default function Chat({ initialPrompt, starterIntentId }: ChatProps) {
   const uid = useAuthStore((s) => s.uid);
   const profilePhotoUrl = useProfileStore((s) => s.profile.photoUrl);
@@ -186,85 +319,18 @@ export default function Chat({ initialPrompt, starterIntentId }: ChatProps) {
     appliedInitialPromptRef.current = initialPrompt;
   }, [initialPrompt]);
 
-  /**
-   * Build the conversation history to send to the server, trimmed to the
-   * word budget while keeping the MOST RECENT messages (the prior
-   * implementation kept the oldest, which dropped recent context).
-   * `chatlist` comes newest-first from Firestore; we walk in that order
-   * and `unshift` to preserve chronological order.
-   */
-  const historyForRequest = useMemo(() => {
-    const picked: Array<{ prompt: string; response: string }> = [];
-    let wordCount = 0;
-    for (const chat of chatlist) {
-      const words =
-        calculateWordCount(chat.prompt) + calculateWordCount(chat.response);
-      if (wordCount + words > MAX_WORDS_IN_CONTEXT) break;
-      picked.unshift({ prompt: chat.prompt, response: chat.response });
-      wordCount += words;
-    }
-    return picked;
-  }, [chatlist]);
-
-  const handleSendPrompt = useCallback(async () => {
-    if (isSubmittingRef.current) return;
-    if (!input.trim()) return;
-    if (!validateContentWithToast(input)) return;
-    if (generationConfig.useCredits) {
-      if (!profileLoaded) {
-        toast.error("Your account is still loading. Try again in a moment.");
-        return;
-      }
-      if (generationConfig.credits < CREDITS_COSTS.chatMessage) {
-        if (!generationConfig.emailVerified) {
-          toast.error(UNVERIFIED_STARTER_CREDITS_MESSAGE);
-        } else {
-          toast.error(notEnoughCreditsMessage(CREDITS_COSTS.chatMessage));
-          openPaywall({
-            actionLabel: "Chat message",
-            requiredCredits: CREDITS_COSTS.chatMessage,
-            redirectPath: ROUTES.chat,
-          });
-        }
-        return;
-      }
-    }
-
-    isSubmittingRef.current = true;
-    const inputValue = input.trim();
-    lastSentInputRef.current = inputValue;
-    setInput("");
-    setPendingSeconds(Math.floor(Date.now() / 1000));
-
-    try {
-      // Generate a unique client idempotency key so the server can
-      // deduplicate retries without blocking legitimate duplicates.
-      const idempotencyKey =
-        typeof crypto !== "undefined" && "randomUUID" in crypto
-          ? crypto.randomUUID()
-          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-      await sendMessage(
-        { text: inputValue },
-        {
-          body: {
-            history: historyForRequest,
-            modelKey: generationConfig.textModel,
-            useCredits: generationConfig.useCredits,
-            ...providerKeysForRequest(generationConfig.useCredits, {
-              openaiApiKey: generationConfig.openaiApiKey,
-              anthropicApiKey: generationConfig.anthropicApiKey,
-              xaiApiKey: generationConfig.xaiApiKey,
-              googleApiKey: generationConfig.googleApiKey,
-            }),
-            idempotencyKey,
-          },
-        }
-      );
-    } finally {
-      isSubmittingRef.current = false;
-    }
-  }, [generationConfig, historyForRequest, input, openPaywall, profileLoaded, sendMessage]);
+  const handleSendPrompt = useChatSend({
+    chatlist,
+    generationConfig,
+    profileLoaded,
+    openPaywall,
+    sendMessage,
+    input,
+    setInput,
+    setPendingSeconds,
+    isSubmittingRef,
+    lastSentInputRef,
+  });
 
   // Memoize reversed chat list to avoid recalculating on every render.
   const reversedChatlist = useMemo(() => chatlist.slice().reverse(), [chatlist]);

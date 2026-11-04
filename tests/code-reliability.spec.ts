@@ -406,8 +406,8 @@ test.describe("code reliability contracts", () => {
       };
     };
     expect(pkg.overrides["postcss-selector-parser"]).toBe("^7.1.7");
-    expect(pkg.dependencies.next).toBe("^16.4.3");
-    expect(pkg.devDependencies["@next/eslint-plugin-next"]).toBe("^16.4.3");
+    expect(pkg.dependencies.next).toBe("^16.4.5");
+    expect(pkg.devDependencies["@next/eslint-plugin-next"]).toBe("^16.4.5");
     expect(pkg.dependencies.sharp).toBe("^0.35.5");
     expect(pkg.devDependencies.postcss).toBe("8.5.32");
     expect(pkg.overrides.postcss).toBe("8.5.32");

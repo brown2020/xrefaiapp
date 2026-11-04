@@ -49,8 +49,11 @@ export function AiConsentModal() {
 
   const handleDecline = async () => {
     setIsBusy(true);
-    await signOut();
-    setIsBusy(false);
+    try {
+      await signOut();
+    } finally {
+      setIsBusy(false);
+    }
   };
 
   return (
