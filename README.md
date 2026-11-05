@@ -92,7 +92,7 @@ Copy `.env.example` to `.env.local`. **Never commit real keys.**
 | `NEXT_PUBLIC_FIREBASE_STORAGEBUCKET` | Storage bucket | Firebase Console |
 | `NEXT_PUBLIC_FIREBASE_MESSAGINGSENDERID` | Messaging sender id | Firebase Console |
 | `NEXT_PUBLIC_FIREBASE_APPID` | Web app id | Firebase Console |
-| `NEXT_PUBLIC_FIREBASE_MEASUREMENTID` | Optional Analytics id | Firebase Console |
+| `NEXT_PUBLIC_FIREBASE_MEASUREMENTID` | GA4 measurement id. Analytics starts after cookie consent. Keep the live id `G-72893HFYKD`. | Firebase Console |
 | `NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST` | Optional Auth emulator host | Local emulator only |
 | `NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST` | Optional Firestore emulator host | Local emulator only |
 | `FIREBASE_TYPE` | Service account type (`service_account`) | Service account JSON |

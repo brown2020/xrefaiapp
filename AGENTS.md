@@ -164,7 +164,7 @@ Root config files include `package.json`, `package-lock.json`, `next.config.mjs`
 
 - Server actions live in `src/actions/*.ts` and are marked `"use server"` where required.
 - API routes live in `src/app/api/**/route.ts` and use `runtime = "nodejs"` where Node APIs or SDKs are required.
-- Interactive UI is client-side. `ClientProvider` owns auth token refresh, store initialization, cookie consent, the AI consent modal, toasts, paywall modal, and logout redirects.
+- Interactive UI is client-side. `ClientProvider` owns auth token refresh, store initialization, cookie consent, Firebase Analytics page views (only after that consent), the AI consent modal, toasts, paywall modal, and logout redirects.
 - `AiConsentModal` blocks signed-in users until they allow sending their content to the providers in `src/constants/aiConsent.ts` (Apple guideline 5.1.2). `recordAiConsentServer()` stores `aiConsentVersion` and `aiConsentAt` on the profile; clients cannot write those fields. Declining signs out. Privacy, terms, support, and account stay reachable. Bump `AI_CONSENT_VERSION` when providers or shared data change. `prove:state` proves allow, persistence, and decline.
 - Do not import server-only Firebase Admin modules into client components.
 - Do not move credit, payment, auth, idempotency, or rate-limit decisions to the client.
@@ -330,7 +330,7 @@ React Native WebView support is intentional:
 - Google popup sign-in is hidden in WebView.
 - The Expo app does not sell credits. `useShowWebOnly()` (`src/hooks/useShowWebOnly.ts`) is false during SSR and in WebView; it gates every purchase surface (Account credit packs, paywall packs, header Top up, homepage Buy credits and Stripe mention) and Google sign-in. `/payment-attempt` never starts checkout in WebView. Out-of-credits toasts use `notEnoughCreditsMessage()`, which points app users to API keys.
 - `confirmIapPurchase()` still verifies signed `IAP_SUCCESS` payloads if a native purchase flow imports it again; `productId` must be a credit pack id (`starter`, `plus`, `pro`, or `power`) and `credits` must equal that pack.
-- Cookie consent is suppressed in WebView.
+- Cookie consent is suppressed in WebView. Firebase Analytics starts only after that consent cookie is accepted, so the WebView does not start Analytics unless the cookie is already present.
 - Some localStorage coordination is skipped in WebView.
 - The restricted-word guard is client-only and WebView-only. It is UX protection, not server moderation.
 
@@ -514,7 +514,7 @@ Stop and report instead of continuing when:
 - Rate-limit windows live in `src/utils/rateLimit.ts` and the idempotency TTL in `src/utils/idempotency.ts`; `src/constants/index.ts` holds only values that are read.
 - Image generation uses fresh client request IDs like text generation, with a payload-hash fallback on the server action.
 - Payment confirmation is return-page driven and also runs from the signed Stripe webhook when `STRIPE_WEBHOOK_SECRET` is set. Refunds and disputes claw credits back from that webhook.
-- Firebase/GA4 measurement config exists, but there is no product analytics helper yet.
+- Firebase Analytics (`src/firebase/firebaseAnalytics.ts`) calls `isSupported` and `getAnalytics` only after the cookie banner is accepted, using `NEXT_PUBLIC_FIREBASE_MEASUREMENTID` (live value `G-72893HFYKD`). It logs `page_view` on client route changes and does not send the query string. The broader product event taxonomy is not implemented.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

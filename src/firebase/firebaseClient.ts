@@ -115,4 +115,9 @@ if (hasClientConfig) {
   storage = null as unknown as FirebaseStorage;
 }
 
+/** The initialized client app, or null when web config is absent (SSG/CI). */
+export function getFirebaseApp(): FirebaseApp | null {
+  return app ?? null;
+}
+
 export { auth, db, storage };

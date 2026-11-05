@@ -233,13 +233,13 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
 - OpenAI `gpt-image-2` for image generation.
 - Vercel AI SDK with OpenAI, Anthropic, xAI, and Google for text/chat.
 - React Native WebView detection for app-specific UI (no purchases, no Google popup).
-- Firebase measurement ID exists in config, but no product analytics helper is implemented yet.
+- Firebase Analytics records browser page views after cookie consent, using the existing measurement ID (`NEXT_PUBLIC_FIREBASE_MEASUREMENTID`, live `G-72893HFYKD`). Sign-in, generation, paywall, and checkout events are not implemented yet.
 
 ### Architecture Summary
 
 - Next.js App Router pages render the public/protected product surfaces.
 - `src/proxy.ts` performs soft cookie-presence route gating.
-- `ClientProvider` handles auth token refresh, store initialization, paywall modal, AI consent modal, cookie consent, toasts, and logout redirects.
+- `ClientProvider` handles auth token refresh, store initialization, paywall modal, AI consent modal, cookie consent, Firebase Analytics page views after that consent, toasts, and logout redirects.
 - Server actions handle profile, history, credits, text generation, image generation, and IAP confirmation.
 - API routes handle chat streaming, Stripe checkout/confirmation, and the hardened URL proxy.
 - Zustand stores hold auth, profile/credits, payments, and paywall state.
@@ -273,7 +273,7 @@ Successful text tool outputs show next-step actions to continue in Chat, create 
 - Text revision actions are not first-class outside the current repurpose buttons.
 - Image generation is single-shot: no aspect ratio, seed, variation, quality, style preset, prompt enhancer, or gallery view.
 - Chat cannot explicitly reference selected history items or project context.
-- Product analytics/event taxonomy is not implemented.
+- Firebase Analytics records page views after cookie consent. Sign-in, generation, paywall, and checkout events are not implemented.
 - Admin/support tools for user lookup, manual credits, refunds, and diagnostics do not exist.
 
 ## Product Roadmap
@@ -503,7 +503,7 @@ User value: credit prompts and checkout become clearer, while the team can measu
 
 Implementation intent:
 
-- Add a browser-only Firebase/GA4 analytics helper using the existing measurement ID.
+- Page views are recorded by the browser Firebase Analytics helper (`getAnalytics` / `isSupported`) after cookie consent, using the existing measurement ID (live `G-72893HFYKD`). Add the remaining events below.
 - No-op safely on server and unsupported browsers.
 - Track bounded metadata only; never raw prompts, generated content, keys, auth tokens, secrets, or full sensitive URLs.
 - Add events for sign-in started/completed, generation started/succeeded/failed/refunded, paywall shown, checkout started/confirmed, credits depleted.

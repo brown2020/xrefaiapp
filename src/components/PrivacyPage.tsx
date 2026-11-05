@@ -112,10 +112,12 @@ export default function Privacy({
           </p>
           <p>
             We use Firebase and Google Cloud services for authentication,
-            database, storage, and server infrastructure. We use Stripe for
-            checkout and payment processing. These providers process information
-            on our behalf or as independent service providers under their own
-            terms and privacy notices.
+            database, storage, and server infrastructure. After you accept
+            cookies in the browser, Firebase Analytics (Google Analytics)
+            records page views. We use Stripe for checkout and payment
+            processing. These providers process information on our behalf or as
+            independent service providers under their own terms and privacy
+            notices.
           </p>
           <p>
             We do not intentionally send full payment card numbers to AI
@@ -128,9 +130,11 @@ export default function Privacy({
           <p>
             We use cookies and local storage to keep you signed in, remember
             account and email-link state, support security, and improve the user
-            experience. You can control cookies through your browser settings,
-            but disabling cookies may prevent sign-in or protected routes from
-            working correctly.
+            experience. Analytics cookies are set only after you accept the
+            cookie banner. Those page views do not include prompts, generated
+            content, API keys, or payment details. You can control cookies
+            through your browser settings, but disabling cookies may prevent
+            sign-in or protected routes from working correctly.
           </p>
         </Section>
 

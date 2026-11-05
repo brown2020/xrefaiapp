@@ -2,10 +2,14 @@
 
 import Link from "next/link";
 import { Toaster } from "react-hot-toast";
-import CookieConsent from "react-cookie-consent";
+import CookieConsent, {
+  defaultCookieConsentName,
+} from "react-cookie-consent";
 
 import { ROUTES } from "@/constants/routes";
+import { logAnalyticsPageView } from "@/firebase/firebaseAnalytics";
 import useAuthToken from "@/hooks/useAuthToken";
+import { useAnalyticsPageViews } from "@/hooks/useAnalyticsPageViews";
 import { useInitializeStores } from "@/zustand/useInitializeStores";
 import { useClientSetup } from "@/hooks/useClientSetup";
 import ErrorBoundary from "./ErrorBoundary";
@@ -17,7 +21,7 @@ import { AiConsentModal } from "@/components/AiConsentModal";
  * Client-side provider that handles:
  * - Auth token management
  * - Store initialization
- * - Cookie consent
+ * - Cookie consent, then Firebase Analytics page views
  * - Toast notifications
  *
  * Route protection at the edge is handled by `proxy.ts`. Sign-out buttons
@@ -27,6 +31,7 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
   useAuthToken(getAuthCookieName());
 
   useInitializeStores();
+  useAnalyticsPageViews();
   const { isClient, isWebView } = useClientSetup();
 
   return (
@@ -36,6 +41,10 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
       <AiConsentModal />
       {isClient && !isWebView && (
         <CookieConsent
+          cookieName={defaultCookieConsentName}
+          onAccept={() => {
+            void logAnalyticsPageView(window.location.pathname);
+          }}
           buttonText="Accept cookies"
           ariaAcceptLabel="Accept cookies"
           disableStyles

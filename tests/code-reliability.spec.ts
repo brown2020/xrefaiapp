@@ -451,6 +451,30 @@ test.describe("code reliability contracts", () => {
     expect(provider).toContain('ariaAcceptLabel="Accept cookies"');
   });
 
+  test("Firebase Analytics starts after cookie consent and logs client page views", () => {
+    const analytics = readFileSync("src/firebase/firebaseAnalytics.ts", "utf8");
+    const listener = readFileSync("src/hooks/useAnalyticsPageViews.ts", "utf8");
+    const provider = readFileSync("src/components/ClientProvider.tsx", "utf8");
+    const client = readFileSync("src/firebase/firebaseClient.ts", "utf8");
+
+    expect(client).toContain(
+      "measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENTID",
+    );
+    expect(readFileSync("AGENTS.md", "utf8")).toContain("G-72893HFYKD");
+    expect(analytics).toContain("NEXT_PUBLIC_FIREBASE_MEASUREMENTID");
+    expect(analytics).not.toMatch(/G-[A-Z0-9]{6,}/);
+    expect(analytics).toContain("getAnalytics");
+    expect(analytics).toContain("isSupported");
+    expect(analytics).toContain('logEvent(analytics, "page_view"');
+    expect(analytics).toContain("getCookieConsentValue(defaultCookieConsentName)");
+    expect(analytics).toContain("send_page_view: false");
+    expect(listener).toContain("usePathname()");
+    expect(listener).toContain("logAnalyticsPageView(pathname");
+    expect(provider).toContain("cookieName={defaultCookieConsentName}");
+    expect(provider).toContain("logAnalyticsPageView(window.location.pathname)");
+    expect(provider).toContain("useAnalyticsPageViews()");
+  });
+
   test("auth session rejects a token the server cannot verify", async ({
     request,
   }) => {
