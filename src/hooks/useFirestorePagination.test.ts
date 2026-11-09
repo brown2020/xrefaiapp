@@ -26,6 +26,7 @@ describe("useFirestorePagination", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetAllMocks();
+    vi.restoreAllMocks();
   });
 
   it("loads initial page and sets hasMore when page is full", async () => {
@@ -154,15 +155,21 @@ describe("useFirestorePagination", () => {
     const mockGetDocs = vi.mocked(getDocs);
     mockGetDocs.mockReset();
     
-    const results = [firstPageDocs, refreshedDocs];
-    let callIndex = 0;
+    let callCount = 0;
     mockGetDocs.mockImplementation(() => {
-      const docs = results[callIndex] || refreshedDocs;
-      callIndex++;
+      callCount++;
+      if (callCount === 1) {
+        return Promise.resolve({
+          size: pageSize,
+          forEach: (callback: (doc: QueryDocumentSnapshot<DocumentData>) => void) => {
+            firstPageDocs.forEach(callback);
+          },
+        } as never);
+      }
       return Promise.resolve({
         size: pageSize,
         forEach: (callback: (doc: QueryDocumentSnapshot<DocumentData>) => void) => {
-          docs.forEach(callback);
+          refreshedDocs.forEach(callback);
         },
       } as never);
     });
@@ -233,15 +240,21 @@ describe("useFirestorePagination", () => {
     const mockGetDocs = vi.mocked(getDocs);
     mockGetDocs.mockReset();
     
-    const results = [firstUidDocs, secondUidDocs];
-    let callIndex = 0;
+    let callCount = 0;
     mockGetDocs.mockImplementation(() => {
-      const docs = results[callIndex] || secondUidDocs;
-      callIndex++;
+      callCount++;
+      if (callCount === 1) {
+        return Promise.resolve({
+          size: pageSize,
+          forEach: (callback: (doc: QueryDocumentSnapshot<DocumentData>) => void) => {
+            firstUidDocs.forEach(callback);
+          },
+        } as never);
+      }
       return Promise.resolve({
         size: pageSize,
         forEach: (callback: (doc: QueryDocumentSnapshot<DocumentData>) => void) => {
-          docs.forEach(callback);
+          secondUidDocs.forEach(callback);
         },
       } as never);
     });
