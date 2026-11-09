@@ -14,8 +14,8 @@ test.describe("Security headers", () => {
     const headers = response!.headers();
     
     // Frame protection
-    expect(headers["x-frame-options"]).toBe("SAMEORIGIN");
-    expect(headers["content-security-policy"]).toContain("frame-ancestors 'self'");
+    expect(headers["x-frame-options"]).toBe("DENY");
+    expect(headers["content-security-policy"]).toContain("frame-ancestors 'none'");
     
     // Other security headers
     expect(headers["x-content-type-options"]).toBe("nosniff");
@@ -41,8 +41,8 @@ test.describe("Security headers", () => {
     const headers = response!.headers();
     
     // Frame protection
-    expect(headers["x-frame-options"]).toBe("SAMEORIGIN");
-    expect(headers["content-security-policy"]).toContain("frame-ancestors 'self'");
+    expect(headers["x-frame-options"]).toBe("DENY");
+    expect(headers["content-security-policy"]).toContain("frame-ancestors 'none'");
   });
 
   test("frame protection headers are set on login page", async ({ page }) => {
@@ -52,7 +52,7 @@ test.describe("Security headers", () => {
     const headers = response!.headers();
     
     // Frame protection
-    expect(headers["x-frame-options"]).toBe("SAMEORIGIN");
-    expect(headers["content-security-policy"]).toContain("frame-ancestors 'self'");
+    expect(headers["x-frame-options"]).toBe("DENY");
+    expect(headers["content-security-policy"]).toContain("frame-ancestors 'none'");
   });
 });
