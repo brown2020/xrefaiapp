@@ -10,8 +10,12 @@ test.describe("Login redirect - real sign-in flow", () => {
     // Clear all cookies and storage before each test
     await page.context().clearCookies();
     await page.evaluate(() => {
-      localStorage.clear();
-      sessionStorage.clear();
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch (_e) {
+        // Ignore localStorage access errors in CI
+      }
     });
   });
 

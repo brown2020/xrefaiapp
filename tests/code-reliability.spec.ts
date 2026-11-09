@@ -378,7 +378,8 @@ test.describe("code reliability contracts", () => {
       "prefers-reduced-motion: reduce"
     );
     const history = readFileSync("src/components/History.tsx", "utf8");
-    expect(history).toContain("Nothing saved yet.");
+    expect(history).toContain("No saved tools or outputs yet.");
+    expect(history).toContain("Chat messages stay on the");
     expect(history).toContain("Could not load history. Please try again.");
     expect(history).not.toContain("No history found.");
   });

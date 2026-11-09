@@ -29,8 +29,12 @@ test.describe("Login redirect fix verification", () => {
     // Clear auth state to ensure clean test
     await page.context().clearCookies();
     await page.evaluate(() => {
-      localStorage.clear();
-      sessionStorage.clear();
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch (_e) {
+        // Ignore localStorage access errors in CI
+      }
     });
     
     await page.goto("/login?next=/chat");
