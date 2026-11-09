@@ -1,8 +1,6 @@
 /**
  * @jest-environment jsdom
  */
-/// <reference types="vitest" />
-/// <reference types="@testing-library/jest-dom" />
 
 import { render, screen } from '@testing-library/react';
 import { describe, test, expect, vi } from 'vitest';
@@ -22,19 +20,40 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
+// Helper to create mock session for signed-in state
+const createMockSession = () => ({
+  uid: 'test-user-123',
+  authEmail: 'test@example.com',
+  authPending: false,
+  email: 'test@example.com',
+  handleSignOut: vi.fn(),
+  authDisplayName: 'Test User',
+  authPhotoUrl: '',
+  authEmailVerified: true,
+  setEmail: vi.fn(),
+  password: '',
+  setPassword: vi.fn(),
+  name: '',
+  setName: vi.fn(),
+  isVisible: false,
+  isEmailLinkLogin: false,
+  setIsEmailLinkLogin: vi.fn(),
+  authMode: 'signin' as const,
+  showGoogleSignIn: false,
+  isSubmitting: false,
+  authFeedback: null,
+  clearAuthFeedback: vi.fn(),
+  showModal: vi.fn(),
+  hideModal: vi.fn(),
+  handleSubmit: vi.fn(),
+  handleGoogleSignIn: vi.fn(),
+  handlePasswordReset: vi.fn(),
+  toggleMode: vi.fn(),
+});
+
 describe('AuthPage - Explicit confirmation for already-signed-in users', () => {
   test('shows "You\'re already signed in" heading when user is signed in', () => {
-    // Mock signed-in state
-    vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue({
-      uid: 'test-user-123',
-      authEmail: 'test@example.com',
-      authPending: false,
-      email: 'test@example.com',
-      handleSignOut: vi.fn(),
-      authDisplayName: 'Test User',
-      authPhotoUrl: '',
-      authEmailVerified: true,
-    } as any);
+    vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue(createMockSession());
 
     render(<AuthPage mode="signin" next="/history" />);
 
@@ -44,16 +63,7 @@ describe('AuthPage - Explicit confirmation for already-signed-in users', () => {
   });
 
   test('Continue link href equals allowlisted path for next=/history', () => {
-    vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue({
-      uid: 'test-user-123',
-      authEmail: 'test@example.com',
-      authPending: false,
-      email: 'test@example.com',
-      handleSignOut: vi.fn(),
-      authDisplayName: 'Test User',
-      authPhotoUrl: '',
-      authEmailVerified: true,
-    } as any);
+    vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue(createMockSession());
 
     render(<AuthPage mode="signin" next="/history" />);
 
@@ -63,16 +73,7 @@ describe('AuthPage - Explicit confirmation for already-signed-in users', () => {
   });
 
   test('Continue link shows page name "History"', () => {
-    vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue({
-      uid: 'test-user-123',
-      authEmail: 'test@example.com',
-      authPending: false,
-      email: 'test@example.com',
-      handleSignOut: vi.fn(),
-      authDisplayName: 'Test User',
-      authPhotoUrl: '',
-      authEmailVerified: true,
-    } as any);
+    vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue(createMockSession());
 
     render(<AuthPage mode="signin" next="/history" />);
 
@@ -81,16 +82,7 @@ describe('AuthPage - Explicit confirmation for already-signed-in users', () => {
   });
 
   test('hostile URL //evil.com falls back to default route', () => {
-    vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue({
-      uid: 'test-user-123',
-      authEmail: 'test@example.com',
-      authPending: false,
-      email: 'test@example.com',
-      handleSignOut: vi.fn(),
-      authDisplayName: 'Test User',
-      authPhotoUrl: '',
-      authEmailVerified: true,
-    } as any);
+    vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue(createMockSession());
 
     render(<AuthPage mode="signin" next="//evil.com" />);
 
@@ -101,16 +93,7 @@ describe('AuthPage - Explicit confirmation for already-signed-in users', () => {
   });
 
   test('hostile URL https://evil.com falls back to default route', () => {
-    vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue({
-      uid: 'test-user-123',
-      authEmail: 'test@example.com',
-      authPending: false,
-      email: 'test@example.com',
-      handleSignOut: vi.fn(),
-      authDisplayName: 'Test User',
-      authPhotoUrl: '',
-      authEmailVerified: true,
-    } as any);
+    vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue(createMockSession());
 
     render(<AuthPage mode="signin" next="https://evil.com" />);
 
@@ -120,16 +103,7 @@ describe('AuthPage - Explicit confirmation for already-signed-in users', () => {
   });
 
   test('backslash variant /\\evil.com falls back to default route', () => {
-    vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue({
-      uid: 'test-user-123',
-      authEmail: 'test@example.com',
-      authPending: false,
-      email: 'test@example.com',
-      handleSignOut: vi.fn(),
-      authDisplayName: 'Test User',
-      authPhotoUrl: '',
-      authEmailVerified: true,
-    } as any);
+    vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue(createMockSession());
 
     render(<AuthPage mode="signin" next="/\\evil.com" />);
 
@@ -139,16 +113,7 @@ describe('AuthPage - Explicit confirmation for already-signed-in users', () => {
   });
 
   test('URL-encoded variant %2F%2Fevil.com falls back to default route', () => {
-    vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue({
-      uid: 'test-user-123',
-      authEmail: 'test@example.com',
-      authPending: false,
-      email: 'test@example.com',
-      handleSignOut: vi.fn(),
-      authDisplayName: 'Test User',
-      authPhotoUrl: '',
-      authEmailVerified: true,
-    } as any);
+    vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue(createMockSession());
 
     render(<AuthPage mode="signin" next="%2F%2Fevil.com" />);
 
@@ -158,16 +123,7 @@ describe('AuthPage - Explicit confirmation for already-signed-in users', () => {
   });
 
   test('unknown internal path /unknown-page falls back to default route', () => {
-    vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue({
-      uid: 'test-user-123',
-      authEmail: 'test@example.com',
-      authPending: false,
-      email: 'test@example.com',
-      handleSignOut: vi.fn(),
-      authDisplayName: 'Test User',
-      authPhotoUrl: '',
-      authEmailVerified: true,
-    } as any);
+    vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue(createMockSession());
 
     render(<AuthPage mode="signin" next="/unknown-page" />);
 
@@ -177,16 +133,7 @@ describe('AuthPage - Explicit confirmation for already-signed-in users', () => {
   });
 
   test('no automatic navigation - component renders without redirect', () => {
-    vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue({
-      uid: 'test-user-123',
-      authEmail: 'test@example.com',
-      authPending: false,
-      email: 'test@example.com',
-      handleSignOut: vi.fn(),
-      authDisplayName: 'Test User',
-      authPhotoUrl: '',
-      authEmailVerified: true,
-    } as any);
+    vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue(createMockSession());
 
     render(<AuthPage mode="signin" next="/history" />);
 
