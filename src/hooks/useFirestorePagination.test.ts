@@ -22,6 +22,12 @@ const mockDocs = (
   });
 };
 
+// Stable transform function to prevent infinite re-renders
+const stableTransform = (doc: QueryDocumentSnapshot<DocumentData>) => ({
+  id: doc.id,
+  ...doc.data(),
+});
+
 describe("useFirestorePagination", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -34,7 +40,6 @@ describe("useFirestorePagination", () => {
     const docs = mockDocs(pageSize);
 
     const mockGetDocs = vi.mocked(getDocs);
-    mockGetDocs.mockReset();
     mockGetDocs.mockResolvedValue({
       size: pageSize,
       forEach: (callback: (doc: QueryDocumentSnapshot<DocumentData>) => void) => {
@@ -47,7 +52,7 @@ describe("useFirestorePagination", () => {
         uid: "test-uid",
         collectionName: "testCollection",
         pageSize,
-        transform: (doc) => ({ id: doc.id, ...doc.data() }),
+        transform: stableTransform,
       })
     );
 
@@ -63,7 +68,6 @@ describe("useFirestorePagination", () => {
     const docs = mockDocs(3);
 
     const mockGetDocs = vi.mocked(getDocs);
-    mockGetDocs.mockReset();
     mockGetDocs.mockResolvedValue({
       size: 3,
       forEach: (callback: (doc: QueryDocumentSnapshot<DocumentData>) => void) => {
@@ -76,7 +80,7 @@ describe("useFirestorePagination", () => {
         uid: "test-uid",
         collectionName: "testCollection",
         pageSize,
-        transform: (doc) => ({ id: doc.id, ...doc.data() }),
+        transform: stableTransform,
       })
     );
 
@@ -94,30 +98,28 @@ describe("useFirestorePagination", () => {
     const mockGetDocs = vi.mocked(getDocs);
     const mockQuery = vi.mocked(query);
     const mockStartAfter = vi.mocked(startAfter);
-    mockGetDocs.mockReset();
-    mockQuery.mockReset();
-    mockStartAfter.mockReset();
     
-    const results = [firstPageDocs, secondPageDocs];
-    let callIndex = 0;
+    let callCount = 0;
     mockGetDocs.mockImplementation(() => {
-      const docs = results[callIndex] || secondPageDocs;
-      callIndex++;
+      callCount++;
+      if (callCount === 1) {
+        return Promise.resolve({
+          size: pageSize,
+          forEach: (callback: (doc: QueryDocumentSnapshot<DocumentData>) => void) => {
+            firstPageDocs.forEach(callback);
+          },
+        } as never);
+      }
       return Promise.resolve({
         size: pageSize,
         forEach: (callback: (doc: QueryDocumentSnapshot<DocumentData>) => void) => {
-          docs.forEach(callback);
+          secondPageDocs.forEach(callback);
         },
       } as never);
     });
 
     mockQuery.mockImplementation((...args) => args as never);
     mockStartAfter.mockImplementation((doc) => ({ type: "startAfter", doc }) as never);
-
-    const stableTransform = (doc: QueryDocumentSnapshot<DocumentData>) => ({
-      id: doc.id,
-      ...doc.data(),
-    });
 
     const { result } = renderHook(() =>
       useFirestorePagination({
@@ -131,11 +133,14 @@ describe("useFirestorePagination", () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.items).toHaveLength(5);
     expect(result.current.items[0].id).toBe("doc-0");
+    expect(result.current.hasMore).toBe(true);
 
     // First query should not have startAfter
     expect(mockStartAfter).not.toHaveBeenCalled();
 
-    await result.current.loadMore();
+    await act(async () => {
+      await result.current.loadMore();
+    });
 
     await waitFor(() => expect(result.current.loadingMore).toBe(false));
     expect(result.current.items).toHaveLength(10);
@@ -153,7 +158,6 @@ describe("useFirestorePagination", () => {
     const refreshedDocs = mockDocs(pageSize, 100);
 
     const mockGetDocs = vi.mocked(getDocs);
-    mockGetDocs.mockReset();
     
     let callCount = 0;
     mockGetDocs.mockImplementation(() => {
@@ -172,11 +176,6 @@ describe("useFirestorePagination", () => {
           refreshedDocs.forEach(callback);
         },
       } as never);
-    });
-
-    const stableTransform = (doc: QueryDocumentSnapshot<DocumentData>) => ({
-      id: doc.id,
-      ...doc.data(),
     });
 
     const { result } = renderHook(() =>
@@ -203,7 +202,6 @@ describe("useFirestorePagination", () => {
     const docs = mockDocs(pageSize);
 
     const mockGetDocs = vi.mocked(getDocs);
-    mockGetDocs.mockReset();
     mockGetDocs.mockResolvedValue({
       size: pageSize,
       forEach: (callback: (doc: QueryDocumentSnapshot<DocumentData>) => void) => {
@@ -216,7 +214,7 @@ describe("useFirestorePagination", () => {
         uid: "test-uid",
         collectionName: "testCollection",
         pageSize,
-        transform: (doc) => ({ id: doc.id, ...doc.data() }),
+        transform: stableTransform,
       })
     );
 
@@ -238,7 +236,6 @@ describe("useFirestorePagination", () => {
     const secondUidDocs = mockDocs(pageSize, 100);
 
     const mockGetDocs = vi.mocked(getDocs);
-    mockGetDocs.mockReset();
     
     let callCount = 0;
     mockGetDocs.mockImplementation(() => {
@@ -257,11 +254,6 @@ describe("useFirestorePagination", () => {
           secondUidDocs.forEach(callback);
         },
       } as never);
-    });
-
-    const stableTransform = (doc: QueryDocumentSnapshot<DocumentData>) => ({
-      id: doc.id,
-      ...doc.data(),
     });
 
     const { result, rerender } = renderHook(
