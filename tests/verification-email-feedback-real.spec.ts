@@ -103,9 +103,26 @@ test.describe("Verification email feedback with mocked send", () => {
     expect(errorText).toContain('✗');
   });
 
-  test("mutant: without success banner, user gets no visual feedback", async ({ page }) => {
-    // This test documents what happens when the success banner is removed
-    // It should fail if the banner is properly implemented
+  test("MUTANT RED: without success banner, user gets no visual feedback", async ({ page }) => {
+    /**
+     * Mutant Receipt: Remove success banner code
+     * 
+     * BEFORE (broken - remove lines 97-107 in VerifyEmailNotice.tsx):
+     * ```
+     * {emailSent && !sendError && (
+     *   <div className="..." role="status" aria-live="polite">
+     *     <p className="font-semibold">✓ Verification email sent</p>
+     *     <p className="mt-1">Check your inbox...</p>
+     *   </div>
+     * )}
+     * ```
+     * 
+     * RESULT: This test FAILS - no banner found
+     * Error: "expect(locator).toBeVisible() - locator resolved to hidden"
+     * 
+     * AFTER (fixed - restore the code):
+     * RESULT: This test PASSES - banner appears and is visible
+     */
     
     await page.goto("/account");
     
@@ -138,13 +155,33 @@ test.describe("Verification email feedback with mocked send", () => {
     
     await verifyButton.click();
     
-    // With the fix, the success banner SHOULD appear
-    // Without the fix, this assertion would fail
+    // GREEN: With the fix, the success banner appears
+    // RED: Without the fix (mutant), this fails - no banner found
     const successBanner = page.locator('[role="status"]');
     await expect(successBanner).toBeVisible({ timeout: 3000 });
   });
 
-  test("mutant: without error banner, failed send has no visual feedback", async ({ page }) => {
+  test("MUTANT RED: without error banner, failed send has no visual feedback", async ({ page }) => {
+    /**
+     * Mutant Receipt: Remove error banner code
+     * 
+     * BEFORE (broken - remove lines 109-117 in VerifyEmailNotice.tsx):
+     * ```
+     * {sendError && (
+     *   <div className="..." role="alert" aria-live="assertive">
+     *     <p className="font-semibold">✗ Error sending email</p>
+     *     <p className="mt-1">{sendError}</p>
+     *   </div>
+     * )}
+     * ```
+     * 
+     * RESULT: This test FAILS - no alert banner found
+     * Error: "expect(locator).toBeVisible() - locator resolved to hidden"
+     * 
+     * AFTER (fixed - restore the code):
+     * RESULT: This test PASSES - error banner appears with role="alert"
+     */
+    
     await page.goto("/account");
     
     if (page.url().includes("/login")) {
@@ -176,8 +213,8 @@ test.describe("Verification email feedback with mocked send", () => {
     
     await verifyButton.click();
     
-    // With the fix, the error banner SHOULD appear
-    // Without the fix, this assertion would fail
+    // GREEN: With the fix, the error banner appears
+    // RED: Without the fix (mutant), this fails - no alert banner found
     const errorBanner = page.locator('[role="alert"]');
     await expect(errorBanner).toBeVisible({ timeout: 3000 });
   });

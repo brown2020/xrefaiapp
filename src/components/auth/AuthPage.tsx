@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuthSession, type AuthMode } from "@/components/auth/useAuthSession";
 import { AuthCredentialsForm } from "@/components/auth/AuthCredentialsForm";
 import { AuthPendingPanel } from "@/components/auth/AuthBits";
@@ -11,21 +11,27 @@ import { AuthPendingPanel } from "@/components/auth/AuthBits";
 export default function AuthPage({ mode, next }: { mode: AuthMode; next: string }) {
   const router = useRouter();
   const [redirecting, setRedirecting] = useState(false);
+  const hasRedirected = useRef(false);
   
   const session = useAuthSession({
     initialMode: mode,
     onSignedIn: () => {
+      if (hasRedirected.current) return;
+      hasRedirected.current = true;
       setRedirecting(true);
       router.replace(next);
     },
   });
   const { uid, authEmail, authPending, email, handleSignOut } = session;
   
-  // Already-signed-in redirect: when user arrives with existing session
-  if (uid && !redirecting && !authPending) {
-    setRedirecting(true);
-    router.replace(next);
-  }
+  // Already-signed-in redirect: effect runs when uid becomes available
+  useEffect(() => {
+    if (uid && !authPending && !hasRedirected.current) {
+      hasRedirected.current = true;
+      setRedirecting(true);
+      router.replace(next);
+    }
+  }, [uid, authPending, next, router]);
 
   return (
     <main className="min-h-full bg-muted/30 px-5 py-12 md:py-16">
