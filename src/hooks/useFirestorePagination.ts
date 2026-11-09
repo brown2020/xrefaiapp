@@ -56,9 +56,9 @@ export function useFirestorePagination<T>({
   const [items, setItems] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [lastDoc, setLastDoc] =
-    useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [hasMore, setHasMore] = useState(false);
+  // Use ref for lastDoc to avoid useCallback dependency issues
+  const lastDocRef = useRef<QueryDocumentSnapshot<DocumentData> | null>(null);
   // Synchronous in-flight guard: `loadingMore` is async state, so two calls in
   // the same tick can both see it as false and fetch/append the same page.
   const loadMoreInFlightRef = useRef(false);
@@ -84,8 +84,8 @@ export function useFirestorePagination<T>({
           limit(pageSize),
         ];
 
-        if (!isInitial && lastDoc) {
-          constraints.push(startAfter(lastDoc));
+        if (!isInitial && lastDocRef.current) {
+          constraints.push(startAfter(lastDocRef.current));
         }
 
         const q = query(collectionRef, ...constraints);
@@ -105,7 +105,7 @@ export function useFirestorePagination<T>({
           setItems((prev) => [...prev, ...newItems]);
         }
 
-        setLastDoc(lastVisible);
+        lastDocRef.current = lastVisible;
         setHasMore(querySnapshot.size === pageSize);
       } catch (error) {
         console.error(`Error fetching ${collectionName}:`, error);
@@ -125,15 +125,13 @@ export function useFirestorePagination<T>({
       pageSize,
       transform,
       loadErrorMessage,
-      lastDoc,
     ]
   );
 
   // Initial fetch
   useEffect(() => {
     fetchData(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uid, collectionName]);
+  }, [fetchData]);
 
   const loadMore = useCallback(async () => {
     if (loadMoreInFlightRef.current || loadingMore || !hasMore) return;
@@ -146,13 +144,13 @@ export function useFirestorePagination<T>({
   }, [fetchData, loadingMore, hasMore]);
 
   const refresh = useCallback(async () => {
-    setLastDoc(null);
+    lastDocRef.current = null;
     await fetchData(true);
   }, [fetchData]);
 
   const clearItems = useCallback(() => {
     setItems([]);
-    setLastDoc(null);
+    lastDocRef.current = null;
     setHasMore(false);
   }, []);
 
