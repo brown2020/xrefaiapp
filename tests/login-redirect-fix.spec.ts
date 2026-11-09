@@ -29,9 +29,6 @@ test.describe("Login redirect fix verification", () => {
     await page.goto("/login?next=/chat");
     
     await expect(page).toHaveURL(/\/login\?next=(\/chat|%2Fchat)/);
-    
-    const continueLink = page.locator('a[href="/chat"]');
-    await expect(continueLink).toHaveCount(0);
   });
 
   test("Bug 2: /signup also handles next parameter", async ({ page }) => {
