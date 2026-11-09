@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
 import { useFirestorePagination } from "./useFirestorePagination";
-import { getDocs } from "firebase/firestore";
+import { getDocs, query, startAfter } from "firebase/firestore";
 
 type DocumentData = Record<string, unknown>;
 interface QueryDocumentSnapshot<T = DocumentData> {
@@ -91,7 +91,11 @@ describe("useFirestorePagination", () => {
     const secondPageDocs = mockDocs(pageSize, 5);
 
     const mockGetDocs = vi.mocked(getDocs);
+    const mockQuery = vi.mocked(query);
+    const mockStartAfter = vi.mocked(startAfter);
     mockGetDocs.mockReset();
+    mockQuery.mockReset();
+    mockStartAfter.mockReset();
     
     const results = [firstPageDocs, secondPageDocs];
     let callIndex = 0;
@@ -105,6 +109,9 @@ describe("useFirestorePagination", () => {
         },
       } as never);
     });
+
+    mockQuery.mockImplementation((...args) => args as never);
+    mockStartAfter.mockImplementation((doc) => ({ type: "startAfter", doc }) as never);
 
     const stableTransform = (doc: QueryDocumentSnapshot<DocumentData>) => ({
       id: doc.id,
@@ -124,12 +131,19 @@ describe("useFirestorePagination", () => {
     expect(result.current.items).toHaveLength(5);
     expect(result.current.items[0].id).toBe("doc-0");
 
+    // First query should not have startAfter
+    expect(mockStartAfter).not.toHaveBeenCalled();
+
     await result.current.loadMore();
 
     await waitFor(() => expect(result.current.loadingMore).toBe(false));
     expect(result.current.items).toHaveLength(10);
     expect(result.current.items[5].id).toBe("doc-5");
     expect(getDocs).toHaveBeenCalledTimes(2);
+    
+    // Second query MUST use startAfter with last doc from page 1 (doc-4)
+    expect(mockStartAfter).toHaveBeenCalledTimes(1);
+    expect(mockStartAfter).toHaveBeenCalledWith(firstPageDocs[4]);
   });
 
   it("refresh resets cursor and refetches from beginning", async () => {

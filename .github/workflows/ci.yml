@@ -21,6 +21,7 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run lint
       - run: npm run typecheck
+      - run: npm run test:unit
       # Client config only on the production build step so gate jobs tolerate
       # missing secrets. Deferred Firebase init lets build succeed when empty.
       # Never inline NEXT_PUBLIC_* / API keys — ${{ secrets.* }} only.
