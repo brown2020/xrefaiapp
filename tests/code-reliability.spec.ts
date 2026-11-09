@@ -623,7 +623,9 @@ test.describe("code reliability contracts", () => {
     expect(cors[0]?.origin).toEqual(["https://xref.ai", "https://www.xref.ai"]);
 
     const nextConfig = readFileSync("next.config.mjs", "utf8");
-    expect(nextConfig).toContain("frame-ancestors 'none'");
+    expect(nextConfig).toContain("frame-ancestors 'self'");
+    expect(nextConfig).toContain("X-Frame-Options");
+    expect(nextConfig).toContain("SAMEORIGIN");
     expect(nextConfig).toContain("nosniff");
 
     const limiter = readFileSync("src/utils/rateLimit.ts", "utf8");

@@ -7,7 +7,7 @@ import { test, expect } from "@playwright/test";
  */
 
 test.describe("Login redirect - server-side behavioral tests", () => {
-  test.beforeEach(async ({ page, context }) => {
+  test.beforeEach(async ({ context }) => {
     // Start with clean slate
     await context.clearCookies();
   });
@@ -61,6 +61,24 @@ test.describe("Login redirect - server-side behavioral tests", () => {
     
     // Should auto-redirect to /history (the next parameter)
     await expect(page).toHaveURL('/history', { timeout: 5000 });
+  });
+
+  test("unknown internal path falls back to default route", async ({ page, context }) => {
+    await context.addCookies([{
+      name: 'xrefAuthToken',
+      value: 'test-token',
+      domain: '127.0.0.1',
+      path: '/',
+      httpOnly: true,
+      sameSite: 'Lax',
+    }]);
+    
+    // Visit login with an unknown path (not in allowlist)
+    await page.goto("/login?next=/unknown-page");
+    
+    // Should redirect to default route (not the unknown page)
+    await expect(page).toHaveURL(/\/(tools|chat)$/, { timeout: 5000 });
+    await expect(page).not.toHaveURL(/unknown-page/);
   });
 
   test("protocol-relative URL //evil.com is rejected", async ({ page, context }) => {
@@ -131,27 +149,45 @@ test.describe("Login redirect - server-side behavioral tests", () => {
     await expect(page).not.toHaveURL(/evil\.com/);
   });
 
-  test("stale cookie does not cause redirect loop", async ({ page, context }) => {
-    // Set a stale/invalid cookie
+  test("stale/invalid cookie does not cause redirect loop", async ({ page, context }) => {
+    /**
+     * Stale cookie rejection path:
+     * 
+     * 1. Browser has expired/invalid auth cookie
+     * 2. Server login page checks cookie PRESENCE only → redirects to next
+     * 3. Proxy middleware checks cookie PRESENCE only → allows through
+     * 4. Client loads protected page
+     * 5. Firebase Auth client-side validates token → fails for stale token
+     * 6. useAuthToken clears the cookie (clearAuthCookie)
+     * 7. User is already on page but without valid auth
+     * 8. Protected page components handle unauthenticated state
+     * 
+     * No redirect loop because:
+     * - Server checks are presence-only (fast UX redirect)
+     * - Token validation is client-side after page load
+     * - Invalid tokens get cleared, not preserved
+     */
+    
+    // Set an INVALID cookie value (not just absent, but present with bad value)
     await context.addCookies([{
       name: 'xrefAuthToken',
-      value: 'stale-invalid-token',
+      value: 'invalid-jwt-token-12345',
       domain: '127.0.0.1',
       path: '/',
       httpOnly: true,
       sameSite: 'Lax',
     }]);
     
-    // Visit login - server sees cookie and redirects to /chat
+    // Visit login with next parameter
     await page.goto("/login?next=/chat");
     
-    // Proxy middleware should catch the invalid cookie and redirect back to /login
-    // This ensures no redirect loop: /login -> /chat -> /login (with next preserved)
+    // Server sees cookie present, redirects to /chat
+    // Middleware sees cookie present, allows through to /chat
+    // Client would then detect invalid token and clear it
+    await expect(page).toHaveURL('/chat', { timeout: 5000 });
     
-    // In production, middleware would redirect back with ?next parameter preserved
-    // For this test, we verify the page either stays on /login or lands on /chat
-    const finalUrl = page.url();
-    expect(finalUrl).toMatch(/\/(login|chat)/);
+    // No redirect loop: user lands on /chat
+    // (Client-side auth failure handling is separate from redirect logic)
   });
 });
 
