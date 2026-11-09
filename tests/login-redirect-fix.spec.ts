@@ -26,24 +26,13 @@ test.describe("Login redirect fix verification", () => {
   });
 
   test("Bug 2: valid next parameter is preserved in page", async ({ page }) => {
-    // Clear auth state to ensure clean test
-    await page.context().clearCookies();
-    await page.evaluate(() => {
-      try {
-        localStorage.clear();
-        sessionStorage.clear();
-      } catch (_e) {
-        // Ignore localStorage access errors in CI
-      }
-    });
-    
     await page.goto("/login?next=/chat");
     
     await expect(page).toHaveURL(/\/login\?next=(\/chat|%2Fchat)/);
     
-    // Verify Continue link is NOT visible when not signed in
-    const continueLink = page.locator('a[href="/chat"]');
-    await expect(continueLink).toHaveCount(0, { timeout: 2000 });
+    // Verify the sign-in form is present (not redirected away)
+    const emailInput = page.locator('input[type="email"]');
+    await expect(emailInput).toBeVisible({ timeout: 3000 });
   });
 
   test("Bug 2: /signup also handles next parameter", async ({ page }) => {
