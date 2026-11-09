@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useState } from "react";
 import { useAuthSession, type AuthMode } from "@/components/auth/useAuthSession";
 import { AuthCredentialsForm } from "@/components/auth/AuthCredentialsForm";
 import { AuthPendingPanel } from "@/components/auth/AuthBits";
@@ -10,30 +10,26 @@ import { AuthPendingPanel } from "@/components/auth/AuthBits";
 /** Full-page sign-in or sign-up. `next` must already be a sanitized internal path. */
 export default function AuthPage({ mode, next }: { mode: AuthMode; next: string }) {
   const router = useRouter();
-  const redirectedRef = useRef(false);
+  const [redirecting, setRedirecting] = useState(false);
   
   const session = useAuthSession({
     initialMode: mode,
     onSignedIn: () => {
-      if (!redirectedRef.current) {
-        redirectedRef.current = true;
-        router.replace(next);
-      }
+      setRedirecting(true);
+      router.replace(next);
     },
   });
   const { uid, authEmail, authPending, email, handleSignOut } = session;
-  
-  useEffect(() => {
-    if (uid && !redirectedRef.current) {
-      redirectedRef.current = true;
-      router.replace(next);
-    }
-  }, [uid, next, router]);
 
   return (
     <main className="min-h-full bg-muted/30 px-5 py-12 md:py-16">
       <div className="mx-auto w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-sm">
-        {uid ? (
+        {redirecting ? (
+          <div className="flex flex-col items-center justify-center gap-4 py-8">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
+            <p className="text-sm text-muted-foreground">Redirecting...</p>
+          </div>
+        ) : uid ? (
           <div className="flex flex-col gap-4">
             <div>
               <h1 className="text-2xl font-bold">You&apos;re signed in</h1>
