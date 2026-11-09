@@ -1,6 +1,9 @@
 /**
  * @jest-environment jsdom
  */
+/// <reference types="vitest" />
+/// <reference types="@testing-library/jest-dom" />
+
 import { render, screen } from '@testing-library/react';
 import { describe, test, expect, vi } from 'vitest';
 import AuthPage from '@/components/auth/AuthPage';
