@@ -26,9 +26,20 @@ test.describe("Login redirect fix verification", () => {
   });
 
   test("Bug 2: valid next parameter is preserved in page", async ({ page }) => {
+    // Clear auth state to ensure clean test
+    await page.context().clearCookies();
+    await page.evaluate(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+    });
+    
     await page.goto("/login?next=/chat");
     
     await expect(page).toHaveURL(/\/login\?next=(\/chat|%2Fchat)/);
+    
+    // Verify Continue link is NOT visible when not signed in
+    const continueLink = page.locator('a[href="/chat"]');
+    await expect(continueLink).toHaveCount(0, { timeout: 2000 });
   });
 
   test("Bug 2: /signup also handles next parameter", async ({ page }) => {

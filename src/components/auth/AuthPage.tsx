@@ -20,6 +20,12 @@ export default function AuthPage({ mode, next }: { mode: AuthMode; next: string 
     },
   });
   const { uid, authEmail, authPending, email, handleSignOut } = session;
+  
+  // Already-signed-in redirect: when user arrives with existing session
+  if (uid && !redirecting && !authPending) {
+    setRedirecting(true);
+    router.replace(next);
+  }
 
   return (
     <main className="min-h-full bg-muted/30 px-5 py-12 md:py-16">

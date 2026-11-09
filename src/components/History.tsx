@@ -255,17 +255,20 @@ export default function History() {
 
               {visibleSummaries.length === 0 && (
                 <div className="text-center py-12 text-muted-foreground bg-card rounded-2xl border border-border border-dashed">
-                  <p>Nothing saved yet.</p>
+                  <p>No saved tools or outputs yet.</p>
                   <p className="mt-2 text-sm">
-                    Start in{" "}
+                    Your{" "}
+                    <Link href={ROUTES.tools} className="font-medium text-foreground underline">
+                      Tools
+                    </Link>{" "}
+                    outputs and saved results appear here.
+                  </p>
+                  <p className="mt-1 text-sm">
+                    Chat messages stay on the{" "}
                     <Link href={ROUTES.chat} className="font-medium text-foreground underline">
                       Chat
                     </Link>{" "}
-                    or{" "}
-                    <Link href={ROUTES.tools} className="font-medium text-foreground underline">
-                      Tools
-                    </Link>
-                    . The result will show up here.
+                    page with their own history.
                   </p>
                 </div>
               )}

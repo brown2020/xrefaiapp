@@ -39,3 +39,19 @@ jobs:
         run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
+      - name: React Doctor quality check
+        run: |
+          npx react-doctor@0.9.22 --scope full --no-cache --json > react-doctor-ci.json
+          SCORE=$(node -e "console.log(JSON.parse(require('fs').readFileSync('react-doctor-ci.json')).summary.score)")
+          echo "React Doctor score: $SCORE"
+          if [ "$SCORE" != "100" ]; then
+            echo "React Doctor score is below 100"
+            npx react-doctor@0.9.22 --scope full --no-cache
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: react-doctor-ci-report
+          path: react-doctor-ci.json
+          retention-days: 30
