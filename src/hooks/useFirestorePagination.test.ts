@@ -190,7 +190,9 @@ describe("useFirestorePagination", () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.items[0].id).toBe("doc-0");
 
-    await result.current.refresh();
+    await act(async () => {
+      await result.current.refresh();
+    });
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.items).toHaveLength(5);
