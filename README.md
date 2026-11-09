@@ -149,6 +149,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `npm run start` | Serve production build |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | `tsc --noEmit` |
+| `npm run test:unit` | Vitest unit tests |
 | `npm test` | Playwright reliability suite (`tests/code-reliability.spec.ts`) without webServer |
 | `npm run test:browser` | Full Playwright suite |
 | `npm run doctor` | React Doctor full scan (pinned `react-doctor@0.9.14`) |
