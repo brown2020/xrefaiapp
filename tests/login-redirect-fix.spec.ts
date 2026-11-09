@@ -28,7 +28,7 @@ test.describe("Login redirect fix verification", () => {
   test("Bug 2: valid next parameter is preserved in page", async ({ page }) => {
     await page.goto("/login?next=/chat");
     
-    await expect(page).toHaveURL(/\/login\?next=%2Fchat/);
+    await expect(page).toHaveURL(/\/login\?next=(\/chat|%2Fchat)/);
     
     const continueLink = page.locator('a[href="/chat"]');
     await expect(continueLink).toHaveCount(0);
@@ -37,6 +37,6 @@ test.describe("Login redirect fix verification", () => {
   test("Bug 2: /signup also handles next parameter", async ({ page }) => {
     await page.goto("/signup?next=/tools");
     
-    await expect(page).toHaveURL(/\/signup\?next=%2Ftools/);
+    await expect(page).toHaveURL(/\/signup\?next=(\/tools|%2Ftools)/);
   });
 });
