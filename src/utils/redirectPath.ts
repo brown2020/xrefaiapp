@@ -13,8 +13,9 @@ function hasControlCharacter(value: string): boolean {
 /**
  * Explicit allowlist of valid post-login redirect destinations.
  * Using an allowlist is stricter security than accepting any same-origin path.
+ * Exported for use in proxy.ts and page components.
  */
-const ALLOWED_REDIRECT_PATHS = [
+export const ALLOWED_REDIRECT_PATHS = [
   ROUTES.chat,
   ROUTES.tools,
   ROUTES.history,
@@ -23,11 +24,24 @@ const ALLOWED_REDIRECT_PATHS = [
 ] as const;
 
 /**
+ * Human-readable names for allowlisted routes.
+ * Used for explicit confirmation UI ("Continue to <name>").
+ */
+export const ROUTE_DISPLAY_NAMES: Record<string, string> = {
+  [ROUTES.chat]: "Chat",
+  [ROUTES.tools]: "Tools",
+  [ROUTES.history]: "History",
+  [ROUTES.account]: "Account",
+  [ROUTES.paymentSuccess]: "Payment Success",
+};
+
+/**
  * Validates a redirect path against the allowlist of known app routes.
  * Returns the exact matched ROUTES constant or null if not allowed.
  * This ensures we only redirect to known, allowlisted constants.
+ * Exported for use in proxy.ts and page components.
  */
-function validateAgainstAllowlist(pathname: string): typeof ROUTES[keyof typeof ROUTES] | null {
+export function validateAgainstAllowlist(pathname: string): typeof ROUTES[keyof typeof ROUTES] | null {
   // Exact match - return the constant itself
   for (const allowed of ALLOWED_REDIRECT_PATHS) {
     if (pathname === allowed) {

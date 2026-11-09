@@ -6,6 +6,8 @@ import { useState, useRef } from "react";
 import { useAuthSession, type AuthMode } from "@/components/auth/useAuthSession";
 import { AuthCredentialsForm } from "@/components/auth/AuthCredentialsForm";
 import { AuthPendingPanel } from "@/components/auth/AuthBits";
+import { ROUTE_DISPLAY_NAMES, validateAgainstAllowlist } from "@/utils/redirectPath";
+import { DEFAULT_SIGNED_IN_ROUTE } from "@/constants/routes";
 
 /** Full-page sign-in or sign-up. `next` must already be a sanitized internal path. */
 export default function AuthPage({ mode, next }: { mode: AuthMode; next: string }) {
@@ -16,6 +18,7 @@ export default function AuthPage({ mode, next }: { mode: AuthMode; next: string 
   const session = useAuthSession({
     initialMode: mode,
     onSignedIn: () => {
+      // After successful sign-in, redirect to validated next
       if (hasRedirected.current) return;
       hasRedirected.current = true;
       setRedirecting(true);
@@ -23,6 +26,10 @@ export default function AuthPage({ mode, next }: { mode: AuthMode; next: string 
     },
   });
   const { uid, authEmail, authPending, email, handleSignOut } = session;
+
+  // For already-signed-in state: get allowlisted path and display name for explicit confirmation
+  const validatedPath = validateAgainstAllowlist(next) || DEFAULT_SIGNED_IN_ROUTE;
+  const displayName = ROUTE_DISPLAY_NAMES[validatedPath] || "Dashboard";
 
   return (
     <main className="min-h-full bg-muted/30 px-5 py-12 md:py-16">
@@ -35,11 +42,16 @@ export default function AuthPage({ mode, next }: { mode: AuthMode; next: string 
         ) : uid ? (
           <div className="flex flex-col gap-4">
             <div>
-              <h1 className="text-2xl font-bold">You&apos;re signed in</h1>
+              <h1 className="text-2xl font-bold">You&apos;re already signed in</h1>
               <p className="mt-1 break-all text-sm text-muted-foreground">{authEmail}</p>
             </div>
-            <Link href={next} className="btn-primary mt-0 text-center">
-              Continue
+            <Link 
+              href={validatedPath} 
+              className="btn-primary mt-0 text-center"
+              data-testid="continue-button"
+              data-target-path={validatedPath}
+            >
+              Continue to {displayName}
             </Link>
             <button type="button" onClick={handleSignOut} className="btn-muted mt-0">
               Sign out
