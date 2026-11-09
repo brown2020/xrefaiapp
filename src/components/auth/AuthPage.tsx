@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
 import { useAuthSession, type AuthMode } from "@/components/auth/useAuthSession";
 import { AuthCredentialsForm } from "@/components/auth/AuthCredentialsForm";
 import { AuthPendingPanel } from "@/components/auth/AuthBits";
@@ -9,11 +10,25 @@ import { AuthPendingPanel } from "@/components/auth/AuthBits";
 /** Full-page sign-in or sign-up. `next` must already be a sanitized internal path. */
 export default function AuthPage({ mode, next }: { mode: AuthMode; next: string }) {
   const router = useRouter();
+  const redirectedRef = useRef(false);
+  
   const session = useAuthSession({
     initialMode: mode,
-    onSignedIn: () => router.replace(next),
+    onSignedIn: () => {
+      if (!redirectedRef.current) {
+        redirectedRef.current = true;
+        router.replace(next);
+      }
+    },
   });
   const { uid, authEmail, authPending, email, handleSignOut } = session;
+  
+  useEffect(() => {
+    if (uid && !redirectedRef.current) {
+      redirectedRef.current = true;
+      router.replace(next);
+    }
+  }, [uid, next, router]);
 
   return (
     <main className="min-h-full bg-muted/30 px-5 py-12 md:py-16">
