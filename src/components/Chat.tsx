@@ -226,21 +226,23 @@ export default function Chat({ initialPrompt, starterIntentId }: ChatProps) {
       const prompt = latestUser ? getMessageText(latestUser) : "";
       const response = getMessageText(message);
 
-      // A failed request (including not enough credits) is reported by onError.
-      // Do not also say the model returned no reply.
+      // When isError is true, restore the user's message and show an error.
+      // onError should normally show a toast, but if it wasn't called
+      // (e.g., malformed stream response), we must still notify the user.
       if (isError) {
         const draft = lastSentInputRef.current || prompt;
         lastSentInputRef.current = "";
         if (draft) setInput((current) => current || draft);
         setMessages([]);
+        toast.error("Chat request failed. Please try again.");
         return;
       }
 
-      if (prompt && !response.trim()) {
-        // The server refunds an empty or filtered reply; give the prompt back.
+      // If the response is empty, refund happened and we should restore the prompt.
+      if (!response.trim()) {
         const draft = lastSentInputRef.current || prompt;
         lastSentInputRef.current = "";
-        setInput((current) => current || draft);
+        if (draft) setInput((current) => current || draft);
         setMessages([]);
         toast.error(
           generationConfig.useCredits
