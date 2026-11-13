@@ -64,6 +64,7 @@ npm run build      # Production build and Next.js type checks
 npm run start      # Start production server after build
 npm run lint       # ESLint 10 flat config
 npm run test:browser # Headless Playwright smoke tests
+npm run test:session # Signed-in Playwright flows on Auth/Firestore emulators; builds its own emulator bundle into .next (needs Java 11+)
 npm run typecheck # tsc --noEmit
 npm run test # Contract tests in tests/code-reliability.spec.ts; needs a server already on the Playwright base URL
 npm run doctor # React Doctor 0.9.14, full scope (pinned)
@@ -137,6 +138,9 @@ tests/
   code-reliability.spec.ts
   route-protection.spec.ts
   writing-controls.spec.ts
+
+tests-session/ (playwright.session.config.ts, firebase.session.json)
+  signed-in-redirect.spec.ts
 ```
 
 Root config files include `package.json`, `package-lock.json`, `next.config.mjs`, `eslint.config.mjs`, `playwright.config.ts`, `tailwind.config.ts`, `postcss.config.mjs`, and `tsconfig.json`.
@@ -145,7 +149,7 @@ Root config files include `package.json`, `package-lock.json`, `next.config.mjs`
 
 - Public homepage with hero, starter paths, feature sections, auth CTA, and responsive typewriter sizing.
 - Public `/about`, `/terms`, `/privacy`, and `/support` pages using shared public-page layout components.
-- Dedicated `/login` and `/signup` pages. Protected routes redirect signed-out requests to `/login?next=<path>`, and a successful sign-in returns there. The page server component verifies the auth cookie with the Admin SDK (`redirectIfSignedIn()` in `src/utils/signedInRedirect.ts`) and calls `redirect()` to the sanitized `next` (or `DEFAULT_SIGNED_IN_ROUTE`); a missing, stale, forged, or unverifiable cookie renders the form. When Firebase restores a user whose cookie was stale, `AuthPage` calls `router.refresh()` once after a fresh cookie is stored so the server can redirect, and shows a Continue link meanwhile.
+- Dedicated `/login` and `/signup` pages. Protected routes redirect signed-out requests to `/login?next=<path>`, and a successful sign-in returns there. The page server component verifies the auth cookie with the Admin SDK (`redirectIfSignedIn()` in `src/utils/signedInRedirect.ts`) and calls `redirect()` to the sanitized `next` (or `DEFAULT_SIGNED_IN_ROUTE`); a missing, stale, forged, or unverifiable cookie renders the form. When Firebase restores a user whose cookie was stale, `AuthPage` calls `router.refresh()` once per stored session (`useAuthStore.sessionRecheckRequested`) so the server can redirect, and shows a Continue link meanwhile. After a form sign-in, `AuthPage` loads `next` with `window.location.assign`, not `router.replace`, so a cached proxy redirect cannot bounce between `/login` and `next`. The cookie and Firebase's IndexedDB session can diverge (site storage cleared, Safari's script-storage cap, agent browsers that carry cookies only); then the server redirects but the client has no user, `useAuthToken` clears the cookie (`keepalive`), and `/history` offers a sign-in link instead of a dead end. `npm run test:session` covers both paths. `/signin`, `/sign-in`, `/auth/signin`, and `/auth/login` redirect to `/login` in `next.config.mjs`.
 - Firebase auth with Google sign-in, email/password, password reset, and email-link sign-in.
 - Protected Chat, Tools, History, Account, payment attempt, and payment success routes.
 - Streaming AI chat through `/api/chat`.
@@ -231,7 +235,7 @@ Image clients pass a fresh client idempotency key so retries can be deduplicated
 - Sign-out goes through `signOutUser()` / `useSignOut()` in `src/hooks/useSignOut.ts`. Do not call `signOut(auth)` elsewhere.
 - `useAuthToken()` posts the ID token to that route before profile sync and refreshes it on interval/focus/visibility. Sign-out calls `DELETE /api/auth/session`.
 - Signed-out visitors see Sign in and Create account in the header and mobile menu, linking to `/login` and `/signup`. The homepage keeps its sign-in modal. `next` is passed through `sanitizeInternalRedirectPath()` and defaults to `DEFAULT_SIGNED_IN_ROUTE` (`/tools`). Firebase auth failures are shown through `friendlyAuthError()` in `src/components/auth/authMessages.ts`, never as provider text.
-- Links to protected routes that signed-out visitors can see use `ProtectedLink`. It keeps prefetch off until `useAuthStore.sessionReady` is true, which `persistIdTokenCookie()` sets. Without it, Next caches the proxy's redirect home from a signed-out prefetch and replays it on the first click after sign-in.
+- Links to protected routes that signed-out visitors can see use `ProtectedLink`. It keeps prefetch off until `useAuthStore.sessionReady` is true, which `persistIdTokenCookie()` sets. Without it, Next caches the proxy's redirect to `/login` from a prefetch made before the cookie exists and replays it after sign-in. That includes links that render as soon as Firebase reports a user (the Continue link on `/login`, `CreditsBadge`), because `uid` is set before the cookie is written. Header links to `/login` and `/signup` use `prefetch={false}` because those pages redirect a verified cookie on the server.
 - Do not treat proxy access as authorization. A forged or expired cookie must still fail at the server action/API layer.
 
 ### Credits And Payments
@@ -361,6 +365,7 @@ Do not remove WebView branches as dead code.
 - Run `npm run build` for routing, server action, API, auth, payment, credit, shared UI, or config changes.
 - Run `npm run test:browser` for visible UI, activation, routing, homepage, auth modal, protected-route, paywall, or starter-path changes.
 - Add or update Playwright tests for new user-visible flows that can be verified without manual login.
+- Run `npm run test:session` for auth, session cookie, sign-in, sign-out, or `/login` and `/signup` redirect changes; flows that need a signed-in user belong in `tests-session/`.
 - No formatter script is configured. Do not invent a new formatter command for routine validation unless the project adds one.
 - There is no unit test runner configured. If adding one, keep it intentional and document the new command here.
 
@@ -406,7 +411,7 @@ High-risk UX/platform paths:
 ## Deployment And Infrastructure Notes
 
 - `firebase.json` points at `firestore.rules`, `firestore.indexes.json`, and `storage.rules`. Do not deploy them from app release automation. No `vercel.json`, Dockerfile, cron config, or queue worker config is present.
-- `.github/workflows/ci.yml` runs on pushes and pull requests to `dev` and `main` on Node 24 (AI SDK 7 and Firebase Admin 14 need Node 22 or later): `npm ci --ignore-scripts`, `npm run lint`, `npm run typecheck`, and `npm run build`, then installs Chromium and runs `npm run test:browser` headlessly. Build-time client values come from repository secrets listed in `docs/ci-secrets.md`. The Firebase client defers initialization when `NEXT_PUBLIC_FIREBASE_APIKEY` is empty, so the build succeeds without them.
+- `.github/workflows/ci.yml` runs on pushes and pull requests to `dev` and `main` on Node 24 (AI SDK 7 and Firebase Admin 14 need Node 22 or later): `npm ci --ignore-scripts`, `npm run lint`, `npm run typecheck`, and `npm run build`, then installs Chromium and runs `npm run test:browser` headlessly. A separate `session` job installs Java 21 and runs `npm run test:session` against the emulators with demo config and no secrets. Build-time client values come from repository secrets listed in `docs/ci-secrets.md`. The Firebase client defers initialization when `NEXT_PUBLIC_FIREBASE_APIKEY` is empty, so the build succeeds without them.
 - Deployment is currently inferred to be a standard Next.js deployment driven by `package.json`, `next.config.mjs`, environment variables, and the hosting platform configuration outside this repo.
 - `public/.well-known/apple-app-site-association` and `public/.well-known/assetlinks.json` support native app/WebView association paths. Do not remove them as unused website assets.
 - `next.config.mjs` allows Firebase/Google Storage image hosts and has `reactStrictMode: false`; re-enabling Strict Mode requires auditing auth/profile effects first.

@@ -15,6 +15,8 @@ interface AuthState {
   authPending: boolean;
   /** The HttpOnly session cookie was written by `/api/auth/session` in this tab. */
   sessionReady: boolean;
+  /** AuthPage already asked the server to re-check this session cookie. */
+  sessionRecheckRequested: boolean;
   isAdmin: boolean;
   isAllowed: boolean;
   isInvited: boolean;
@@ -41,6 +43,7 @@ const defaultAuthState: AuthState = {
   authReady: false,
   authPending: false,
   sessionReady: false,
+  sessionRecheckRequested: false,
   isAdmin: false,
   isAllowed: false,
   isInvited: false,

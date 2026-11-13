@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { ProtectedLink } from "@/components/ui/ProtectedLink";
 import { UNVERIFIED_STARTER_CREDITS_MESSAGE } from "@/utils/starterCreditsMessage";
 import { useMemo } from "react";
 import { usePathname } from "next/navigation";
@@ -46,7 +46,7 @@ export function CreditsBadge({ showLabel = false }: { showLabel?: boolean }) {
 
   return (
     <div className="flex items-center gap-2">
-      <Link
+      <ProtectedLink
         href={ROUTES.account}
         className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-sm font-semibold text-foreground hover:opacity-90 transition-opacity"
         aria-label={balanceLabel}
@@ -59,27 +59,27 @@ export function CreditsBadge({ showLabel = false }: { showLabel?: boolean }) {
         >
           credits
         </span>
-      </Link>
+      </ProtectedLink>
 
       {profileLoaded && !emailVerified ? (
-        <Link
+        <ProtectedLink
           href={ROUTES.account}
           className="hidden md:inline-flex max-w-56 items-center rounded-full border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-semibold text-foreground hover:opacity-90"
           title={UNVERIFIED_STARTER_CREDITS_MESSAGE}
         >
           Verify email for 1,000 credits
-        </Link>
+        </ProtectedLink>
       ) : null}
 
       {canBuyCredits && profileLoaded && emailVerified && numericCredits > 0 && numericCredits < LOW_CREDITS_THRESHOLD ? (
-        <Link
+        <ProtectedLink
           href={topUpHref}
           className="hidden md:inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-sm font-semibold hover:opacity-90 transition-opacity"
           aria-label="Top up credits"
           title="Top up credits"
         >
           Top up
-        </Link>
+        </ProtectedLink>
       ) : null}
     </div>
   );

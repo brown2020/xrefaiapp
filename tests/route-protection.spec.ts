@@ -55,6 +55,20 @@ test.describe("proxy route protection", () => {
     });
   }
 
+  for (const alias of ["/signin", "/sign-in", "/auth/signin", "/auth/login"]) {
+    test(`sends the common sign-in path ${alias} to /login`, async ({ page, request }) => {
+      const response = await request.get(`${alias}?next=/history`, { maxRedirects: 0 });
+      expect(response.status()).toBe(307);
+      expect(response.headers()["location"]).toBe("/login?next=%2Fhistory");
+
+      await page.goto(`${alias}?next=//evil.com`);
+      const url = new URL(page.url());
+      expect(url.pathname).toBe("/login");
+      await expect(page.getByRole("heading", { level: 1, name: "Welcome back" })).toBeVisible();
+      expect(await page.content()).not.toContain("//evil.com");
+    });
+  }
+
   test("keeps the query string in the return path", async ({ page }) => {
     await page.goto("/chat?intent=student-study-guide");
 

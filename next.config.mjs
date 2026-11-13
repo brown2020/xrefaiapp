@@ -19,6 +19,13 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    return ["/signin", "/sign-in", "/auth/signin", "/auth/login"].map((source) => ({
+      source,
+      destination: "/login",
+      permanent: false,
+    }));
+  },
   allowedDevOrigins: ["127.0.0.1"],
   turbopack: {
     resolveAlias: {

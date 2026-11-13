@@ -1,17 +1,18 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { useAuthSession, type AuthMode } from "@/components/auth/useAuthSession";
 import { AuthCredentialsForm } from "@/components/auth/AuthCredentialsForm";
 import { AuthPendingPanel } from "@/components/auth/AuthBits";
+import { ProtectedLink } from "@/components/ui/ProtectedLink";
 import {
   ROUTE_DISPLAY_NAMES,
   sanitizeInternalRedirectPath,
   validateAgainstAllowlist,
 } from "@/utils/redirectPath";
 import { DEFAULT_SIGNED_IN_ROUTE } from "@/constants/routes";
+import { useAuthStore } from "@/zustand/useAuthStore";
 
 /**
  * Full-page sign-in or sign-up. `next` must already be a sanitized internal path.
@@ -22,7 +23,8 @@ export default function AuthPage({ mode, next }: { mode: AuthMode; next: string 
   const router = useRouter();
   const [redirecting, setRedirecting] = useState(false);
   const hasRedirected = useRef(false);
-  const hasRecheckedSession = useRef(false);
+  const sessionRecheckRequested = useAuthStore((s) => s.sessionRecheckRequested);
+  const setAuthDetails = useAuthStore((s) => s.setAuthDetails);
 
   // Re-sanitize on the client so only allowlisted same-origin routes are ever navigated to.
   const safeNext = sanitizeInternalRedirectPath(next, DEFAULT_SIGNED_IN_ROUTE);
@@ -36,21 +38,27 @@ export default function AuthPage({ mode, next }: { mode: AuthMode; next: string 
       if (hasRedirected.current) return;
       hasRedirected.current = true;
       setRedirecting(true);
-      router.replace(safeNext);
+      // A full load, not router.replace: the client router may hold a protected
+      // route's redirect to /login, cached by the proxy before the cookie
+      // existed. Replaying it here would bounce between /login and `next`.
+      window.location.assign(safeNext);
     },
   });
-  const { uid, authEmail, authPending, sessionReady, email, handleSignOut } = session;
+  const { uid, authEmail, authPending, sessionReady, isSubmitting, email, handleSignOut } =
+    session;
 
   // The server rendered this page because the cookie it received was missing
   // or stale (ID tokens expire hourly). Once Firebase restores the user and the
   // session route has verified and stored a fresh token, re-render on the
-  // server so it can verify that cookie and redirect. Once only: if the server
-  // still cannot verify it, the Continue link below remains.
+  // server so it can verify that cookie and redirect. Once per stored session,
+  // across remounts: if the server still cannot verify it, the Continue link
+  // below remains.
   useEffect(() => {
-    if (!uid || !sessionReady || hasRedirected.current || hasRecheckedSession.current) return;
-    hasRecheckedSession.current = true;
+    if (!uid || !sessionReady || isSubmitting || hasRedirected.current) return;
+    if (sessionRecheckRequested) return;
+    setAuthDetails({ sessionRecheckRequested: true });
     router.refresh();
-  }, [uid, sessionReady, router]);
+  }, [uid, sessionReady, isSubmitting, sessionRecheckRequested, setAuthDetails, router]);
 
   return (
     <main className="min-h-full bg-muted/30 px-5 py-12 md:py-16">
@@ -66,14 +74,14 @@ export default function AuthPage({ mode, next }: { mode: AuthMode; next: string 
               <h1 className="text-2xl font-bold">You&apos;re already signed in</h1>
               <p className="mt-1 break-all text-sm text-muted-foreground">{authEmail}</p>
             </div>
-            <Link
+            <ProtectedLink
               href={safeNext}
               className="btn-primary mt-0 text-center"
               data-testid="continue-button"
               data-target-path={safeNext}
             >
               Continue to {displayName}
-            </Link>
+            </ProtectedLink>
             <button type="button" onClick={handleSignOut} className="btn-muted mt-0">
               Sign out
             </button>

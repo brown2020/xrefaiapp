@@ -11,6 +11,7 @@
     "start": "next start",
     "lint": "eslint .",
     "test:browser": "env -u FORCE_COLOR -u NO_COLOR playwright test",
+    "test:session": "env -u FORCE_COLOR -u NO_COLOR playwright test -c playwright.session.config.ts",
     "test:unit": "NODE_OPTIONS='--max-old-space-size=4096' vitest run",
     "typecheck": "tsc --noEmit",
     "doctor": "npx -y react-doctor@0.9.22 --scope full --score -y",

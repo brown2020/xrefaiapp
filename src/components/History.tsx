@@ -63,6 +63,7 @@ function readHistorySettings(value: unknown): Record<string, string> | undefined
 
 export default function History() {
   const uid = useAuthStore((state) => state.uid);
+  const authReady = useAuthStore((state) => state.authReady);
   const profile = useProfileStore((s) => s.profile);
   const [search, setSearch] = useState("");
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>(
@@ -170,12 +171,27 @@ export default function History() {
     }
   }, [pendingDelete, clearItems]);
 
+  if (!authReady) {
+    return (
+      <div className="flex items-center justify-center h-full" role="status">
+        <LoadingSpinner size="lg" text="Loading history…" />
+      </div>
+    );
+  }
+
   if (!uid) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex h-full flex-col items-center justify-center gap-3">
         <p className="text-muted-foreground">
           Please sign in to view your history.
         </p>
+        <Link
+          href={`${ROUTES.login}?next=${encodeURIComponent(ROUTES.history)}`}
+          prefetch={false}
+          className="btn-primary mt-0"
+        >
+          Sign in
+        </Link>
       </div>
     );
   }

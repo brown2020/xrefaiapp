@@ -1,7 +1,8 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, test, expect, vi } from 'vitest';
 import AuthPage from '@/components/auth/AuthPage';
 import * as useAuthSessionModule from '@/components/auth/useAuthSession';
+import { useAuthStore } from '@/zustand/useAuthStore';
 
 // Mock the useAuthSession hook
 vi.mock('@/components/auth/useAuthSession', () => ({
@@ -23,6 +24,7 @@ beforeEach(() => {
   router.replace.mockClear();
   router.push.mockClear();
   router.refresh.mockClear();
+  useAuthStore.getState().clearAuthDetails();
 });
 
 // Helper to create mock session for signed-in state
@@ -173,6 +175,34 @@ describe('AuthPage - server re-check for a stale session cookie', () => {
     }
   );
 
+  test('refreshes once per stored session even when the page remounts', async () => {
+    vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue({
+      ...createMockSession(),
+      sessionReady: true,
+    });
+
+    const first = render(<AuthPage mode="signin" next="/history" />);
+    await waitFor(() => expect(router.refresh).toHaveBeenCalledTimes(1));
+    first.unmount();
+    render(<AuthPage mode="signin" next="/history" />);
+    render(<AuthPage mode="signup" next="/history" />);
+
+    expect(router.refresh).toHaveBeenCalledTimes(1);
+    expect(useAuthStore.getState().sessionRecheckRequested).toBe(true);
+  });
+
+  test('does not refresh while a sign-in submit is in flight', () => {
+    vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue({
+      ...createMockSession(),
+      sessionReady: true,
+      isSubmitting: true,
+    });
+
+    render(<AuthPage mode="signin" next="/history" />);
+
+    expect(router.refresh).not.toHaveBeenCalled();
+  });
+
   test('does not refresh before the session cookie is stored', () => {
     vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue(createMockSession());
 
@@ -221,5 +251,36 @@ describe('AuthPage - server re-check for a stale session cookie', () => {
     expect(screen.queryByTestId('continue-button')).not.toBeInTheDocument();
     expect(router.replace).not.toHaveBeenCalled();
     expect(router.refresh).not.toHaveBeenCalled();
+  });
+});
+
+describe('AuthPage - after a sign-in from the form', () => {
+  test.each([
+    ['/history', '/history'],
+    ['/payment-success?session_id=cs_test_1', '/payment-success?session_id=cs_test_1'],
+    ['//evil.com', '/tools'],
+    ['https://evil.com', '/tools'],
+  ])('next=%s loads %s with a full navigation, not a client router replay', (next, expected) => {
+    const assign = vi.fn();
+    vi.stubGlobal('location', { ...window.location, assign });
+    vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue({
+      ...createMockSession(),
+      uid: '',
+      authEmail: '',
+    });
+
+    render(<AuthPage mode="signin" next={next} />);
+    const options = vi.mocked(useAuthSessionModule.useAuthSession).mock.lastCall?.[0];
+    act(() => {
+      options?.onSignedIn?.();
+      options?.onSignedIn?.();
+    });
+
+    expect(assign).toHaveBeenCalledTimes(1);
+    expect(assign).toHaveBeenCalledWith(expected);
+    expect(router.replace).not.toHaveBeenCalled();
+    expect(router.push).not.toHaveBeenCalled();
+    expect(screen.getByText(/Redirecting/)).toBeInTheDocument();
+    vi.unstubAllGlobals();
   });
 });

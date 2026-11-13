@@ -39,6 +39,9 @@ const menuItems: MenuItem[] = NAV_MENU_ITEMS.map((item) => ({
   icon: MENU_ICONS[item.href] || MessageSquare,
 }));
 
+// /login and /signup redirect a verified cookie on the server, and the cookie
+// can be cleared after a prefetch, so a cached prefetch could replay a stale
+// redirect. They load on click instead.
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
@@ -89,12 +92,14 @@ export default function Header() {
               <>
                 <Link
                   href={ROUTES.login}
+                  prefetch={false}
                   className="rounded-lg px-3 py-2 text-sm font-bold text-foreground transition-colors hover:bg-muted focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/30"
                 >
                   Sign in
                 </Link>
                 <Link
                   href={ROUTES.signup}
+                  prefetch={false}
                   className="rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground transition-opacity hover:opacity-90 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/30"
                 >
                   Create account
@@ -152,6 +157,7 @@ export default function Header() {
                       <SheetClose>
                         <Link
                           href={ROUTES.login}
+                          prefetch={false}
                           className="flex h-12 w-full items-center justify-start rounded-lg px-3 font-bold text-foreground transition-colors hover:bg-muted"
                         >
                           Sign in
@@ -160,6 +166,7 @@ export default function Header() {
                       <SheetClose>
                         <Link
                           href={ROUTES.signup}
+                          prefetch={false}
                           className="flex h-12 w-full items-center justify-start rounded-lg px-3 font-bold text-foreground transition-colors hover:bg-muted"
                         >
                           Create account

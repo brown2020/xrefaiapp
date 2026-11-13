@@ -55,3 +55,28 @@ jobs:
           name: react-doctor-ci-report
           path: react-doctor-ci.json
           retention-days: 30
+
+  # Signed-in flows on the Firebase Auth and Firestore emulators. Builds with
+  # demo emulator config only, so no secrets are in scope.
+  session:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:session
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: session-test-results
+          path: test-results
+          retention-days: 7
