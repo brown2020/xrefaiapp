@@ -59,6 +59,7 @@ const uid = useAuthStore((s) => s.uid);
 const authEmail = useAuthStore((s) => s.authEmail);
 const authDisplayName = useAuthStore((s) => s.authDisplayName);
 const authPending = useAuthStore((s) => s.authPending);
+const sessionReady = useAuthStore((s) => s.sessionReady);
 const [email, setEmail] = useState("");
 const [password, setPassword] = useState("");
 const [name, setName] = useState("");
@@ -328,6 +329,7 @@ const modalSubtitle = isEmailLinkLogin
     authEmail,
     authDisplayName,
     authPending,
+    sessionReady,
     email,
     setEmail,
     password,

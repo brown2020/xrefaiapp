@@ -13,11 +13,16 @@ import {
 } from "@/utils/redirectPath";
 import { DEFAULT_SIGNED_IN_ROUTE } from "@/constants/routes";
 
-/** Full-page sign-in or sign-up. `next` must already be a sanitized internal path. */
+/**
+ * Full-page sign-in or sign-up. `next` must already be a sanitized internal path.
+ * A visitor whose auth cookie verifies is redirected by the server page before
+ * this renders.
+ */
 export default function AuthPage({ mode, next }: { mode: AuthMode; next: string }) {
   const router = useRouter();
   const [redirecting, setRedirecting] = useState(false);
   const hasRedirected = useRef(false);
+  const hasRecheckedSession = useRef(false);
 
   // Re-sanitize on the client so only allowlisted same-origin routes are ever navigated to.
   const safeNext = sanitizeInternalRedirectPath(next, DEFAULT_SIGNED_IN_ROUTE);
@@ -34,18 +39,18 @@ export default function AuthPage({ mode, next }: { mode: AuthMode; next: string 
       router.replace(safeNext);
     },
   });
-  const { uid, authEmail, authPending, email, handleSignOut } = session;
+  const { uid, authEmail, authPending, sessionReady, email, handleSignOut } = session;
 
-  // Already signed in when the page opened: leave without waiting for a click.
-  // Firebase restores the session only on the client, so neither the proxy
-  // (cookie presence is not a session) nor a render-time redirect() (which
-  // unmounts the Continue fallback) can do this.
+  // The server rendered this page because the cookie it received was missing
+  // or stale (ID tokens expire hourly). Once Firebase restores the user and the
+  // session route has verified and stored a fresh token, re-render on the
+  // server so it can verify that cookie and redirect. Once only: if the server
+  // still cannot verify it, the Continue link below remains.
   useEffect(() => {
-    if (!uid || hasRedirected.current) return;
-    hasRedirected.current = true;
-    // react-doctor-disable-next-line nextjs-no-client-side-redirect
-    router.replace(safeNext);
-  }, [uid, safeNext, router]);
+    if (!uid || !sessionReady || hasRedirected.current || hasRecheckedSession.current) return;
+    hasRecheckedSession.current = true;
+    router.refresh();
+  }, [uid, sessionReady, router]);
 
   return (
     <main className="min-h-full bg-muted/30 px-5 py-12 md:py-16">
@@ -60,12 +65,9 @@ export default function AuthPage({ mode, next }: { mode: AuthMode; next: string 
             <div>
               <h1 className="text-2xl font-bold">You&apos;re already signed in</h1>
               <p className="mt-1 break-all text-sm text-muted-foreground">{authEmail}</p>
-              <p className="mt-2 text-sm text-muted-foreground" role="status">
-                Taking you to {displayName}...
-              </p>
             </div>
-            <Link 
-              href={safeNext} 
+            <Link
+              href={safeNext}
               className="btn-primary mt-0 text-center"
               data-testid="continue-button"
               data-target-path={safeNext}

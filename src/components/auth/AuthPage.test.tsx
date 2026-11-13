@@ -11,6 +11,7 @@ vi.mock('@/components/auth/useAuthSession', () => ({
 const router = vi.hoisted(() => ({
   replace: vi.fn(),
   push: vi.fn(),
+  refresh: vi.fn(),
 }));
 
 // Mock next/navigation
@@ -21,6 +22,7 @@ vi.mock('next/navigation', () => ({
 beforeEach(() => {
   router.replace.mockClear();
   router.push.mockClear();
+  router.refresh.mockClear();
 });
 
 // Helper to create mock session for signed-in state
@@ -28,6 +30,7 @@ const createMockSession = () => ({
   uid: 'test-user-123',
   authEmail: 'test@example.com',
   authPending: false,
+  sessionReady: false,
   email: 'test@example.com',
   handleSignOut: vi.fn(),
   authDisplayName: 'Test User',
@@ -135,74 +138,88 @@ describe('AuthPage - Explicit confirmation for already-signed-in users', () => {
     expect(continueLink).toHaveTextContent(/Continue to Tools/i);
   });
 
-  test('confirmation panel stays rendered as a fallback while the redirect runs', () => {
+  test('confirmation panel renders without any client-side navigation', () => {
     vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue(createMockSession());
 
     render(<AuthPage mode="signin" next="/history" />);
 
     const heading = screen.getByRole('heading', { name: /already signed in/i });
     expect(heading).toBeInTheDocument();
-    
-    // The Continue link stays available in case navigation is slow or blocked
-    const continueLink = screen.getByTestId('continue-button');
-    expect(continueLink).toBeInTheDocument();
+    expect(screen.getByTestId('continue-button')).toBeInTheDocument();
+    expect(router.replace).not.toHaveBeenCalled();
+    expect(router.push).not.toHaveBeenCalled();
   });
 });
 
-describe('AuthPage - automatic redirect for already-signed-in users', () => {
-  test('signed-in user with next=/history is redirected to /history', async () => {
+// Verified sessions are redirected by the /login and /signup server pages
+// (see src/utils/signedInRedirect.test.ts). AuthPage only asks the server to
+// re-check once the client has stored a fresh session cookie.
+describe('AuthPage - server re-check for a stale session cookie', () => {
+  test.each(['signin', 'signup'] as const)(
+    '%s: refreshes the server render once after a fresh session cookie is stored',
+    async (mode) => {
+      vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue({
+        ...createMockSession(),
+        sessionReady: true,
+      });
+
+      const { rerender } = render(<AuthPage mode={mode} next="/history" />);
+      rerender(<AuthPage mode={mode} next="/history" />);
+
+      await waitFor(() => expect(router.refresh).toHaveBeenCalledTimes(1));
+      expect(router.replace).not.toHaveBeenCalled();
+      expect(router.push).not.toHaveBeenCalled();
+      expect(screen.getByTestId('continue-button')).toHaveAttribute('href', '/history');
+    }
+  );
+
+  test('does not refresh before the session cookie is stored', () => {
     vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue(createMockSession());
 
     render(<AuthPage mode="signin" next="/history" />);
 
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/history'));
-    expect(router.replace).toHaveBeenCalledTimes(1);
-    expect(router.push).not.toHaveBeenCalled();
-    expect(screen.getByTestId('continue-button')).toHaveAttribute('href', '/history');
-  });
-
-  test('signed-in user on /signup with next=/history is redirected to /history', async () => {
-    vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue(createMockSession());
-
-    render(<AuthPage mode="signup" next="/history" />);
-
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/history'));
-    expect(router.replace).toHaveBeenCalledTimes(1);
+    expect(router.refresh).not.toHaveBeenCalled();
+    expect(router.replace).not.toHaveBeenCalled();
   });
 
   test.each(['//evil.com', 'https://evil.com', '/\\evil.com', '%2F%2Fevil.com', '/unknown-page'])(
-    'signed-in user with unsafe next=%s is redirected to the default route',
-    async (next) => {
-      vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue(createMockSession());
+    'unsafe next=%s never reaches the Continue link',
+    (next) => {
+      vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue({
+        ...createMockSession(),
+        sessionReady: true,
+      });
 
       render(<AuthPage mode="signin" next={next} />);
 
-      await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/tools'));
-      expect(router.replace).toHaveBeenCalledTimes(1);
-      expect(router.replace).not.toHaveBeenCalledWith(expect.stringContaining('evil'));
+      expect(screen.getByTestId('continue-button')).toHaveAttribute('href', '/tools');
+      expect(router.replace).not.toHaveBeenCalled();
     }
   );
 
-  test('query string on an allowlisted next is preserved', async () => {
+  test('query string on an allowlisted next is kept on the Continue link', () => {
     vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue(createMockSession());
 
     render(<AuthPage mode="signin" next="/payment-success?session_id=cs_test_1" />);
 
-    await waitFor(() =>
-      expect(router.replace).toHaveBeenCalledWith('/payment-success?session_id=cs_test_1')
-    );
-    expect(screen.getByTestId('continue-button')).toHaveTextContent(/Continue to Payment Success/i);
+    const continueLink = screen.getByTestId('continue-button');
+    expect(continueLink).toHaveAttribute('href', '/payment-success?session_id=cs_test_1');
+    expect(continueLink).toHaveTextContent(/Continue to Payment Success/i);
   });
 
-  test('signed-out user is not redirected', () => {
+  test('signed-out user sees the sign-in UI and is neither redirected nor refreshed', () => {
     vi.mocked(useAuthSessionModule.useAuthSession).mockReturnValue({
       ...createMockSession(),
       uid: '',
       authEmail: '',
+      sessionReady: true,
     });
 
     render(<AuthPage mode="signin" next="/history" />);
 
+    expect(screen.queryByRole('heading', { name: /already signed in/i })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('continue-button')).not.toBeInTheDocument();
     expect(router.replace).not.toHaveBeenCalled();
+    expect(router.refresh).not.toHaveBeenCalled();
   });
 });

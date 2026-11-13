@@ -258,6 +258,68 @@ async function signUp(page, email) {
   return badgeText(page);
 }
 
+async function authPageResponse(path, cookie) {
+  const response = await fetch(`${base}${path}`, {
+    redirect: "manual",
+    headers: cookie ? { cookie: `xrefAuthToken=${cookie}` } : {},
+  });
+  const location = response.headers.get("location");
+  const target = location ? new URL(location, base) : null;
+  return {
+    status: response.status,
+    target: target ? `${target.pathname}${target.search}` : null,
+    body: location ? "" : await response.text(),
+  };
+}
+
+/** Proves /login and /signup redirect a verified session on the server and never trust a forged or missing cookie. */
+async function proveSignedInRedirect(page) {
+  const token = (await page.context().cookies()).find((c) => c.name === "xrefAuthToken")?.value;
+  if (!token) throw new Error("missing auth cookie");
+  const paymentNext = "/payment-success?session_id=cs_test_1";
+  const cases = [
+    ["/login?next=/history", "/history"],
+    ["/signup?next=/history", "/history"],
+    ["/login?next=//evil.com", "/tools"],
+    ["/signup?next=https%3A%2F%2Fevil.com", "/tools"],
+    ["/login?next=/unknown-page", "/tools"],
+    [`/login?next=${encodeURIComponent(paymentNext)}`, paymentNext],
+    [`/signup?next=${encodeURIComponent(paymentNext)}`, paymentNext],
+  ];
+  for (const [from, to] of cases) {
+    const result = await authPageResponse(from, token);
+    if (result.status !== 307 || result.target !== to) {
+      throw new Error(`${from} answered ${result.status} -> ${result.target}, expected 307 -> ${to}`);
+    }
+  }
+  const [header, payload] = token.split(".");
+  for (const [label, cookie] of [["no cookie", null], ["forged cookie", `${header}.${payload}.forged`]]) {
+    for (const path of ["/login?next=/history", "/signup?next=/history"]) {
+      const result = await authPageResponse(path, cookie);
+      if (result.status !== 200 || result.target || !result.body.includes('type="email"')) {
+        throw new Error(`${label} on ${path} answered ${result.status} -> ${result.target}`);
+      }
+    }
+  }
+  note("signed-in-redirect", `server 307 for ${cases.length} cases; form for missing and forged cookies`);
+
+  for (const path of ["/login", "/signup"]) {
+    await page.goto(`${base}${path}?next=/history`);
+    await page.waitForURL(`${base}/history`, { timeout: 20_000 });
+  }
+  note("signed-in-redirect-browser", "/login and /signup with next=/history land on /history");
+
+  await page.context().addCookies([
+    { name: "xrefAuthToken", value: `${header}.${payload}.stale`, url: base, httpOnly: true, sameSite: "Lax" },
+  ]);
+  const staleResponse = await page.goto(`${base}/login?next=/history`);
+  if (staleResponse?.request().redirectedFrom() || staleResponse?.status() !== 200) {
+    throw new Error("stale cookie was trusted by the server render");
+  }
+  await page.waitForURL(`${base}/history`, { timeout: 20_000 });
+  note("stale-cookie-recheck", "stale cookie rendered the form, fresh cookie let the server redirect to /history");
+}
+
 async function main() {
   const openai = await startOpenAi();
   writeEmulatorConfig();
@@ -328,6 +390,8 @@ async function main() {
   if (!started.includes("1,000") || ledgerStart !== 1000) {
     throw new Error(`starter cache mismatch badge ${started} ledger ${ledgerStart}`);
   }
+
+  await proveSignedInRedirect(page);
 
   const abortResult = await page.evaluate(async () => {
     const controller = new AbortController();

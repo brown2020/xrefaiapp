@@ -1,9 +1,12 @@
 import { test, expect } from "@playwright/test";
 
 /**
- * Server-side login redirect tests.
- * Tests verify that the server-side redirect validates the 'next' parameter
- * and properly redirects already-signed-in users.
+ * Login redirect tests.
+ * /login and /signup redirect only when the server verifies the auth cookie
+ * with the Admin SDK (src/utils/signedInRedirect.ts). Signed-out visitors and
+ * forged or stale cookies get the form. The verified-session redirect itself
+ * is proven on emulators by `npm run prove:state` and in
+ * src/utils/signedInRedirect.test.ts.
  */
 
 test.describe("Login redirect - server-side behavioral tests", () => {
@@ -31,28 +34,15 @@ test.describe("Login redirect - server-side behavioral tests", () => {
     // Visit login with next parameter
     await page.goto("/login?next=/history");
     
-    // Key behavior: Should NOT auto-redirect - stays on login page
-    // This satisfies url-prefilled-privileged-action rule requirement
+    // Signed out: no redirect, stays on the login page
     await expect(page).toHaveURL(/\/login\?next=/);
-    
-    // Page loads normally (will show sign-in form or explicit confirmation
-    // depending on actual Firebase Auth state, which is out of scope for this test)
   });
 
   test("stale/invalid cookie shows explicit confirmation (no redirect loop)", async ({ page, context }) => {
     /**
-     * Stale cookie path:
-     * 
-     * 1. Browser has expired/invalid auth cookie
-     * 2. Login page loads and shows "You're already signed in" UI
-     * 3. Client-side Firebase Auth validates token → fails for stale token
-     * 4. useAuthToken clears the cookie (clearAuthCookie)
-     * 5. Page re-renders showing sign-in form
-     * 
-     * No redirect loop because:
-     * - No auto-redirect from login/signup pages anymore
-     * - Invalid tokens get cleared client-side
-     * - User can sign in again with fresh credentials
+     * Stale cookie path: the server cannot verify the cookie, so it renders
+     * the form instead of redirecting. The proxy does not match /login, so a
+     * cookie that is merely present never causes a redirect loop.
      */
     
     // Set an INVALID cookie value (not just absent, but present with bad value)
@@ -71,40 +61,65 @@ test.describe("Login redirect - server-side behavioral tests", () => {
     // Should stay on login page (no auto-redirect)
     await expect(page).toHaveURL(/\/login\?next=/);
     
-    // Page may briefly show "already signed in" then revert to sign-in form
-    // as the invalid token is detected and cleared
-    // Either state is acceptable - no redirect loop
   });
+
+  for (const path of ["/login", "/signup"]) {
+    test(`${path}: forged JWT-shaped cookie is not trusted for the redirect`, async ({ request }) => {
+      const forged = [
+        Buffer.from(JSON.stringify({ alg: "RS256", typ: "JWT" })).toString("base64url"),
+        Buffer.from(
+          JSON.stringify({
+            sub: "forged-user",
+            user_id: "forged-user",
+            exp: Math.floor(Date.now() / 1000) + 3600,
+            firebase: { sign_in_provider: "password" },
+          })
+        ).toString("base64url"),
+        "forged-signature",
+      ].join(".");
+
+      const response = await request.get(`${path}?next=/history`, {
+        headers: { cookie: `xrefAuthToken=${forged}` },
+        maxRedirects: 0,
+      });
+
+      expect(response.status()).toBe(200);
+      expect(response.headers()["location"]).toBeUndefined();
+      expect(await response.text()).toContain('type="email"');
+    });
+
+    test(`${path}: signed-out request renders the form with no redirect`, async ({ request }) => {
+      const response = await request.get(`${path}?next=/history`, { maxRedirects: 0 });
+
+      expect(response.status()).toBe(200);
+      expect(response.headers()["location"]).toBeUndefined();
+      expect(await response.text()).toContain('type="email"');
+    });
+  }
 });
 
 test.describe("Login redirect - behavior documentation", () => {
-  test("documents explicit confirmation for already-signed-in users", async ({ page }) => {
+  test("documents server-verified redirect for already-signed-in users", async ({ page }) => {
     /**
-     * BEHAVIOR: Explicit confirmation required for already-signed-in redirects
-     * 
-     * RULE: url-prefilled-privileged-action requires explicit user confirmation
-     * for URL-sourced redirect parameters.
-     * 
+     * BEHAVIOR: An already-signed-in visitor is redirected on the server.
+     *
      * IMPLEMENTATION:
-     * - No auto-redirect in middleware for /login or /signup pages
-     * - Already-signed-in users see "You're already signed in" UI
-     * - UI shows "Continue to <page name>" button with allowlisted target
-     * - User's click is the explicit confirmation
-     * - No auto-redirect based on URL parameter alone
-     * 
-     * CODE LOCATIONS:
-     * - src/proxy.ts: Login/signup NOT in middleware matcher
-     * - src/components/auth/AuthPage.tsx:28-52: Explicit confirmation UI
-     * - src/utils/redirectPath.ts: Allowlist validation and display names
+     * - src/app/login/page.tsx and src/app/signup/page.tsx call
+     *   redirectIfSignedIn(next) from src/utils/signedInRedirect.ts
+     * - It verifies the HttpOnly ID-token cookie with the Admin SDK
+     *   (checkRevoked) and calls redirect() with the allowlisted next,
+     *   falling back to DEFAULT_SIGNED_IN_ROUTE
+     * - src/proxy.ts does not match /login or /signup: cookie presence is
+     *   not a session
+     * - When Firebase restores a user whose cookie was stale, AuthPage asks
+     *   the server to re-check once with router.refresh() after a fresh
+     *   cookie is stored, and shows a Continue link meanwhile
      */
-    
+
     await page.goto("/login?next=/account");
-    
-    // Key behavior: No auto-redirect - stays on /login
+
+    // Signed out: no redirect, stays on /login
     await expect(page).toHaveURL(/\/login\?next=/);
-    
-    // Page loads and will show appropriate UI based on auth state
-    // (explicit confirmation button for signed-in users, sign-in form for others)
   });
 
   test("documents onSignedIn callback for new sign-ins", async ({ page }) => {
@@ -116,7 +131,7 @@ test.describe("Login redirect - behavior documentation", () => {
      * - Not a URL-prefilled privileged action
      * - Validated next parameter is used automatically
      * 
-     * CODE LOCATION: src/components/auth/AuthPage.tsx:17-24
+     * CODE LOCATION: onSignedIn in src/components/auth/AuthPage.tsx
      */
     
     await page.goto("/login?next=/tools");

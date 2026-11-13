@@ -13,7 +13,8 @@ import { PROTECTED_ROUTES, ROUTES } from "@/constants/routes";
  * 
  * /login and /signup are not matched: cookie presence alone is not proof of a
  * session (a stale cookie would bounce a signed-out user away from sign-in).
- * AuthPage redirects once Firebase reports a signed-in user.
+ * Their server pages verify the cookie with the Admin SDK and redirect a
+ * signed-in visitor (src/utils/signedInRedirect.ts).
  */
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
