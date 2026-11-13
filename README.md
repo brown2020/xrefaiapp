@@ -152,6 +152,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `npm run test:unit` | Vitest unit tests |
 | `npm test` | Playwright reliability suite (`tests/code-reliability.spec.ts`) without webServer |
 | `npm run test:browser` | Full Playwright suite |
+| `npm run test:session` | Signed-in Playwright flows (`tests-session/`) on the Auth and Firestore emulators: `/login` and `/signup` redirects, history, sign-out, re-sign-in, and a cookie-only browser. Builds its own emulator bundle into `.next` and needs Java 11+ |
 | `npm run doctor` | React Doctor full scan (pinned `react-doctor@0.9.14`) |
 | `npm run prove:workflows` | Critical workflows against Firebase emulators and a local model fixture (needs `firebase-tools` and Java; no paid calls) |
 | `npm run prove:deletion` | Account deletion removes every Firestore document, Storage file, and Auth record for the user (Auth, Firestore, and Storage emulators; run `npm run build` first) |
@@ -166,6 +167,8 @@ CI (`.github/workflows/ci.yml`) on `dev` / `main` and PRs:
 3. `npm run typecheck`
 4. `npm run build` with Firebase/Stripe `NEXT_PUBLIC_*` from `${{ secrets.* }}`
 5. `npm run test:browser` in headless Chromium against that build
+
+A separate `session` job installs Java 21 and runs `npm run test:session` against the emulators with demo config and no secrets.
 
 A separate `malware-scan.yml` workflow exists for dependency/malware scanning. Playwright specs under `tests/` cover activation paths, auth entry, route protection, writing controls, and code reliability.
 
