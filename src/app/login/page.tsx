@@ -12,9 +12,7 @@ export default async function LoginPage({
   searchParams?: PageSearchParams;
 }) {
   const params = searchParams ? await searchParams : undefined;
-  // Server-side validation: sanitizeInternalRedirectPath enforces allowlist.
-  // Already-signed-in redirect is handled by proxy.ts (middleware).
-  // This page component only validates the next parameter for client-side use.
+  // Already-signed-in users are redirected to `next` by AuthPage on the client.
   const next = sanitizeInternalRedirectPath(
     getSearchParam(params, "next"),
     DEFAULT_SIGNED_IN_ROUTE

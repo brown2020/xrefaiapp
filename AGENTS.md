@@ -145,7 +145,7 @@ Root config files include `package.json`, `package-lock.json`, `next.config.mjs`
 
 - Public homepage with hero, starter paths, feature sections, auth CTA, and responsive typewriter sizing.
 - Public `/about`, `/terms`, `/privacy`, and `/support` pages using shared public-page layout components.
-- Dedicated `/login` and `/signup` pages. Protected routes redirect signed-out requests to `/login?next=<path>`, and a successful sign-in returns there.
+- Dedicated `/login` and `/signup` pages. Protected routes redirect signed-out requests to `/login?next=<path>`, and a successful sign-in returns there. A visitor who is already signed in is sent to the sanitized `next` (or `DEFAULT_SIGNED_IN_ROUTE`) automatically, with a Continue link shown while that runs.
 - Firebase auth with Google sign-in, email/password, password reset, and email-link sign-in.
 - Protected Chat, Tools, History, Account, payment attempt, and payment success routes.
 - Streaming AI chat through `/api/chat`.
